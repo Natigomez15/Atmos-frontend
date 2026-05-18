@@ -1,0 +1,263 @@
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+
+#include "DHT.h"
+
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
+#include "addons/TokenHelper.h"
+#include "addons/RTDBHelper.h"
+
+// =====================================
+// WIFI (va a cambiar es el de mi casa=
+// =====================================
+
+#define WIFI_SSID "Linksys01237"
+#define WIFI_PASSWORD "ug2n0ijt7r"
+
+// =====================================
+// FIREBASE
+// =====================================
+
+#define API_KEY "AIzaSyByJn37VtJtQfC4sMb2eJDt1NflFQxuwhI"
+
+#define DATABASE_URL "https://prueba-de-prototipo-d1639-default-rtdb.firebaseio.com/"
+
+// =====================================
+// NOMBRE DEL NODO
+// CAMBIAR PARA CADA ESP32
+// =====================================
+
+#define NODO_ID "Aire_1"
+
+// =====================================
+// DHT11
+// =====================================
+
+#define DHTPIN 4
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// =====================================
+// PIR
+// =====================================
+
+#define PIRPIN 13
+
+// =====================================
+// DS18B20
+// =====================================
+
+#define ONE_WIRE_BUS 15
+
+OneWire oneWire(ONE_WIRE_BUS);
+
+DallasTemperature ds18b20(&oneWire);
+
+// =====================================
+// FIREBASE OBJETOS
+// =====================================
+
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+bool signupOK = false;
+
+// =====================================
+// SETUP
+// =====================================
+
+void setup() {
+
+  Serial.begin(115200);
+
+  // ---------------------------
+  // Sensores
+  // ---------------------------
+
+  pinMode(PIRPIN, INPUT);
+
+  dht.begin();
+
+  ds18b20.begin();
+
+  // ---------------------------
+  // WiFi
+  // ---------------------------
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  Serial.print("Conectando WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+
+    Serial.print(".");
+
+    delay(300);
+  }
+
+  Serial.println();
+
+  Serial.println("WiFi conectado");
+
+  Serial.print("IP: ");
+
+  Serial.println(WiFi.localIP());
+
+  // ---------------------------
+  // Firebase
+  // ---------------------------
+
+  config.api_key = API_KEY;
+
+  config.database_url = DATABASE_URL;
+
+  if (Firebase.signUp(&config, &auth, "", "")) {
+
+    Serial.println("Firebase conectado");
+
+    signupOK = true;
+
+  } else {
+
+    Serial.print("Error Firebase: ");
+
+    Serial.println(config.signer.signupError.message.c_str());
+  }
+
+  config.token_status_callback = tokenStatusCallback;
+
+  Firebase.begin(&config, &auth);
+
+  Firebase.reconnectWiFi(true);
+}
+
+// =====================================
+// LOOP
+// =====================================
+
+void loop() {
+
+  // ---------------------------
+  // DHT11
+  // ---------------------------
+
+  float temperatura = dht.readTemperature();
+
+  float humedad = dht.readHumidity();
+
+  // ---------------------------
+  // PIR
+  // ---------------------------
+
+  int movimiento = digitalRead(PIRPIN);
+
+  // ---------------------------
+  // DS18B20
+  // ---------------------------
+
+  ds18b20.requestTemperatures();
+
+  float temperatura_ds18b20 =
+      ds18b20.getTempCByIndex(0);
+
+  // ---------------------------
+  // Verificaciones
+  // ---------------------------
+
+  if (isnan(temperatura) || isnan(humedad)) {
+
+    Serial.println("Error DHT11");
+
+    temperatura = 0;
+
+    humedad = 0;
+  }
+
+  if (temperatura_ds18b20 == -127.00) {
+
+    Serial.println("DS18B20 no conectado");
+
+    temperatura_ds18b20 = 0;
+  }
+
+  // ---------------------------
+  // Mostrar datos
+  // ---------------------------
+
+  Serial.println("========== ATMOS ==========");
+
+  Serial.print("Nodo: ");
+
+  Serial.println(NODO_ID);
+
+  Serial.print("Temperatura DHT11: ");
+
+  Serial.println(temperatura);
+
+  Serial.print("Humedad: ");
+
+  Serial.println(humedad);
+
+  Serial.print("Movimiento: ");
+
+  Serial.println(movimiento);
+
+  Serial.print("Temperatura DS18B20: ");
+
+  Serial.println(temperatura_ds18b20);
+
+  // ---------------------------
+  // Firebase JSON
+  // ---------------------------
+
+  FirebaseJson json;
+
+  json.set("sensor", NODO_ID);
+
+  json.set("temperatura", temperatura);
+
+  json.set("temperatura_ds18b20",
+           temperatura_ds18b20);
+
+  json.set("humedad", humedad);
+
+  json.set("movimiento", movimiento);
+
+  // ---------------------------
+  // Ruta Firebase
+  // ---------------------------
+
+  String ruta =
+      "/Atmos/" + String(NODO_ID) + "/registros";
+
+  // ---------------------------
+  // Enviar a Firebase
+  // ---------------------------
+
+  if (Firebase.ready() && signupOK) {
+
+    if (Firebase.RTDB.pushJSON(
+            &fbdo,
+            ruta.c_str(),
+            &json)) {
+
+      Serial.println(
+          "Registro guardado en Firebase");
+
+    } else {
+
+      Serial.print("Error Firebase: ");
+
+      Serial.println(
+          fbdo.errorReason());
+    }
+  }
+
+  Serial.println("===========================");
+
+  delay(10000);
+}
