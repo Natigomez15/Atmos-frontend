@@ -1,11 +1,13 @@
 import { useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { MdRefresh, MdAir } from "react-icons/md"
+import { useNavigate } from "react-router-dom"
+import { MdRefresh, MdAir, MdLock } from "react-icons/md"
 
 import PageWrapper       from "../components/layout/PageWrapper"
 import QuickCommandForm  from "../components/common/QuickCommandForm"
 import CommandRow        from "../components/common/CommandRow"
 import { obtenerComandos, obtenerSalonesComandos } from "../api/commands"
+import { useAuth } from "../context/AuthContext"
 
 const ENCABEZADOS_TABLA = [
   { texto: "Salón",    clase: "" },
@@ -28,6 +30,8 @@ function formatearHoraActual() {
 }
 
 export default function CommandsPage() {
+  const { estaLogueado } = useAuth()
+  const navegar = useNavigate()
   const [idSalonFiltro,   setIdSalonFiltro]   = useState("")
   const [solosPendientes, setSoloPendientes]  = useState(false)
   const [horaActualizacion]                   = useState(formatearHoraActual)
@@ -52,7 +56,7 @@ export default function CommandsPage() {
   // ── Datos derivados ────────────────────────────────────────────────
 
   const mapaSalones = useMemo(
-    () => Object.fromEntries(salones?.map(s => [s.id, s.name]) ?? []),
+    () => Object.fromEntries(salones?.map(salon => [salon.sala_id, salon.nombre]) ?? []),
     [salones]
   )
 
@@ -84,10 +88,24 @@ export default function CommandsPage() {
 
         {/* Columna izquierda — 35% */}
         <div className="lg:col-span-2">
-          <QuickCommandForm
-            salones={salones ?? []}
-            alExito={recargarComandos}
-          />
+          {estaLogueado ? (
+            <QuickCommandForm
+              salones={salones ?? []}
+              alExito={recargarComandos}
+            />
+          ) : (
+            <div className="bg-gray-50 rounded-2xl p-6 text-center">
+              <MdLock size={32} className="text-muted mx-auto mb-3" />
+              <p className="text-sm font-medium text-dark">Inicia sesión para enviar comandos</p>
+              <p className="text-sm text-muted mt-1">Necesitas una cuenta para controlar los aires acondicionados</p>
+              <button
+                className="btn-primary mt-3"
+                onClick={() => navegar("/login")}
+              >
+                Iniciar sesión
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Columna derecha — 65% */}
@@ -105,7 +123,7 @@ export default function CommandsPage() {
               >
                 <option value="">Todos los salones</option>
                 {salones?.map(salon => (
-                  <option key={salon.id} value={salon.id}>{salon.name}</option>
+                  <option key={salon.sala_id} value={salon.sala_id}>{salon.nombre}</option>
                 ))}
               </select>
 
@@ -191,9 +209,9 @@ export default function CommandsPage() {
                 ) : (
                   comandos.map((comando, i) => (
                     <CommandRow
-                      key={comando.id ?? i}
+                      key={comando.comando_id ?? i}
                       comando={comando}
-                      nombreSalon={mapaSalones[comando.room_id] ?? "Salón desconocido"}
+                      nombreSalon={mapaSalones[comando.sala_id] ?? "Salón desconocido"}
                     />
                   ))
                 )}

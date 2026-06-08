@@ -14,6 +14,7 @@ import LiveMetric        from "../components/common/LiveMetric"
 import ACControlPanel    from "../components/common/ACControlPanel"
 import TempHumidityChart from "../components/charts/TempHumidityChart"
 import PowerChart        from "../components/charts/PowerChart"
+import Migas             from "../components/common/Migas"
 
 import {
   obtenerSalones,
@@ -179,8 +180,15 @@ export default function MonitoringPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────
 
+  const nombreSalaActual = salonSeleccionado?.name ?? salonSeleccionado?.nombre ?? "Laboratorio"
+
   return (
     <PageWrapper>
+      <Migas migas={[
+        { label: "Inicio",         ruta: "/" },
+        { label: "Vista general",  ruta: "/pabellon" },
+        { label: nombreSalaActual, ruta: null },
+      ]} />
 
       {/* ── Fila 1: Encabezado ──────────────────────────────────────── */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">

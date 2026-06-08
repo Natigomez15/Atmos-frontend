@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
+import { useAuth } from "../context/AuthContext"
 import {
   MdAdd,
   MdSearch,
@@ -13,6 +14,7 @@ import {
 import PageWrapper     from "../components/layout/PageWrapper"
 import RoomRow         from "../components/common/RoomRow"
 import RoomFormModal   from "../components/common/RoomFormModal"
+import AccionProtegida  from "../components/common/AccionProtegida"
 import { obtenerSalones, obtenerUltimaLecturaDetalladaSalon } from "../api/rooms"
 
 const ENCABEZADOS_TABLA = [
@@ -39,7 +41,7 @@ function minutosDesde(iso) {
 }
 
 function estaEnLinea(lectura) {
-  return lectura != null && minutosDesde(lectura.recorded_at) <= 10
+  return lectura != null && minutosDesde(lectura.registrado_en) <= 10
 }
 
 function TarjetaEstadistica({ icono, valor, etiqueta, colorTexto }) {
@@ -56,6 +58,7 @@ function TarjetaEstadistica({ icono, valor, etiqueta, colorTexto }) {
 
 export default function RoomsPage() {
   const navegar = useNavigate()
+  const { esAdmin } = useAuth()
 
   const [mostrarModal,   setMostrarModal]   = useState(false)
   const [salonEditando,  setSalonEditando]  = useState(null)
@@ -76,9 +79,9 @@ export default function RoomsPage() {
     queryFn: async () => {
       if (!salones) return {}
       const resultados = await Promise.all(
-        salones.map(s => obtenerUltimaLecturaDetalladaSalon(s.id))
+        salones.map(salon => obtenerUltimaLecturaDetalladaSalon(salon.sala_id))
       )
-      return Object.fromEntries(salones.map((s, i) => [s.id, resultados[i]]))
+      return Object.fromEntries(salones.map((salon, i) => [salon.sala_id, resultados[i]]))
     },
     enabled:         !!salones,
     refetchInterval: 30000,
@@ -87,15 +90,15 @@ export default function RoomsPage() {
   // ── Estadísticas ───────────────────────────────────────────────────
 
   const conteoEnLinea = useMemo(() =>
-    salones?.filter(s => estaEnLinea(lecturas?.[s.id])).length ?? 0,
+    salones?.filter(salon => estaEnLinea(lecturas?.[salon.sala_id])).length ?? 0,
     [salones, lecturas]
   )
   const conteoSinSenal = useMemo(() =>
-    salones?.filter(s => !estaEnLinea(lecturas?.[s.id])).length ?? 0,
+    salones?.filter(salon => !estaEnLinea(lecturas?.[salon.sala_id])).length ?? 0,
     [salones, lecturas]
   )
   const conteoAcEncendido = useMemo(() =>
-    salones?.filter(s => lecturas?.[s.id]?.ac_is_on).length ?? 0,
+    salones?.filter(salon => lecturas?.[salon.sala_id]?.ac_encendido).length ?? 0,
     [salones, lecturas]
   )
 
@@ -107,15 +110,15 @@ export default function RoomsPage() {
 
     if (terminoBusqueda.trim()) {
       const termino = terminoBusqueda.toLowerCase()
-      resultado = resultado.filter(s => s.name.toLowerCase().includes(termino))
+      resultado = resultado.filter(salon => salon.nombre.toLowerCase().includes(termino))
     }
 
     if (filtroActivo === "en_linea") {
-      resultado = resultado.filter(s => estaEnLinea(lecturas?.[s.id]))
+      resultado = resultado.filter(salon => estaEnLinea(lecturas?.[salon.sala_id]))
     } else if (filtroActivo === "sin_senal") {
-      resultado = resultado.filter(s => !estaEnLinea(lecturas?.[s.id]))
+      resultado = resultado.filter(salon => !estaEnLinea(lecturas?.[salon.sala_id]))
     } else if (filtroActivo === "ac_encendido") {
-      resultado = resultado.filter(s => lecturas?.[s.id]?.ac_is_on)
+      resultado = resultado.filter(salon => lecturas?.[salon.sala_id]?.ac_encendido)
     }
 
     return resultado
@@ -151,10 +154,12 @@ export default function RoomsPage() {
             {salones?.length ?? 0} salones en el sistema
           </p>
         </div>
-        <button className="btn-primary flex items-center gap-2" onClick={abrirNuevoSalon}>
-          <MdAdd size={18} />
-          Nuevo salón
-        </button>
+        <AccionProtegida requiereRol="admin">
+          <button className="btn-primary flex items-center gap-2" onClick={abrirNuevoSalon}>
+            <MdAdd size={18} />
+            Nuevo salón
+          </button>
+        </AccionProtegida>
       </div>
 
       {/* ── Fila 2: Estadísticas ────────────────────────────────────── */}
@@ -246,23 +251,26 @@ export default function RoomsPage() {
                       Intenta con otro término de búsqueda
                     </p>
                   ) : (
-                    <button
-                      className="btn-primary mt-4 inline-flex items-center gap-2"
-                      onClick={abrirNuevoSalon}
-                    >
-                      <MdAdd size={16} /> Registrar primer salón
-                    </button>
+                    <AccionProtegida requiereRol="admin">
+                      <button
+                        className="btn-primary mt-4 inline-flex items-center gap-2"
+                        onClick={abrirNuevoSalon}
+                      >
+                        <MdAdd size={16} /> Registrar primer salón
+                      </button>
+                    </AccionProtegida>
                   )}
                 </td>
               </tr>
             ) : (
               salonesFiltrados.map(salon => (
                 <RoomRow
-                  key={salon.id}
+                  key={salon.sala_id}
                   salon={salon}
-                  lectura={lecturas?.[salon.id] ?? null}
+                  lectura={lecturas?.[salon.sala_id] ?? null}
                   alEditar={() => abrirEdicionSalon(salon)}
-                  alMonitorear={() => navegar(`/monitoring?room_id=${salon.id}`)}
+                  alMonitorear={() => navegar(`/monitoring?room_id=${salon.sala_id}`)}
+                  puedeEditar={esAdmin}
                 />
               ))
             )}
@@ -276,19 +284,21 @@ export default function RoomsPage() {
               Mostrando {salonesFiltrados.length} de {salones?.length ?? 0} salones
             </p>
             <p className="text-xs text-muted">
-              Actualizado: {Math.floor((Date.now() - ultimaActualizacion.getTime()) / 1000)} s
+              Actualizado: {ultimaActualizacion.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false })}
             </p>
           </div>
         )}
       </div>
 
       {/* ── Modal ───────────────────────────────────────────────────── */}
-      <RoomFormModal
-        estaAbierto={mostrarModal}
-        alCerrar={cerrarModal}
-        alGuardar={recargarSalones}
-        salon={salonEditando}
-      />
+      {esAdmin && (
+        <RoomFormModal
+          estaAbierto={mostrarModal}
+          alCerrar={cerrarModal}
+          alGuardar={recargarSalones}
+          salon={salonEditando}
+        />
+      )}
 
     </PageWrapper>
   )

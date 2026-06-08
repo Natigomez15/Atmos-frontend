@@ -7,7 +7,7 @@ function minutosDesde(iso) {
 
 function InsigniaEstado({ lectura }) {
   if (!lectura) return <span className="badge-muted">Sin datos</span>
-  const minutos = minutosDesde(lectura.recorded_at)
+  const minutos = minutosDesde(lectura.registrado_en)
   if (minutos > 10) return <span className="badge-danger">Sin señal</span>
   return <span className="badge-success">En línea</span>
 }
@@ -18,12 +18,12 @@ function ColorTemperatura({ temperatura }) {
   return <span className={`font-medium ${clase}`}>{temperatura.toFixed(1)} °C</span>
 }
 
-export default function RoomRow({ salon, lectura, alEditar, alMonitorear }) {
+export default function RoomRow({ salon, lectura, alEditar, alMonitorear, puedeEditar = false }) {
   return (
     <tr className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
       {/* Nombre */}
       <td className="px-2 py-2 lg:px-4 lg:py-3">
-        <p className="font-medium text-dark text-sm">{salon.name}</p>
+        <p className="font-medium text-dark text-sm">{salon.nombre}</p>
         <p className="text-xs text-muted">
           {salon.pavilion && `${salon.pavilion} · `}
           {salon.floor != null && `Piso ${salon.floor}`}
@@ -37,22 +37,22 @@ export default function RoomRow({ salon, lectura, alEditar, alMonitorear }) {
 
       {/* Temperatura */}
       <td className="px-2 py-2 lg:px-4 lg:py-3 text-sm">
-        <ColorTemperatura temperatura={lectura?.temperature ?? null} />
+        <ColorTemperatura temperatura={lectura?.temperatura ?? null} />
       </td>
 
       {/* Humedad */}
       <td className="px-2 py-2 lg:px-4 lg:py-3 text-sm text-dark hidden md:table-cell">
-        {lectura?.humidity != null ? `${lectura.humidity.toFixed(0)} %` : "—"}
+        {lectura?.humedad != null ? `${lectura.humedad.toFixed(0)} %` : "—"}
       </td>
 
       {/* Consumo */}
       <td className="px-2 py-2 lg:px-4 lg:py-3 text-sm text-dark hidden md:table-cell">
-        {lectura?.power_w != null ? `${lectura.power_w.toFixed(0)} W` : "—"}
+        {lectura?.potencia_w != null ? `${lectura.potencia_w.toFixed(0)} W` : "—"}
       </td>
 
       {/* AC */}
       <td className="px-2 py-2 lg:px-4 lg:py-3">
-        {lectura?.ac_is_on
+        {lectura?.ac_encendido
           ? <span className="badge-success">Encendido</span>
           : <span className="badge-muted">Apagado</span>
         }
@@ -73,13 +73,15 @@ export default function RoomRow({ salon, lectura, alEditar, alMonitorear }) {
           >
             <MdMonitor size={17} />
           </button>
-          <button
-            onClick={alEditar}
-            title="Editar salón"
-            className="p-1.5 rounded-lg text-muted hover:bg-gray-100 transition-colors"
-          >
-            <MdEdit size={17} />
-          </button>
+          {puedeEditar && (
+            <button
+              onClick={alEditar}
+              title="Editar salón"
+              className="p-1.5 rounded-lg text-muted hover:bg-gray-100 transition-colors"
+            >
+              <MdEdit size={17} />
+            </button>
+          )}
         </div>
       </td>
     </tr>

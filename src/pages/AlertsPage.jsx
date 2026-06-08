@@ -1,5 +1,6 @@
 import { useState } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
+import { useAuth } from "../context/AuthContext"
 import {
   MdRefresh, MdDoneAll, MdNotificationsNone, MdCheckCircle,
   MdRouter, MdBolt, MdThermostat,
@@ -7,6 +8,7 @@ import {
 import PageWrapper     from "../components/layout/PageWrapper"
 import AlertCard       from "../components/common/AlertCard"
 import AlertStatsBar   from "../components/common/AlertStatsBar"
+import AccionProtegida  from "../components/common/AccionProtegida"
 import {
   obtenerAlertas, obtenerResumenAlertas, resolverAlerta, ejecutarChecks,
 } from "../api/alerts"
@@ -22,8 +24,7 @@ function minutosDesde(iso) {
 }
 
 export default function AlertsPage() {
-  const clienteQuery = useQueryClient()
-
+  const { estaLogueado } = useAuth()
   const [filtroSeveridad, setFiltroSeveridad] = useState("")
   const [filtroTipo,      setFiltroTipo]      = useState("")
   const [filtroResueltas, setFiltroResueltas] = useState(false)
@@ -54,7 +55,7 @@ export default function AlertsPage() {
     queryFn:  () => cliente.get("/rooms").then(r => r.data),
   })
 
-  const mapaSalones = Object.fromEntries(salones.map(s => [s.id, s.name]))
+  const mapaSalones = Object.fromEntries(salones.map(salon => [salon.sala_id, salon.nombre]))
 
   async function manejarResolver(idAlerta) {
     setResolviendo(idAlerta)
@@ -137,13 +138,15 @@ export default function AlertsPage() {
               }
               Verificar ahora
             </button>
-            {alertasSinResolver.length > 0 && (
-              <button
-                onClick={manejarResolverTodas}
-                className="btn-secondary flex items-center gap-1.5"
-              >
-                <MdDoneAll size={16} /> Marcar todas resueltas
-              </button>
+            {estaLogueado && alertasSinResolver.length > 0 && (
+              <AccionProtegida requiereRol="mantenimiento">
+                <button
+                  onClick={manejarResolverTodas}
+                  className="btn-secondary flex items-center gap-1.5"
+                >
+                  <MdDoneAll size={16} /> Marcar todas resueltas
+                </button>
+              </AccionProtegida>
             )}
           </div>
         </div>
@@ -178,7 +181,7 @@ export default function AlertsPage() {
             >
               <option value="">Todos los salones</option>
               {salones.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.sala_id} value={s.sala_id}>{s.nombre}</option>
               ))}
             </select>
 
@@ -256,9 +259,10 @@ export default function AlertsPage() {
                         <AlertCard
                           key={alerta.id}
                           alerta={alerta}
-                          nombreSalon={mapaSalones[alerta.room_id] ?? "Salón desconocido"}
+                          nombreSalon={mapaSalones[alerta.sala_id] ?? "Salón desconocido"}
                           alResolver={manejarResolver}
                           resolviendo={resolviendo === alerta.id}
+                          puedeResolver={estaLogueado}
                         />
                       ))}
                     </div>
@@ -276,9 +280,10 @@ export default function AlertsPage() {
                         <AlertCard
                           key={alerta.id}
                           alerta={alerta}
-                          nombreSalon={mapaSalones[alerta.room_id] ?? "Salón desconocido"}
+                          nombreSalon={mapaSalones[alerta.sala_id] ?? "Salón desconocido"}
                           alResolver={manejarResolver}
                           resolviendo={resolviendo === alerta.id}
+                          puedeResolver={estaLogueado}
                         />
                       ))}
                     </div>

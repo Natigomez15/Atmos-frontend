@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { MdAdd, MdRemove } from "react-icons/md"
 import { enviarComando } from "../../api/commands"
+import AccionProtegida from "./AccionProtegida"
 
 const estiloInput =
   "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white " +
@@ -93,7 +94,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
         >
           <option value="">Seleccionar salón...</option>
           {salones.map(salon => (
-            <option key={salon.id} value={salon.id}>{salon.name}</option>
+            <option key={salon.sala_id} value={salon.sala_id}>{salon.nombre}</option>
           ))}
         </select>
         {erroresFormulario.salon && (
@@ -157,16 +158,18 @@ export default function QuickCommandForm({ salones = [], alExito }) {
       )}
 
       {/* Botón enviar */}
-      <button
-        type="submit"
-        disabled={enviando}
-        className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {enviando && (
-          <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-        )}
-        Enviar comando
-      </button>
+      <AccionProtegida requiereRol="mantenimiento">
+        <button
+          type="submit"
+          disabled={enviando}
+          className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {enviando && (
+            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          )}
+          Mandar comando
+        </button>
+      </AccionProtegida>
 
       {/* Resultado */}
       {resultado === "exito" && (

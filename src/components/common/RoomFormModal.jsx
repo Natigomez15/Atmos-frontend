@@ -57,10 +57,11 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
 
   const modoEdicion = !!salon
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (salon) {
       setDatosFormulario({
-        name:     salon.name     ?? "",
+        name:     salon.nombre   ?? "",
         pavilion: salon.pavilion ?? "",
         capacity: salon.capacity != null ? String(salon.capacity) : "",
         area_m2:  salon.area_m2  != null ? String(salon.area_m2)  : "",
@@ -103,7 +104,7 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
 
     try {
       if (modoEdicion) {
-        await actualizarSalon(salon.id, carga)
+        await actualizarSalon(salon.sala_id, carga)
       } else {
         await crearSalon(carga)
       }

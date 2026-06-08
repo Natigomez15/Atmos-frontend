@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { MdNotifications, MdMenu, MdLogin, MdLogout, MdPerson } from "react-icons/md"
+import { MdNotifications, MdMenu, MdLogin, MdLogout } from "react-icons/md"
 import { useAuth } from "../../context/AuthContext"
 
 const TITULOS_PAGINA = {
@@ -31,8 +31,8 @@ function formatearFecha(fecha) {
 export default function Topbar({ cantidadAlertas = 0, wsConectado = false, alAbrirMenu }) {
   const ubicacion          = useLocation()
   const navegar            = useNavigate()
-  const { usuario, cerrarSesion } = useAuth()
-  const titulo             = TITULOS_PAGINA[ubicacion.pathname] ?? "ATMOS"
+  const { estaLogueado, esAdmin, esMantenimiento, perfil, cerrarSesion } = useAuth()
+  const titulo = TITULOS_PAGINA[ubicacion.pathname] ?? "ATMOS"
 
   const [ahora, setAhora] = useState(() => formatearFecha(new Date()))
 
@@ -40,10 +40,6 @@ export default function Topbar({ cantidadAlertas = 0, wsConectado = false, alAbr
     const intervalo = setInterval(() => setAhora(formatearFecha(new Date())), 60000)
     return () => clearInterval(intervalo)
   }, [])
-
-  const nombreUsuario = usuario?.user_metadata?.name
-    ?? usuario?.email?.split("@")[0]
-    ?? null
 
   async function manejarCerrarSesion() {
     await cerrarSesion()
@@ -95,11 +91,22 @@ export default function Topbar({ cantidadAlertas = 0, wsConectado = false, alAbr
         <span className="hidden md:block text-xs text-muted">{ahora}</span>
 
         {/* Auth */}
-        {usuario ? (
+        {estaLogueado ? (
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-dark">
-              <MdPerson size={15} className="text-secondary" />
-              <span className="max-w-[120px] truncate">{nombreUsuario}</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs font-medium text-dark max-w-[120px] truncate">
+                {perfil?.nombre}
+              </span>
+              {esAdmin && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  Admin
+                </span>
+              )}
+              {!esAdmin && esMantenimiento && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-secondary/10 text-secondary font-medium">
+                  Mantenimiento
+                </span>
+              )}
             </div>
             <button
               onClick={manejarCerrarSesion}

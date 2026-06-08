@@ -1,0 +1,16 @@
+{
+  "name": "ATMOS — Control Energético",
+  "short_name": "ATMOS",
+  "description": "Sistema de optimización energética IoT",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1B4F8A",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

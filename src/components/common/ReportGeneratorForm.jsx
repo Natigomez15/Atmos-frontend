@@ -22,13 +22,14 @@ const estiloInput =
   "focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
 
 export default function ReportGeneratorForm({ salones = [], alGenerar, alDescargar }) {
-  const [salonesSeleccionados, setSalonesSeleccionados] = useState(salones.map(s => s.id))
+  const [idsSalonesSeleccionados, setIdsSalonesSeleccionados] = useState(null)
   const [fechaInicio,  setFechaInicio]  = useState(fechaHaceNDias(7))
   const [fechaFin,     setFechaFin]     = useState(hoy())
   const [generando,    setGenerando]    = useState(false)
   const [descargando,  setDescargando]  = useState(false)
   const [error,        setError]        = useState(null)
 
+  const salonesSeleccionados = idsSalonesSeleccionados ?? salones.map(salon => salon.sala_id)
   const diasSeleccionados = diasEntreFechas(fechaInicio, fechaFin)
 
   function construirCarga() {
@@ -79,15 +80,18 @@ export default function ReportGeneratorForm({ salones = [], alGenerar, alDescarg
   }
 
   function alternarTodosLosSalones() {
-    setSalonesSeleccionados(
-      salonesSeleccionados.length === salones.length ? [] : salones.map(s => s.id)
+    setIdsSalonesSeleccionados(
+      salonesSeleccionados.length === salones.length ? [] : salones.map(salon => salon.sala_id)
     )
   }
 
   function alternarSalon(idSalon) {
-    setSalonesSeleccionados(prev =>
-      prev.includes(idSalon) ? prev.filter(id => id !== idSalon) : [...prev, idSalon]
-    )
+    setIdsSalonesSeleccionados(prev => {
+      const seleccionActual = prev ?? salones.map(salon => salon.sala_id)
+      return seleccionActual.includes(idSalon)
+        ? seleccionActual.filter(id => id !== idSalon)
+        : [...seleccionActual, idSalon]
+    })
   }
 
   const ocupado = generando || descargando
@@ -117,16 +121,16 @@ export default function ReportGeneratorForm({ salones = [], alGenerar, alDescarg
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-40 overflow-y-auto pr-1">
           {salones.map(salon => (
             <label
-              key={salon.id}
+              key={salon.sala_id}
               className="flex items-center gap-2 text-sm text-dark cursor-pointer py-1"
             >
               <input
                 type="checkbox"
-                checked={salonesSeleccionados.includes(salon.id)}
-                onChange={() => alternarSalon(salon.id)}
+                checked={salonesSeleccionados.includes(salon.sala_id)}
+                onChange={() => alternarSalon(salon.sala_id)}
                 className="accent-secondary w-3.5 h-3.5"
               />
-              <span className="truncate">{salon.name}</span>
+              <span className="truncate">{salon.nombre}</span>
             </label>
           ))}
         </div>

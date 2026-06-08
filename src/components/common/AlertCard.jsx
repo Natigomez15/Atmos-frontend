@@ -2,7 +2,7 @@ import { useState } from "react"
 import {
   MdError, MdWarning, MdInfo, MdCheckCircle, MdAccessTime,
 } from "react-icons/md"
-import { resolverAlerta } from "../../api/alerts"
+import AccionProtegida from "./AccionProtegida"
 
 function minutosDesde(iso) {
   if (!iso) return null
@@ -45,7 +45,7 @@ const ETIQUETAS_DETALLE = {
   avg_temperature:  "Temperatura promedio",
 }
 
-export default function AlertCard({ alerta, nombreSalon, alResolver, resolviendo }) {
+export default function AlertCard({ alerta, nombreSalon, alResolver, resolviendo, puedeResolver = true }) {
   const [detalleAbierto, setDetalleAbierto] = useState(false)
 
   const config    = CONFIG_SEVERIDAD[alerta.severity] ?? CONFIG_SEVERIDAD.medium
@@ -112,17 +112,21 @@ export default function AlertCard({ alerta, nombreSalon, alResolver, resolviendo
           ? <span className="text-xs text-muted">
               Resuelta: {formatearFechaHora(alerta.resolved_at)}
             </span>
-          : <button
-              onClick={() => alResolver(alerta.id)}
-              disabled={resolviendo}
-              className="btn-secondary flex items-center justify-center gap-1.5 text-xs py-1.5 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {resolviendo
-                ? <span className="w-3.5 h-3.5 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
-                : <MdCheckCircle size={14} />
-              }
-              Marcar resuelta
-            </button>
+          : puedeResolver
+            ? <AccionProtegida requiereRol="mantenimiento">
+                <button
+                  onClick={() => alResolver(alerta.id)}
+                  disabled={resolviendo}
+                  className="btn-secondary flex items-center justify-center gap-1.5 text-xs py-1.5 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resolviendo
+                    ? <span className="w-3.5 h-3.5 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
+                    : <MdCheckCircle size={14} />
+                  }
+                  Marcar resuelta
+                </button>
+              </AccionProtegida>
+            : null
         }
       </div>
 

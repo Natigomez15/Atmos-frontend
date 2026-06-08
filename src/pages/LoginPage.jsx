@@ -43,7 +43,6 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-2">
           <img src={logoAtmos} alt="ATMOS" className="h-14 w-auto object-contain" />
           <p className="text-xs text-muted text-center">Sistema de Control Energético</p>
-          <p className="text-xs text-muted text-center">UTP — Proyecto JIC 2025</p>
         </div>
 
         <hr className="border-gray-100" />
@@ -58,7 +57,7 @@ export default function LoginPage() {
               type="email"
               value={correo}
               onChange={e => setCorreo(e.target.value)}
-              placeholder="usuario@utp.edu.pe"
+              placeholder="usuario@correo.com"
               autoComplete="email"
               className={estiloInput}
             />

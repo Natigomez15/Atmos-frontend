@@ -1,0 +1,46 @@
+import clienteAPI from "./cliente"
+
+function mapearRegistroComoLectura(registro, sala) {
+  return {
+    sala_id:       sala.id,
+    nombre_sala:   sala.nombre,
+    temperatura:   registro.temperatura_ambiente ?? null,
+    humedad:       registro.humedad ?? null,
+    presencia:     registro.estado_ocupacion ?? false,
+    ac_encendido:  registro.aire_encendido_atmos ?? false,
+    potencia_w:    registro.potencia_w ?? null,
+    energia_kwh:   registro.energia_kwh ?? null,
+    registrado_en: registro.fecha_sync ?? null,
+    aire:          registro.aire ?? null,
+    pabellon:      registro.pabellon ?? null,
+  }
+}
+
+export const obtenerSalonesConLecturas = async () => {
+  const salas = await clienteAPI.get("/salas").then(r => r.data)
+  const lecturas = await Promise.all(
+    salas.map(sala =>
+      clienteAPI.get("/lecturas/registros/reciente", {
+        params: {
+          pabellon: sala.pabellon ?? sala.edificio ?? "robotica",
+          aire:     sala.nombre,
+        },
+      })
+        .then(r => mapearRegistroComoLectura(r.data, sala))
+        .catch(() => ({
+          sala_id:       sala.id,
+          nombre_sala:   sala.nombre,
+          temperatura:   null,
+          humedad:       null,
+          presencia:     false,
+          ac_encendido:  false,
+          potencia_w:    null,
+          registrado_en: null,
+        }))
+    )
+  )
+  return lecturas
+}
+
+export const enviarComandoRapido = (payload) =>
+  clienteAPI.post("/ac-commands", payload).then(r => r.data)

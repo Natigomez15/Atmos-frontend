@@ -1,7 +1,10 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { MdAssessment, MdCompareArrows, MdHistory, MdBolt, MdSavings, MdTrendingDown } from "react-icons/md"
+import { useNavigate } from "react-router-dom"
+import { MdAssessment, MdCompareArrows, MdHistory, MdBolt, MdSavings, MdTrendingDown, MdLock } from "react-icons/md"
+import { useAuth } from "../context/AuthContext"
 import PageWrapper         from "../components/layout/PageWrapper"
+import Migas               from "../components/common/Migas"
 import KPICard             from "../components/common/KPICard"
 import ReportGeneratorForm from "../components/common/ReportGeneratorForm"
 import EnergyReportResults from "../components/common/EnergyReportResults"
@@ -11,7 +14,6 @@ import {
   obtenerResumenPabellon,
   compararSalon,
   obtenerHistorialReportes,
-  generarReporteEnergiaCSV,
 } from "../api/reports"
 
 const PESTANAS = [
@@ -40,6 +42,8 @@ function InsigniaTipo({ tipo }) {
 }
 
 export default function ReportsPage() {
+  const { estaLogueado } = useAuth()
+  const navegar = useNavigate()
   const [pestanaActiva,    setPestanaActiva]    = useState("generar")
   const [resultadoReporte, setResultadoReporte] = useState(null)
   const [idSalonSeleccionado, setIdSalonSeleccionado] = useState("")
@@ -48,23 +52,26 @@ export default function ReportsPage() {
   const { data: salones = [] } = useQuery({
     queryKey: ["salones-reportes"],
     queryFn:  obtenerSalonesReportes,
+    enabled:  estaLogueado,
   })
 
   const { data: resumenPabellon, isLoading: cargandoResumen } = useQuery({
     queryKey: ["resumen-pabellon", diasComparacion],
     queryFn:  () => obtenerResumenPabellon(diasComparacion),
+    enabled:  estaLogueado,
   })
 
   const { data: comparacion, isLoading: cargandoComparacion } = useQuery({
     queryKey: ["comparacion-salon", idSalonSeleccionado, diasComparacion],
     queryFn:  () => compararSalon(idSalonSeleccionado, diasComparacion),
-    enabled:  !!idSalonSeleccionado,
+    enabled:  estaLogueado && !!idSalonSeleccionado,
   })
 
   const { data: historial = [] } = useQuery({
     queryKey: ["historial-reportes"],
     queryFn:  obtenerHistorialReportes,
     refetchInterval: 60000,
+    enabled:  estaLogueado,
   })
 
   const totalKwh    = resumenPabellon?.total_energy_kwh ?? 0
@@ -73,11 +80,27 @@ export default function ReportsPage() {
   const reduccion   = resumenPabellon?.avg_savings_pct ?? null
 
   async function manejarDescargarDesdeResultados() {
-    // descarga disparada desde EnergyReportResults — el form ya tiene su propio handler
+  }
+
+  if (!estaLogueado) {
+    return (
+      <PageWrapper>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="card flex flex-col items-center justify-center gap-4 text-center max-w-sm w-full">
+            <MdLock size={48} className="text-muted" />
+            <p className="font-semibold text-dark">Inicia sesión para acceder a los reportes</p>
+            <button className="btn-primary" onClick={() => navegar("/login")}>
+              Iniciar sesión
+            </button>
+          </div>
+        </div>
+      </PageWrapper>
+    )
   }
 
   return (
     <PageWrapper>
+      <Migas migas={[{ label: "Inicio", ruta: "/" }, { label: "Reportes", ruta: null }]} />
       <div className="flex flex-col gap-6">
 
         {/* KPIs del pabellón */}
@@ -176,8 +199,8 @@ export default function ReportsPage() {
                     className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
                   >
                     <option value="">Seleccionar salón...</option>
-                    {salones.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                    {salones.map(salon => (
+                      <option key={salon.sala_id} value={salon.sala_id}>{salon.nombre}</option>
                     ))}
                   </select>
                 </div>
