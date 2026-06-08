@@ -19,6 +19,7 @@ import {
   obtenerCaracteristicasML,
   aplicarPrediccion,
   dispararEvaluacion,
+  decidirAtmos,
 } from "../api/predictions"
 
 const IMPORTANCIA_VARIABLES = [
@@ -48,6 +49,16 @@ export default function PredictionsPage() {
   const [idSalonSeleccionado, setIdSalonSeleccionado] = useState("")
   const [idAplicando,         setIdAplicando]         = useState(null)
   const [evaluando,           setEvaluando]           = useState(false)
+  const [evaluandoAtmos,      setEvaluandoAtmos]      = useState(false)
+  const [resultadoAtmos,      setResultadoAtmos]      = useState(null)
+  const [errorAtmos,          setErrorAtmos]          = useState("")
+  const [lecturaAtmos,        setLecturaAtmos]        = useState({
+    presencia:             1,
+    temp_ambiente:         30,
+    temp_ac:               22,
+    humedad:               75,
+    minutos_sin_presencia: 0,
+  })
 
   // ── Queries ────────────────────────────────────────────────────────
 
@@ -140,6 +151,30 @@ export default function PredictionsPage() {
     }
   }
 
+  function actualizarLecturaAtmos(campo, valor) {
+    setLecturaAtmos(prev => ({
+      ...prev,
+      [campo]: ["presencia", "minutos_sin_presencia"].includes(campo)
+        ? Number.parseInt(valor, 10)
+        : Number.parseFloat(valor),
+    }))
+  }
+
+  async function manejarDecisionAtmos(evento) {
+    evento.preventDefault()
+    setEvaluandoAtmos(true)
+    setErrorAtmos("")
+    try {
+      const resultado = await decidirAtmos(lecturaAtmos)
+      setResultadoAtmos(resultado)
+    } catch (err) {
+      setResultadoAtmos(null)
+      setErrorAtmos(err.response?.data?.detail?.mensaje ?? "No se pudo evaluar la lectura ATMOS.")
+    } finally {
+      setEvaluandoAtmos(false)
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────
 
   return (
@@ -207,6 +242,133 @@ export default function PredictionsPage() {
       </div>
 
       {/* ── Fila 3: Cuadrícula de tarjetas ──────────────────────────── */}
+      <div className="card mb-6">
+        <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-dark">Decision ATMOS en vivo</h3>
+            <p className="text-xs text-muted mt-0.5">
+              Prueba directa del modelo con una lectura manual de sensores.
+            </p>
+          </div>
+          {resultadoAtmos?.modelo?.decision_ml && (
+            <span className="badge-muted">
+              ML: {resultadoAtmos.modelo.decision_ml}
+            </span>
+          )}
+        </div>
+
+        <form onSubmit={manejarDecisionAtmos} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            Presencia
+            <select
+              value={lecturaAtmos.presencia}
+              onChange={e => actualizarLecturaAtmos("presencia", e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-dark bg-white"
+            >
+              <option value={1}>Detectada</option>
+              <option value={0}>Sin presencia</option>
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            Temp. ambiente
+            <input
+              type="number"
+              min="10"
+              max="45"
+              step="0.1"
+              value={lecturaAtmos.temp_ambiente}
+              onChange={e => actualizarLecturaAtmos("temp_ambiente", e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-dark"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            Temp. AC
+            <input
+              type="number"
+              min="5"
+              max="35"
+              step="0.1"
+              value={lecturaAtmos.temp_ac}
+              onChange={e => actualizarLecturaAtmos("temp_ac", e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-dark"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            Humedad
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              value={lecturaAtmos.humedad}
+              onChange={e => actualizarLecturaAtmos("humedad", e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-dark"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs text-muted">
+            Min. sin presencia
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={lecturaAtmos.minutos_sin_presencia}
+              onChange={e => actualizarLecturaAtmos("minutos_sin_presencia", e.target.value)}
+              className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-dark"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={evaluandoAtmos}
+            className="btn-primary self-end justify-center disabled:opacity-50"
+          >
+            {evaluandoAtmos ? "Evaluando..." : "Evaluar ATMOS"}
+          </button>
+        </form>
+
+        {errorAtmos && (
+          <p className="text-sm text-danger mt-3">{errorAtmos}</p>
+        )}
+
+        {resultadoAtmos && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-muted">Decision final</p>
+              <p className="text-lg font-bold text-primary">
+                {resultadoAtmos.control?.decision_final}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                Delta T: {resultadoAtmos.lectura?.delta_t} C
+              </p>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-muted mb-2">Probabilidades</p>
+              {Object.entries(resultadoAtmos.modelo?.probabilidades ?? {}).map(([clase, prob]) => (
+                <div key={clase} className="flex justify-between text-xs text-dark">
+                  <span>{clase}</span>
+                  <span className="font-semibold">{prob}%</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-muted">Accion AC</p>
+              <p className="text-sm font-semibold text-dark mt-1">
+                {resultadoAtmos.control?.accion_ac?.accion}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                Modo: {resultadoAtmos.control?.accion_ac?.modo} | Ventilacion: {resultadoAtmos.control?.accion_ac?.ventilacion}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex items-baseline gap-3 mb-3">
         <h3 className="text-lg font-semibold text-dark">Recomendación por salón</h3>
         <span className="text-xs text-muted">Actualizado cada 60 segundos</span>

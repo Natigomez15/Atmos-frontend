@@ -5,27 +5,35 @@ import {
   MdDashboard,
   MdMeetingRoom,
   MdMonitor,
+  MdGridView,
   MdAir,
   MdAutoGraph,
   MdNotifications,
   MdAssessment,
   MdRouter,
   MdSettings,
+  MdPeople,
 } from "react-icons/md"
+import { useAuth } from "../../context/AuthContext"
 
-const navPrincipal = [
-  { etiqueta: "Dashboard",       icono: MdDashboard,     ruta: "/dashboard" },
-  { etiqueta: "Salones",         icono: MdMeetingRoom,   ruta: "/rooms" },
-  { etiqueta: "Monitoreo",       icono: MdMonitor,       ruta: "/monitoring" },
-  { etiqueta: "Comandos AC",     icono: MdAir,           ruta: "/commands" },
-  { etiqueta: "Predicciones ML", icono: MdAutoGraph,     ruta: "/predictions" },
-  { etiqueta: "Alertas",         icono: MdNotifications, ruta: "/alerts" },
-  { etiqueta: "Reportes",        icono: MdAssessment,    ruta: "/reports" },
+const navPublico = [
+  { etiqueta: "Dashboard",  icono: MdDashboard,     ruta: "/dashboard" },
+  { etiqueta: "Laboratorios", icono: MdMeetingRoom, ruta: "/rooms" },
+  { etiqueta: "Monitoreo",  icono: MdMonitor,       ruta: "/monitoring" },
+  { etiqueta: "Vista general", icono: MdGridView,    ruta: "/pabellon" },
+  { etiqueta: "Predicciones ML", icono: MdAutoGraph, ruta: "/predictions" },
+  { etiqueta: "Alertas",    icono: MdNotifications, ruta: "/alerts" },
 ]
 
-const navSistema = [
-  { etiqueta: "Nodos ESP32", icono: MdRouter,   ruta: "/nodes" },
-  { etiqueta: "Ajustes",     icono: MdSettings, ruta: "/settings" },
+const navAutenticado = [
+  { etiqueta: "Comandos AC", icono: MdAir,       ruta: "/commands" },
+  { etiqueta: "Reportes",    icono: MdAssessment, ruta: "/reports" },
+]
+
+const navAdmin = [
+  { etiqueta: "Nodos ESP32",     icono: MdRouter,    ruta: "/nodes" },
+  { etiqueta: "Usuarios",        icono: MdPeople,    ruta: "/users" },
+  { etiqueta: "Ajustes",         icono: MdSettings,  ruta: "/settings" },
 ]
 
 const estiloBase =
@@ -53,7 +61,6 @@ function ElementoNav({ elemento, cantidadAlertas }) {
           </span>
         </span>
       )}
-      {/* Punto compacto para tablet */}
       {elemento.ruta === "/alerts" && cantidadAlertas > 0 && (
         <span className="lg:hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-danger" />
       )}
@@ -62,9 +69,10 @@ function ElementoNav({ elemento, cantidadAlertas }) {
 }
 
 export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCerrar }) {
+  const { estaLogueado, esAdmin } = useAuth()
+
   return (
     <>
-      {/* Overlay en mobile */}
       {estaAbierto && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden"
@@ -83,7 +91,6 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
       >
         {/* Logo */}
         <div className="px-4 pt-6 pb-4 flex flex-col items-center relative">
-          {/* Botón cerrar — solo mobile */}
           <button
             onClick={alCerrar}
             className="md:hidden absolute right-3 top-4 text-muted hover:text-dark transition-colors"
@@ -102,36 +109,45 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
           <hr className="mt-4 border-gray-100 w-full" />
         </div>
 
-        {/* Navegación principal */}
+        {/* Navegación */}
         <nav className="flex-1 px-0 py-2 overflow-y-auto hide-scrollbar">
           <p className="block md:hidden lg:block px-6 mb-2 text-xs font-semibold text-muted uppercase tracking-wider">
             Menú Principal
           </p>
           <div className="flex flex-col gap-0.5">
-            {navPrincipal.map((elemento) => (
+            {navPublico.map(elemento => (
+              <div key={elemento.ruta} className="relative">
+                <ElementoNav elemento={elemento} cantidadAlertas={cantidadAlertas} />
+              </div>
+            ))}
+
+            {estaLogueado && navAutenticado.map(elemento => (
               <div key={elemento.ruta} className="relative">
                 <ElementoNav elemento={elemento} cantidadAlertas={cantidadAlertas} />
               </div>
             ))}
           </div>
 
-          <p className="block md:hidden lg:block px-6 mt-6 mb-2 text-xs font-semibold text-muted uppercase tracking-wider">
-            Sistema
-          </p>
-          <div className="hidden lg:block w-full border-t border-gray-100 mx-2 mt-4 mb-2 md:hidden lg:hidden" />
-          <div className="flex flex-col gap-0.5 mt-4 lg:mt-0">
-            {navSistema.map((elemento) => (
-              <div key={elemento.ruta} className="relative">
-                <ElementoNav elemento={elemento} cantidadAlertas={cantidadAlertas} />
+          {esAdmin && (
+            <>
+              <p className="block md:hidden lg:block px-6 mt-6 mb-2 text-xs font-semibold text-muted uppercase tracking-wider">
+                Sistema
+              </p>
+              <div className="flex flex-col gap-0.5 mt-4 lg:mt-0">
+                {navAdmin.map(elemento => (
+                  <div key={elemento.ruta} className="relative">
+                    <ElementoNav elemento={elemento} cantidadAlertas={cantidadAlertas} />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </nav>
 
         {/* Pie */}
         <div className="px-4 py-4 block md:hidden lg:block">
           <p className="text-xs text-muted">ATMOS v1.0</p>
-          <p className="text-xs text-muted">UTP — Proyecto JIC 2025</p>
+          <p className="text-xs text-muted/60 mt-0.5">Presiona / para buscar</p>
         </div>
       </aside>
     </>

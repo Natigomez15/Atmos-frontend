@@ -40,3 +40,6 @@ export const aplicarPrediccion = (idPrediccion) =>
 
 export const dispararEvaluacion = () =>
   cliente.post("/ml/evaluate").then(res => res.data)
+
+export const decidirAtmos = (datosLectura) =>
+  cliente.post("/ml/atmos/decidir", datosLectura).then(res => res.data)
