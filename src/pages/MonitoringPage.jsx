@@ -21,6 +21,7 @@ import {
   obtenerUltimaLectura,
   obtenerLecturasHistoricas,
   obtenerComandosPendientes,
+  obtenerDiagnosticoLecturas,
 } from "../api/monitoring"
 import { useRoomWebSocket } from "../hooks/useRoomWebSocket"
 
@@ -125,6 +126,13 @@ export default function MonitoringPage() {
   const { data: lecturaMasReciente, refetch: recargarLectura } = useQuery({
     queryKey:        ["latest-reading", idSalonSeleccionado],
     queryFn:         () => obtenerUltimaLectura(salonSeleccionado),
+    enabled:         !!salonSeleccionado,
+    refetchInterval: 60000,
+  })
+
+  const { data: diagnosticoLecturas } = useQuery({
+    queryKey:        ["reading-diagnostics", idSalonSeleccionado],
+    queryFn:         () => obtenerDiagnosticoLecturas(salonSeleccionado),
     enabled:         !!salonSeleccionado,
     refetchInterval: 60000,
   })
@@ -235,6 +243,21 @@ export default function MonitoringPage() {
       </div>
 
       {/* ── Fila 2: Métricas en vivo ─────────────────────────────────── */}
+      {diagnosticoLecturas?.diagnostico?.posible_fallo_sensor && (
+        <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3">
+          <p className="text-sm font-semibold text-dark">
+            Advertencia: se detectaron lecturas invalidas recientes del ESP32 o sensor.
+          </p>
+          <p className="text-xs text-muted mt-1">
+            El sistema esta usando la ultima lectura valida disponible.
+            {" "}Invalidas: {diagnosticoLecturas.diagnostico.lecturas_invalidas}
+            /{diagnosticoLecturas.diagnostico.lecturas_revisadas}
+            {" "}({diagnosticoLecturas.diagnostico.porcentaje_invalidas}%).
+            {" "}Estado: {diagnosticoLecturas.diagnostico.estado_sensor}.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <LiveMetric
           etiqueta="Temperatura"

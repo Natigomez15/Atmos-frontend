@@ -37,6 +37,11 @@ export const obtenerUltimaLectura = (salon) =>
     params: parametrosRegistro(salon),
   }).then(res => mapearRegistro(res.data))
 
+export const obtenerDiagnosticoLecturas = (salon) =>
+  cliente.get("/atmos/diagnostico", {
+    params: parametrosRegistro(salon),
+  }).then(res => res.data)
+
 export const obtenerLecturasHistoricas = (salon, horas = 6) =>
   cliente.get("/lecturas/registros", {
     params: {
