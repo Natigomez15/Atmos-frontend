@@ -20,6 +20,8 @@ import {
   aplicarPrediccion,
   dispararEvaluacion,
   decidirAtmos,
+  obtenerImpactoDecisiones,
+  obtenerImpactoReal,
 } from "../api/predictions"
 
 const IMPORTANCIA_VARIABLES = [
@@ -78,6 +80,18 @@ export default function PredictionsPage() {
     },
   })
 
+  const { data: impactoDecisiones, isLoading: cargandoImpacto } = useQuery({
+    queryKey:        ["ml-impacto-decisiones"],
+    queryFn:         obtenerImpactoDecisiones,
+    refetchInterval: 60000,
+  })
+
+  const { data: impactoReal } = useQuery({
+    queryKey:        ["ml-impacto-real"],
+    queryFn:         obtenerImpactoReal,
+    refetchInterval: 300000,
+  })
+
   const { data: caracteristicas, isLoading: cargandoCaracteristicas } = useQuery({
     queryKey: ["ml-features", idSalonSeleccionado],
     queryFn:  () => obtenerCaracteristicasML(idSalonSeleccionado, 7),
@@ -93,9 +107,13 @@ export default function PredictionsPage() {
 
   const promedioAhorro = useMemo(() => {
     const conDatos = todasPredicciones?.filter(p => p.predicted_savings_pct != null) ?? []
-    if (!conDatos.length) return null
+    if (!conDatos.length) {
+      return impactoDecisiones?.total_lecturas
+        ? impactoDecisiones.ahorro_predicho_pct
+        : impactoReal?.ahorro_promedio_pct ?? null
+    }
     return (conDatos.reduce((acc, p) => acc + p.predicted_savings_pct, 0) / conDatos.length).toFixed(1)
-  }, [todasPredicciones])
+  }, [todasPredicciones, impactoDecisiones, impactoReal])
 
   const conteoConPrediccion = useMemo(
     () => todasPredicciones?.filter(p => p.recommended_setpoint != null).length ?? 0,
@@ -219,10 +237,10 @@ export default function PredictionsPage() {
         <KPICard
           titulo="Ahorro promedio proyectado"
           valor={promedioAhorro ?? "—"}
-          unidad={promedioAhorro ? "%" : undefined}
+          unidad={promedioAhorro != null ? "%" : undefined}
           icono={<MdSavings size={20} />}
           color="success"
-          cargando={cargandoPredicciones}
+          cargando={cargandoPredicciones || cargandoImpacto}
         />
         <KPICard
           titulo="Salones con predicción"

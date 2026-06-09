@@ -29,6 +29,14 @@ export const obtenerTodasUltimasPredicciones = async () => {
   return predicciones
 }
 
+export const obtenerImpactoDecisiones = () =>
+  cliente.get("/ml/impacto/decisiones", {
+    params: { pabellon: "robotica", aire: "Aire_1" },
+  }).then(res => res.data)
+
+export const obtenerImpactoReal = () =>
+  cliente.get("/ml/impacto/real").then(res => res.data)
+
 export const obtenerCaracteristicasML = (idSalon, diasAtras = 7) =>
   cliente.get(`/ml/features/${idSalon}`, {
     params: { days_back: diasAtras }
