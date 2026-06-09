@@ -30,6 +30,16 @@ export default function FeaturesChart({ datos = [], cargando = false }) {
     return <div className="h-[160px] bg-gray-100 rounded-xl animate-pulse" />
   }
 
+  if (!datos.length) {
+    return (
+      <div className="h-[160px] bg-gray-50 rounded-xl flex items-center justify-center px-4 text-center">
+        <p className="text-sm text-muted">
+          Aun no hay suficientes lecturas validas para graficar los ultimos dias.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <ResponsiveContainer width="100%" height={160}>
       <ComposedChart data={datos} margin={{ top: 4, right: 24, left: 0, bottom: 0 }}>

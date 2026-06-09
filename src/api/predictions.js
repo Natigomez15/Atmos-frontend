@@ -13,10 +13,13 @@ export const obtenerTodasUltimasPredicciones = async () => {
   const predicciones = await Promise.all(
     salones.map(salon =>
       cliente.get(`/ml/predictions/${salon.id}/latest`)
-        .then(res => ({ ...res.data, room_name: salon.name }))
+        .then(res => ({
+          ...res.data,
+          room_name: salon.name ?? salon.nombre,
+        }))
         .catch(() => ({
           room_id:               salon.id,
-          room_name:             salon.name,
+          room_name:             salon.name ?? salon.nombre,
           recommended_setpoint:  null,
           predicted_savings_pct: null,
           confidence_score:      null,
