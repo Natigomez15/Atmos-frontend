@@ -271,7 +271,7 @@ export default function MonitoringPage() {
         </div>
 
         <LiveMetric
-          etiqueta="Potencia"
+          etiqueta="Potencia estimada"
           valor={lecturaActual?.power_w ?? null}
           unidad="W"
           icono={<MdBolt size={18} />}

@@ -16,12 +16,16 @@ function mapearSalon(salon) {
   }
 }
 
+function datoSensorValido(valor) {
+  return valor != null && Number(valor) !== 0 ? valor : null
+}
+
 function mapearLectura(registro) {
   if (!registro) return null
   return {
     ...registro,
-    temperatura:   registro.temperatura ?? registro.temperatura_ambiente ?? null,
-    humedad:       registro.humedad ?? null,
+    temperatura:   datoSensorValido(registro.temperatura ?? registro.temperatura_ambiente),
+    humedad:       datoSensorValido(registro.humedad),
     presencia:     registro.presencia ?? registro.estado_ocupacion ?? false,
     ac_encendido:  registro.ac_encendido ?? registro.aire_encendido_atmos ?? false,
     potencia_w:    registro.potencia_w ?? null,

@@ -1,11 +1,15 @@
 import clienteAPI from "./cliente"
 
+function datoSensorValido(valor) {
+  return valor != null && Number(valor) !== 0 ? valor : null
+}
+
 function mapearRegistroComoLectura(registro, sala) {
   return {
     sala_id:       sala.id,
     nombre_sala:   sala.nombre,
-    temperatura:   registro.temperatura_ambiente ?? null,
-    humedad:       registro.humedad ?? null,
+    temperatura:   datoSensorValido(registro.temperatura_ambiente),
+    humedad:       datoSensorValido(registro.humedad),
     presencia:     registro.estado_ocupacion ?? false,
     ac_encendido:  registro.aire_encendido_atmos ?? false,
     potencia_w:    registro.potencia_w ?? null,

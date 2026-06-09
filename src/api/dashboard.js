@@ -10,13 +10,17 @@ function parametrosRegistro(salon) {
   }
 }
 
+function datoSensorValido(valor) {
+  return valor != null && Number(valor) !== 0 ? valor : null
+}
+
 function mapearRegistro(registro, salon) {
   return {
     ...registro,
     room_id: salon.id,
     room_name: salon.name ?? salon.nombre,
-    temperature: registro.temperatura_ambiente ?? null,
-    humidity: registro.humedad ?? null,
+    temperature: datoSensorValido(registro.temperatura_ambiente),
+    humidity: datoSensorValido(registro.humedad),
     presence: registro.estado_ocupacion ?? false,
     ac_is_on: registro.aire_encendido_atmos ?? false,
     power_w: registro.potencia_w ?? null,
