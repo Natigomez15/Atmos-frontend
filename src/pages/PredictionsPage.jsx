@@ -32,11 +32,11 @@ const SENALES_OPERATIVAS = [
 ]
 
 const INFO_MOTOR_ATMOS = [
-  { etiqueta: "Tipo", valor: "Motor de decision ATMOS" },
+  { etiqueta: "Tipo", valor: "RandomForestClassifier + reglas de seguridad" },
   { etiqueta: "Datos", valor: "Lecturas validas sincronizadas desde Firebase/Supabase" },
-  { etiqueta: "Estado", valor: "En fase de recoleccion de datos reales" },
+  { etiqueta: "Estado", valor: "Modelo disponible; ejecucion depende de features validas" },
   { etiqueta: "Actualiza", valor: "Cada vez que se procesa una lectura" },
-  { etiqueta: "Version", valor: "motor_decision_atmos_v1" },
+  { etiqueta: "Version", valor: "modelo_atmos_rf_v1" },
 ]
 
 function BarraSenal({ etiqueta, porcentaje }) {

@@ -54,17 +54,35 @@ function CirculoConfianza({ puntuacion }) {
   )
 }
 
+function formatearValor(valor) {
+  if (valor == null) return "-"
+  if (typeof valor === "number") return Number.isInteger(valor) ? valor : valor.toFixed(2)
+  return String(valor)
+}
+
+function etiquetaModelo(prediccion, esOperativa) {
+  const modelo = prediccion.modelo_ml
+  if (modelo?.modelo_usado) return modelo.tipo_modelo ?? prediccion.model_version
+  if (modelo?.modelo_disponible) return "Modelo disponible"
+  if (esOperativa) return "Registros"
+  return prediccion.model_version ?? "Sin modelo"
+}
+
 export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
   const esPrediccionGuardada = prediccion.disponible === true || prediccion.fuente === "ml_predictions"
   const esOperativa = prediccion.fallback_disponible && !esPrediccionGuardada
   const sinDatos = !esPrediccionGuardada && !esOperativa
+  const modeloMl = prediccion.modelo_ml ?? {}
+  const featuresUsadas = modeloMl.features_usadas ?? prediccion.snapshot_features?.features_usadas
+  const prediccionModelo = modeloMl.prediccion_modelo ?? prediccion.snapshot_features?.prediccion_modelo
+  const accionFinal = modeloMl.accion_final ?? prediccion.snapshot_features?.accion_final
 
   return (
     <div className="card flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <p className="font-semibold text-dark text-sm">{prediccion.room_name}</p>
         <span className="badge-muted">
-          {esOperativa ? "Registros" : prediccion.model_version ?? "Sin modelo"}
+          {etiquetaModelo(prediccion, esOperativa)}
         </span>
       </div>
 
@@ -86,6 +104,11 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
             <p className="text-xs text-muted mt-2">
               Fuente: ultima accion guardada en registros. No es una prediccion entrenada.
             </p>
+            {modeloMl.modelo_disponible && !modeloMl.modelo_usado && (
+              <p className="text-xs text-amber-700 mt-2">
+                Modelo disponible, no ejecutado: {modeloMl.motivo_no_usado ?? "datos invalidos o incompletos"}.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2 py-1">
@@ -107,6 +130,18 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
         </>
       ) : (
         <>
+          {(prediccionModelo || accionFinal) && (
+            <div className="bg-secondary/5 rounded-xl p-3">
+              <p className="text-xs text-muted">Prediccion del modelo</p>
+              <p className="text-lg font-bold text-primary mt-1">
+                {prediccionModelo ?? "No disponible"}
+              </p>
+              <p className="text-xs text-muted mt-1">
+                Accion final: {accionFinal ?? prediccion.operational_recommendation ?? "pendiente"}
+              </p>
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-2 py-2">
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-2xl lg:text-3xl font-bold text-primary">
@@ -124,6 +159,17 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
           </div>
 
           <hr className="border-gray-100" />
+
+          {featuresUsadas && (
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {Object.entries(featuresUsadas).map(([clave, valor]) => (
+                <div key={clave} className="bg-gray-50 rounded-lg px-2 py-1">
+                  <p className="text-muted">{clave}</p>
+                  <p className="font-semibold text-dark">{formatearValor(valor)}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-2">
             <div>
