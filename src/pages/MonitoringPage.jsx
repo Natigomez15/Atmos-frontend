@@ -82,20 +82,6 @@ export default function MonitoringPage() {
     queryFn:  obtenerSalones,
   })
 
-  const { data: lecturaMasReciente, refetch: recargarLectura } = useQuery({
-    queryKey:        ["latest-reading", idSalonSeleccionado],
-    queryFn:         () => obtenerUltimaLectura(idSalonSeleccionado),
-    enabled:         !!idSalonSeleccionado,
-    refetchInterval: 60000,
-  })
-
-  const { data: historico, isLoading: cargandoHistorico, refetch: recargarHistorico } = useQuery({
-    queryKey:        ["historical", idSalonSeleccionado, horasHistorico],
-    queryFn:         () => obtenerLecturasHistoricas(idSalonSeleccionado, horasHistorico),
-    enabled:         !!idSalonSeleccionado,
-    refetchInterval: 300000,
-  })
-
   const { data: comandosPendientes } = useQuery({
     queryKey:        ["pending-commands", idSalonSeleccionado],
     queryFn:         () => obtenerComandosPendientes(idSalonSeleccionado),
@@ -135,6 +121,20 @@ export default function MonitoringPage() {
   // ── Datos derivados ────────────────────────────────────────────────────
 
   const salonSeleccionado = salones?.find(s => String(s.id) === idSalonSeleccionado)
+
+  const { data: lecturaMasReciente, refetch: recargarLectura } = useQuery({
+    queryKey:        ["latest-reading", idSalonSeleccionado],
+    queryFn:         () => obtenerUltimaLectura(salonSeleccionado),
+    enabled:         !!salonSeleccionado,
+    refetchInterval: 60000,
+  })
+
+  const { data: historico, isLoading: cargandoHistorico } = useQuery({
+    queryKey:        ["historical", idSalonSeleccionado, horasHistorico],
+    queryFn:         () => obtenerLecturasHistoricas(salonSeleccionado, horasHistorico),
+    enabled:         !!salonSeleccionado,
+    refetchInterval: 300000,
+  })
 
   // Lectura más reciente: WS tiene prioridad sobre la query
   const lecturaActual = useMemo(() => {
