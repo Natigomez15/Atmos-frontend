@@ -79,7 +79,7 @@ export default function RoomsPage() {
     queryFn: async () => {
       if (!salones) return {}
       const resultados = await Promise.all(
-        salones.map(salon => obtenerUltimaLecturaDetalladaSalon(salon.sala_id))
+        salones.map(salon => obtenerUltimaLecturaDetalladaSalon(salon))
       )
       return Object.fromEntries(salones.map((salon, i) => [salon.sala_id, resultados[i]]))
     },

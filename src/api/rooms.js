@@ -39,7 +39,12 @@ export const crearSalon = (carga) =>
 export const actualizarSalon = (idSalon, carga) =>
   cliente.patch(`/salas/${idSalon}`, carga).then(res => mapearSalon(res.data))
 
-export const obtenerUltimaLecturaDetalladaSalon = (idSalon) =>
-  cliente.get("/lecturas/registros/reciente", { params: { sala_id: idSalon } })
+export const obtenerUltimaLecturaDetalladaSalon = (salon) =>
+  cliente.get("/lecturas/registros/reciente", {
+    params: {
+      pabellon: salon.pabellon ?? salon.pavilion,
+      aire: salon.nombre ?? salon.name,
+    },
+  })
     .then(res => mapearLectura(res.data))
     .catch(() => null)
