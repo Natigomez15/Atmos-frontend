@@ -1,0 +1,18 @@
+file--> Preferences
+https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+Arduino IDE
+→ Sketch
+→ Include Library
+→ Manage Libraries
+
+Firebase ESP Client de Mobizt
+DHT sensor library de Adafruit
+Adafruit Unified Sensor
+OneWire
+DallasTemperature
+
+ESP32
+Boards Manager
+esp32
+ESP32 by Espressif Systems
