@@ -39,6 +39,27 @@ export function useNotificacionesPush() {
   function mensajeUsuarioDesdeError(err) {
     const mensaje = err?.message ?? String(err)
 
+    if (mensaje.includes("no_hay_suscripciones_activas")) {
+      return "No hay una suscripcion push activa guardada. Activa las notificaciones primero."
+    }
+    if (mensaje.includes("vapid_privada_no_configurada")) {
+      return "La clave privada VAPID no esta configurada en Render."
+    }
+    if (mensaje.includes("vapid_correo_no_configurado")) {
+      return "El correo VAPID no esta configurado en Render."
+    }
+    if (mensaje.includes("suscripcion_sin_claves")) {
+      return "La suscripcion guardada no tiene claves p256dh/auth. Desactiva y vuelve a activar notificaciones."
+    }
+    if (mensaje.includes("suscripcion_expirada_o_invalida")) {
+      return "La suscripcion del navegador expiro o fue revocada. Desactiva y vuelve a activar notificaciones."
+    }
+    if (mensaje.includes("error_pywebpush")) {
+      return "El backend no pudo enviar el push con pywebpush. Revisa el detalle en consola/logs."
+    }
+    if (mensaje.includes("error_backend_push")) {
+      return "El backend fallo al preparar la notificacion push. Revisa VAPID y la suscripcion guardada."
+    }
     if (mensaje.includes("GET clave-publica")) {
       return "No se pudo obtener la clave publica VAPID desde el backend."
     }
@@ -149,7 +170,13 @@ export function useNotificacionesPush() {
   const enviarPrueba = useCallback(async () => {
     setError(null)
     try {
-      return await enviarNotificacionPrueba()
+      const respuesta = await enviarNotificacionPrueba()
+      if (respuesta?.enviada === false) {
+        const motivo = respuesta.motivo ?? "prueba_no_enviada"
+        const detalle = respuesta.detalle ? ` - ${respuesta.detalle}` : ""
+        throw new Error(`POST prueba fallo: ${motivo}${detalle}`)
+      }
+      return respuesta
     } catch (err) {
       console.error("[PWA] Error prueba:", err.message, err)
       setError(mensajeUsuarioDesdeError(err))
