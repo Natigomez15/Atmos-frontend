@@ -162,7 +162,7 @@ export default function PredictionsPage() {
     <PageWrapper>
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-dark">Predicciones ATMOS</h2>
+          <h2 className="text-lg font-bold text-dark">Predicciones ATMOS</h2>
           <p className="text-sm text-muted mt-0.5">
             Recomendaciones operativas y predicciones guardadas usando registros reales.
           </p>

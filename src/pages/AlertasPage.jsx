@@ -123,7 +123,7 @@ export default function AlertasPage() {
         {/* FILA 1 — Encabezado ─────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-dark">Alertas</h1>
+            <h1 className="text-lg font-bold text-dark">Alertas</h1>
             {totalSinResolver > 0
               ? <p className="text-sm text-danger font-medium mt-0.5">
                   {totalSinResolver} {totalSinResolver === 1 ? "alerta" : "alertas"} sin resolver

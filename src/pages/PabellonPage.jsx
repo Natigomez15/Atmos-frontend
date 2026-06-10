@@ -124,7 +124,7 @@ export default function PabellonPage() {
         {/* FILA 1 — Encabezado ─────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-dark">Estado del pabellón</h1>
+            <h1 className="text-lg font-bold text-dark">Estado del pabellón</h1>
             <p className="text-sm text-muted mt-0.5">
               {salones?.length ?? 0} laboratorios monitoreados
             </p>
