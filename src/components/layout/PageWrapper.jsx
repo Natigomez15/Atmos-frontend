@@ -8,6 +8,7 @@ import cliente                  from "../../api/client"
 import { WS_BASE_URL }          from "../../constants/config"
 
 const WS_URL_ALERTAS = `${WS_BASE_URL}/ws/alerts`
+const RETRASOS_RECONEXION_WS = [3000, 5000, 10000, 20000, 30000]
 
 export default function PageWrapper({ children }) {
   const clienteQuery  = useQueryClient()
@@ -20,6 +21,7 @@ export default function PageWrapper({ children }) {
 
   const refWs             = useRef(null)
   const timeoutReconexion = useRef(null)
+  const intentoReconexion = useRef(0)
   const montado           = useRef(true)
 
   // Cerrar sidebar al navegar (mobile)
@@ -56,10 +58,17 @@ export default function PageWrapper({ children }) {
 
     function conectar() {
       if (!montado.current) return
+      clearTimeout(timeoutReconexion.current)
+
       const ws = new WebSocket(WS_URL_ALERTAS)
       refWs.current = ws
 
-      ws.onopen = () => { if (montado.current) setWsConectado(true) }
+      ws.onopen = () => {
+        if (!montado.current) return
+        intentoReconexion.current = 0
+        setWsConectado(true)
+        console.log("[WS ALERTS] conexion establecida")
+      }
 
       ws.onmessage = (evento) => {
         if (!montado.current) return
@@ -91,11 +100,19 @@ export default function PageWrapper({ children }) {
         } catch { /* no JSON */ }
       }
 
-      ws.onerror  = () => { if (montado.current) setWsConectado(false) }
-      ws.onclose  = () => {
+      ws.onerror  = () => {
+        if (montado.current) setWsConectado(false)
+      }
+      ws.onclose  = (evento) => {
         if (!montado.current) return
         setWsConectado(false)
-        timeoutReconexion.current = setTimeout(conectar, 5000)
+        const indice = Math.min(intentoReconexion.current, RETRASOS_RECONEXION_WS.length - 1)
+        const retraso = RETRASOS_RECONEXION_WS[indice]
+        intentoReconexion.current += 1
+        console.warn(
+          `[WS ALERTS] conexion cerrada (${evento.code || "sin codigo"}), reintentando en ${retraso / 1000}s`
+        )
+        timeoutReconexion.current = setTimeout(conectar, retraso)
       }
     }
 

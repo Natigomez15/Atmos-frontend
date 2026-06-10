@@ -10,10 +10,16 @@ self.addEventListener('push', function(evento) {
   const titulo = datos.title || datos.titulo || 'Alerta ATMOS'
   const cuerpo = datos.body || datos.cuerpo || 'Se genero una nueva alerta.'
   const url = datos.url || datos.datos?.url || '/alerts'
+  console.log('[PWA SW] Push recibido:', {
+    tieneTitulo: Boolean(titulo),
+    tieneCuerpo: Boolean(cuerpo),
+    url,
+    tag: datos.tag || datos.datos?.tag || datos.tipo_alerta || 'atmos-alerta',
+  })
   const opciones = {
     body:    cuerpo,
-    icon:    datos.icon || datos.icono || '/favicon.svg',
-    badge:   '/favicon.svg',
+    icon:    datos.icon || datos.icono || '/logo_atmos.png',
+    badge:   '/logo_atmos.png',
     vibrate: [200, 100, 200],
     tag:     datos.tag || datos.datos?.tag || datos.tipo_alerta || 'atmos-alerta',
     renotify: datos.renotify === true,
@@ -36,6 +42,7 @@ self.addEventListener('notificationclick', function(evento) {
   evento.notification.close()
   if (evento.action === 'cerrar') return
   const urlDestino = new URL(evento.notification.data?.url || '/alerts', self.location.origin).href
+  console.log('[PWA SW] Click en notificacion:', urlDestino)
   evento.waitUntil(
     clients.matchAll({ type: 'window' }).then(function(clientesVentana) {
       for (const cliente of clientesVentana) {
