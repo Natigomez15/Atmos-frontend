@@ -36,6 +36,30 @@ export function useNotificacionesPush() {
   const [cargando, setCargando] = useState(false)
   const [error,    setError]    = useState(null)
 
+  function mensajeUsuarioDesdeError(err) {
+    const mensaje = err?.message ?? String(err)
+
+    if (mensaje.includes("GET clave-publica")) {
+      return "No se pudo obtener la clave publica VAPID desde el backend."
+    }
+    if (mensaje.includes("POST suscribir")) {
+      return "No se pudo guardar la suscripcion push en el servidor."
+    }
+    if (mensaje.includes("POST prueba")) {
+      return "No se pudo enviar la notificacion de prueba."
+    }
+    if (mensaje.includes("Fallo de red/CORS/backend inaccesible")) {
+      return mensaje
+    }
+    if (mensaje.includes("401") || mensaje.includes("403")) {
+      return "Error de autenticacion. Inicia sesion nuevamente."
+    }
+    if (mensaje.includes("404") && mensaje.includes("No hay suscrip")) {
+      return "No hay suscripciones activas para enviar prueba."
+    }
+    return mensaje
+  }
+
   const verificarSuscripcion = useCallback(async () => {
     if (!compatible) return
     const registro = await navigator.serviceWorker.getRegistration()
@@ -98,19 +122,7 @@ export function useNotificacionesPush() {
       return true
     } catch (err) {
       console.error("[PWA] Error:", err.message, err)
-      
-      // Mensajes específicos según tipo de error
-      if (err.message.includes("clave pública")) {
-        setError("No se pudo obtener la clave pública. Verifica la configuración del servidor.")
-      } else if (err.message.includes("suscripción")) {
-        setError("No se pudo crear la suscripción. Intenta nuevamente.")
-      } else if (err.message.includes("Fetch")) {
-        setError("Error de red. Verifica que el servidor sea accesible.")
-      } else if (err.message.includes("401") || err.message.includes("403")) {
-        setError("Error de autenticación. Inicia sesión nuevamente.")
-      } else {
-        setError("Error al activar notificaciones: " + err.message)
-      }
+      setError(mensajeUsuarioDesdeError(err))
       return false
     } finally {
       setCargando(false)
@@ -135,7 +147,14 @@ export function useNotificacionesPush() {
   }, [])
 
   const enviarPrueba = useCallback(async () => {
-    await enviarNotificacionPrueba()
+    setError(null)
+    try {
+      return await enviarNotificacionPrueba()
+    } catch (err) {
+      console.error("[PWA] Error prueba:", err.message, err)
+      setError(mensajeUsuarioDesdeError(err))
+      throw err
+    }
   }, [])
 
   const actualizarHorario = useCallback(async (cambios) => {

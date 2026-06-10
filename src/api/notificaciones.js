@@ -6,7 +6,40 @@ async function obtenerTokenSesion() {
   return session?.access_token ?? null
 }
 
-async function peticionAutenticada(metodo, ruta, cuerpo = null) {
+async function fetchNotificaciones(etiqueta, ruta, opciones = {}) {
+  const url = `${API_BASE_URL}${ruta}`
+  console.log(`[PWA API] ${etiqueta}:`, url)
+
+  try {
+    const respuesta = await fetch(url, opciones)
+    const texto = await respuesta.text()
+
+    console.log(`[PWA API] ${etiqueta} status:`, respuesta.status)
+    console.log(`[PWA API] ${etiqueta} response body:`, texto)
+
+    if (!respuesta.ok) {
+      throw new Error(`Error HTTP ${respuesta.status} en ${etiqueta}: ${texto}`)
+    }
+
+    if (!texto) return null
+
+    try {
+      return JSON.parse(texto)
+    } catch (errorJson) {
+      throw new Error(`Respuesta no JSON en ${etiqueta}: ${texto}`)
+    }
+  } catch (error) {
+    console.error(`[PWA API] fetch failed en ${etiqueta}:`, error)
+    if (error instanceof TypeError && error.message === "Failed to fetch") {
+      throw new Error(
+        `Fallo de red/CORS/backend inaccesible en ${etiqueta}. URL: ${url}`
+      )
+    }
+    throw error
+  }
+}
+
+async function peticionAutenticada(etiqueta, metodo, ruta, cuerpo = null) {
   const token = await obtenerTokenSesion()
   const headers = { "Content-Type": "application/json" }
   if (token) headers.Authorization = `Bearer ${token}`
@@ -14,33 +47,29 @@ async function peticionAutenticada(metodo, ruta, cuerpo = null) {
   const opciones = { method: metodo, headers }
   if (cuerpo) opciones.body = JSON.stringify(cuerpo)
 
-  const respuesta = await fetch(`${API_BASE_URL}${ruta}`, opciones)
-  if (!respuesta.ok) {
-    const detalle = await respuesta.text().catch(() => "")
-    throw new Error(`Error ${respuesta.status}: ${detalle}`)
-  }
-  return respuesta.json()
+  return fetchNotificaciones(etiqueta, ruta, opciones)
 }
 
 export async function obtenerClavePublica() {
-  const respuesta = await fetch(`${API_BASE_URL}/notificaciones/clave-publica`)
-  if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`)
-  const datos = await respuesta.json()
+  const datos = await fetchNotificaciones(
+    "GET clave-publica",
+    "/notificaciones/clave-publica"
+  )
   return datos.clave_publica
 }
 
 export function suscribirseANotificaciones(subscription) {
-  return peticionAutenticada("POST", "/notificaciones/suscribir", subscription)
+  return peticionAutenticada("POST suscribir", "POST", "/notificaciones/suscribir", subscription)
 }
 
 export function cancelarNotificaciones() {
-  return peticionAutenticada("DELETE", "/notificaciones/cancelar")
+  return peticionAutenticada("DELETE cancelar", "DELETE", "/notificaciones/cancelar")
 }
 
 export function actualizarHorarioNotificaciones(cambios) {
-  return peticionAutenticada("PATCH", "/notificaciones/horario", cambios)
+  return peticionAutenticada("PATCH horario", "PATCH", "/notificaciones/horario", cambios)
 }
 
 export function enviarNotificacionPrueba() {
-  return peticionAutenticada("POST", "/notificaciones/prueba")
+  return peticionAutenticada("POST prueba", "POST", "/notificaciones/prueba")
 }
