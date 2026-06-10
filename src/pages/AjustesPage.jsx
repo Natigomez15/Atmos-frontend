@@ -6,6 +6,7 @@ import PageWrapper from "../components/layout/PageWrapper"
 import FormularioPerfil from "../components/common/FormularioPerfil"
 import FormularioConfiguracion from "../components/common/FormularioConfiguracion"
 import TarjetaNotificaciones from "../components/common/TarjetaNotificaciones"
+import PromptNotificacionesPush from "../components/common/PromptNotificacionesPush"
 import { obtenerConfiguracionSistema, obtenerPerfil } from "../api/ajustes"
 
 function AccesoDenegado() {
@@ -103,6 +104,7 @@ export default function AjustesPage() {
                   alGuardar={recargarPerfil}
                 />
             }
+            <PromptNotificacionesPush />
             <TarjetaNotificaciones />
           </div>
 

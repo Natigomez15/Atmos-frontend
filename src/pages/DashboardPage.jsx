@@ -14,7 +14,6 @@ import AlertItem            from "../components/common/AlertItem"
 import ConsumptionLineChart from "../components/charts/ConsumptionLineChart"
 import Migas                from "../components/common/Migas"
 import UltimaActualizacion  from "../components/common/UltimaActualizacion"
-import PromptNotificacionesPush from "../components/common/PromptNotificacionesPush"
 
 import {
   obtenerResumenTablero,
@@ -144,8 +143,6 @@ export default function DashboardPage() {
           Generar Reporte
         </button>
       </div>
-
-      <PromptNotificacionesPush />
 
       {/* ── KPI Cards ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
