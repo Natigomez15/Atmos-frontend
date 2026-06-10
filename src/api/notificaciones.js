@@ -45,7 +45,18 @@ async function peticionAutenticada(etiqueta, metodo, ruta, cuerpo = null) {
   if (token) headers.Authorization = `Bearer ${token}`
 
   const opciones = { method: metodo, headers }
-  if (cuerpo) opciones.body = JSON.stringify(cuerpo)
+  if (cuerpo) {
+    if (ruta.includes("/notificaciones/suscribir")) {
+      console.log("[PWA API] POST suscribir payload:", {
+        endpoint: cuerpo.endpoint ? `${cuerpo.endpoint.slice(0, 45)}...` : null,
+        tiene_p256dh: Boolean(cuerpo.p256dh || cuerpo.keys?.p256dh),
+        tiene_auth: Boolean(cuerpo.auth || cuerpo.keys?.auth),
+        permiso: cuerpo.permiso,
+        user_agent: cuerpo.user_agent,
+      })
+    }
+    opciones.body = JSON.stringify(cuerpo)
+  }
 
   return fetchNotificaciones(etiqueta, ruta, opciones)
 }
