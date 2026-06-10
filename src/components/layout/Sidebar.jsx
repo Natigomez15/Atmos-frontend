@@ -28,12 +28,12 @@ const navPublico = [
 const navAutenticado = [
   { etiqueta: "Comandos AC", icono: MdAir,       ruta: "/commands" },
   { etiqueta: "Reportes",    icono: MdAssessment, ruta: "/reports" },
+  { etiqueta: "Ajustes",     icono: MdSettings,  ruta: "/settings" },
 ]
 
 const navAdmin = [
   { etiqueta: "Nodos ESP32",     icono: MdRouter,    ruta: "/nodes" },
   { etiqueta: "Usuarios",        icono: MdPeople,    ruta: "/users" },
-  { etiqueta: "Ajustes",         icono: MdSettings,  ruta: "/settings" },
 ]
 
 const estiloBase =
