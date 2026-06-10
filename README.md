@@ -21,13 +21,27 @@ cd atmos-frontend
 npm install
 ```
 
-3. Crear archivo `.env` en la raíz:
+3. Crear archivo `.env` en la raíz (copiar de `.env.example`):
 ```env
+# API REST - Para llamadas HTTP (fetch/axios) - SIEMPRE HTTPS en producción
 VITE_API_URL=http://localhost:8000/api/v1
-VITE_API_KEY=tu_admin_api_key
+
+# WebSocket - SOLO para conexiones WS - SIEMPRE WSS en producción
+# IMPORTANTE: Nunca hacer fetch() a VITE_WS_URL (causa error "wss is not supported")
 VITE_WS_URL=ws://localhost:8000/api/v1
+
+# Supabase
 VITE_SUPABASE_URL=tu_supabase_url
 VITE_SUPABASE_ANON_KEY=tu_supabase_anon_key
+
+# Opcional
+VITE_API_KEY=tu_admin_api_key
+```
+
+**⚠️ PRODUCCIÓN (Vercel/Render):**
+```env
+VITE_API_URL=https://atmos-backend-slno.onrender.com/api/v1
+VITE_WS_URL=wss://atmos-backend-slno.onrender.com/api/v1
 ```
 
 4. Correr en desarrollo:
@@ -37,6 +51,36 @@ npm run dev
 
 5. Abrir en el navegador:
 http://localhost:3000
+
+## Notificaciones Push (PWA)
+
+ATMOS incluye soporte para notificaciones push Web. Funciona en navegadores
+modernos (Chrome, Firefox, Safari 16+, Edge).
+
+### ¿Cómo funciona?
+
+1. El usuario activa notificaciones → navegador pide permiso
+2. Service Worker se registra (`/sw.js`)
+3. Frontend obtiene clave pública VAPID del backend
+4. Frontend crea suscripción push
+5. Backend envía notificaciones cuando hay alertas
+
+### Solución de problemas
+
+**Error: "Fetch API cannot load wss://... URL scheme 'wss' is not supported"**
+
+Causa: Está haciendo `fetch()` a una URL WSS en lugar de HTTPS.
+
+Solución:
+- Verificar que `VITE_API_URL` sea HTTPS (no WSS)
+- En Vercel Settings > Environment Variables:
+  - `VITE_API_URL=https://atmos-backend-slno.onrender.com/api/v1`
+  - `VITE_WS_URL=wss://atmos-backend-slno.onrender.com/api/v1`
+- Hacer redeploy después de cambiar variables
+
+**Error: "Manifest icon error" o "favicon.svg not found"**
+
+El manifest.json ahora usa `/logo_atmos.png` en lugar de SVG para mejor compatibilidad.
 
 ## Estructura del proyecto
 atmos-frontend/

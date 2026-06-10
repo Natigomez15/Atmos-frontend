@@ -57,23 +57,33 @@ export function useNotificacionesPush() {
         return false
       }
 
+      console.log("[PWA] Paso 1: Solicitar permiso de notificaciones...")
       const permisoConcedido = await Notification.requestPermission()
       setPermiso(permisoConcedido)
       if (permisoConcedido !== 'granted') {
         setError("El navegador bloqueó las notificaciones.")
+        console.log("[PWA] Permiso denegado por usuario")
         return false
       }
 
+      console.log("[PWA] Paso 2: Registrar service worker...")
       const registro = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
+      console.log("[PWA] Service worker registrado exitosamente")
 
+      console.log("[PWA] Paso 3: Obtener clave pública VAPID...")
       const clavePublica = await obtenerClavePublica()
+      console.log("[PWA] Clave pública obtenida (primeros 20 caracteres):", clavePublica.substring(0, 20) + "...")
+
+      console.log("[PWA] Paso 4: Crear suscripción push...")
       const suscripcionExistente = await registro.pushManager.getSubscription()
       const suscripcion  = suscripcionExistente ?? await registro.pushManager.subscribe({
         userVisibleOnly:      true,
         applicationServerKey: urlBase64AUint8Array(clavePublica),
       })
+      console.log("[PWA] Suscripción push creada, endpoint:", suscripcion.endpoint.substring(0, 50) + "...")
 
+      console.log("[PWA] Paso 5: Guardar suscripción en servidor...")
       const datosSuscripcion = suscripcion.toJSON()
       await suscribirseANotificaciones({
         endpoint: datosSuscripcion.endpoint,
@@ -82,12 +92,25 @@ export function useNotificacionesPush() {
         permiso: permisoConcedido,
         user_agent: navigator.userAgent,
       })
+      console.log("[PWA] Suscripción guardada exitosamente en el servidor")
 
       setSuscrito(true)
       return true
     } catch (err) {
-      setError("Error al activar notificaciones")
-      console.error(err)
+      console.error("[PWA] Error:", err.message, err)
+      
+      // Mensajes específicos según tipo de error
+      if (err.message.includes("clave pública")) {
+        setError("No se pudo obtener la clave pública. Verifica la configuración del servidor.")
+      } else if (err.message.includes("suscripción")) {
+        setError("No se pudo crear la suscripción. Intenta nuevamente.")
+      } else if (err.message.includes("Fetch")) {
+        setError("Error de red. Verifica que el servidor sea accesible.")
+      } else if (err.message.includes("401") || err.message.includes("403")) {
+        setError("Error de autenticación. Inicia sesión nuevamente.")
+      } else {
+        setError("Error al activar notificaciones: " + err.message)
+      }
       return false
     } finally {
       setCargando(false)

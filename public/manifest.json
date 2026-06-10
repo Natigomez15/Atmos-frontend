@@ -8,9 +8,10 @@
   "theme_color": "#1B4F8A",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/logo_atmos.png",
       "sizes": "any",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
