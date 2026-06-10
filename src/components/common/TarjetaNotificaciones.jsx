@@ -31,22 +31,30 @@ export default function TarjetaNotificaciones() {
 
   if (!compatible) {
     return (
-      <div className="card flex items-start gap-3">
-        <MdNotificationsOff size={22} className="text-muted flex-shrink-0 mt-0.5" />
-        <p className="text-sm text-muted">
-          Tu navegador no soporta notificaciones push.
-        </p>
+      <div id="notificaciones" className="card flex items-start gap-3">
+        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <MdNotificationsOff size={20} className="text-muted" />
+        </div>
+        <div>
+          <p className="font-semibold text-dark">Notificaciones push</p>
+          <p className="text-sm text-muted mt-1">
+            Tu navegador no soporta notificaciones push.
+          </p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="card flex flex-col gap-4">
+    <section id="notificaciones" className="card flex flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <MdNotifications size={22} className="text-secondary flex-shrink-0" />
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+            <MdNotifications size={20} className="text-secondary" />
+          </div>
           <div>
-            <p className="font-semibold text-dark">Notificaciones push</p>
+            <p className="text-xs text-muted uppercase tracking-wide">Alertas</p>
+            <h2 className="font-semibold text-dark mt-0.5">Notificaciones push</h2>
             <p className="text-xs text-muted mt-0.5">
               Recibe alertas reales de ATMOS en este dispositivo.
             </p>
@@ -59,7 +67,14 @@ export default function TarjetaNotificaciones() {
         }
       </div>
 
-      <hr className="border-gray-100" />
+      <div className="rounded-2xl bg-secondary/5 border border-secondary/10 p-4">
+        <p className="text-sm font-medium text-dark">
+          {suscrito ? "Este dispositivo esta conectado." : "Activa este dispositivo para recibir alertas."}
+        </p>
+        <p className="text-xs text-muted mt-1">
+          Las pruebas push validan navegador, service worker, backend y Supabase.
+        </p>
+      </div>
 
       {!suscrito ? (
         <button
@@ -73,7 +88,11 @@ export default function TarjetaNotificaciones() {
           Activar notificaciones
         </button>
       ) : (
-        <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button onClick={manejarPrueba} className="btn-secondary w-full text-sm">
+            Enviar notificacion de prueba
+          </button>
+
           <button
             onClick={cancelarSuscripcion}
             disabled={cargando}
@@ -84,20 +103,16 @@ export default function TarjetaNotificaciones() {
             {cargando && (
               <span className="w-4 h-4 border-2 border-danger/30 border-t-danger rounded-full animate-spin" />
             )}
-            Desactivar notificaciones
-          </button>
-
-          <button onClick={manejarPrueba} className="btn-secondary w-full text-sm">
-            Enviar notificacion de prueba
+            Desactivar
           </button>
 
           {pruebaSent && (
-            <span className="badge-success text-xs self-start">Enviada</span>
+            <span className="badge-success text-xs self-start sm:col-span-2">Notificacion enviada</span>
           )}
-        </>
+        </div>
       )}
 
       {error && <p className="text-xs text-danger">{error}</p>}
-    </div>
+    </section>
   )
 }

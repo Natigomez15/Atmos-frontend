@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { MdPerson, MdSecurity } from "react-icons/md"
 import { actualizarPerfil } from "../../api/ajustes"
 
 const estiloCampo =
@@ -22,10 +23,14 @@ function InsigniaRol({ rol }) {
     )
   }
 
-  return null
+  return (
+    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-muted font-medium">
+      Usuario
+    </span>
+  )
 }
 
-function CampoTexto({ etiqueta, tipo = "text", valor, alCambiar }) {
+function CampoTexto({ etiqueta, tipo = "text", valor, alCambiar, ayuda }) {
   return (
     <div>
       <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1.5">
@@ -37,6 +42,7 @@ function CampoTexto({ etiqueta, tipo = "text", valor, alCambiar }) {
         onChange={evento => alCambiar(evento.target.value)}
         className={estiloCampo}
       />
+      {ayuda && <p className="text-xs text-muted mt-1">{ayuda}</p>}
     </div>
   )
 }
@@ -59,15 +65,15 @@ export default function FormularioPerfil({ perfil, alGuardar }) {
 
     if (contraseniaNueva) {
       if (contraseniaNueva.length < 8) {
-        return "La nueva contraseña debe tener al menos 8 caracteres"
+        return "La nueva contrasena debe tener al menos 8 caracteres"
       }
 
       if (contraseniaNueva !== confirmar) {
-        return "La confirmación no coincide con la nueva contraseña"
+        return "La confirmacion no coincide con la nueva contrasena"
       }
 
       if (!contraseniaActual) {
-        return "Ingresa tu contraseña actual"
+        return "Ingresa tu contrasena actual"
       }
     }
 
@@ -121,58 +127,78 @@ export default function FormularioPerfil({ perfil, alGuardar }) {
   }
 
   return (
-    <form onSubmit={manejarEnvio} className="card flex flex-col gap-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-semibold text-dark">Mi perfil</p>
-          <p className="text-xs text-muted mt-0.5">{perfil?.correo}</p>
+    <form onSubmit={manejarEnvio} className="contents">
+      <section id="cuenta" className="card flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <MdPerson size={20} className="text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted uppercase tracking-wide">Mi cuenta</p>
+              <h2 className="font-semibold text-dark mt-0.5">Perfil de usuario</h2>
+              <p className="text-xs text-muted mt-0.5">Datos visibles dentro de ATMOS.</p>
+            </div>
+          </div>
+          <InsigniaRol rol={perfil?.rol} />
         </div>
-        <InsigniaRol rol={perfil?.rol} />
-      </div>
 
-      <hr className="border-gray-100" />
+        <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4">
+          <p className="text-xs text-muted uppercase tracking-wide">Correo</p>
+          <p className="text-sm font-medium text-dark mt-1 break-all">{perfil?.correo}</p>
+        </div>
 
-      <CampoTexto etiqueta="Nombre completo" valor={nombre} alCambiar={setNombre} />
+        <CampoTexto etiqueta="Nombre completo" valor={nombre} alCambiar={setNombre} />
+      </section>
 
-      <div className="flex flex-col gap-3 pt-1">
-        <div>
-          <p className="text-sm font-medium text-dark">Cambiar contraseña</p>
-          <p className="text-xs text-muted">Dejar en blanco para no cambiar</p>
+      <section id="seguridad" className="card flex flex-col gap-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
+            <MdSecurity size={20} className="text-secondary" />
+          </div>
+          <div>
+            <p className="text-xs text-muted uppercase tracking-wide">Seguridad</p>
+            <h2 className="font-semibold text-dark mt-0.5">Cambiar contrasena</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Deja estos campos en blanco si no quieres cambiarla.
+            </p>
+          </div>
         </div>
 
         <CampoTexto
-          etiqueta="Contraseña actual"
+          etiqueta="Contrasena actual"
           tipo="password"
           valor={contraseniaActual}
           alCambiar={setContraseniaActual}
         />
         <CampoTexto
-          etiqueta="Nueva contraseña"
+          etiqueta="Nueva contrasena"
           tipo="password"
           valor={contraseniaNueva}
           alCambiar={setContraseniaNueva}
+          ayuda="Minimo 8 caracteres."
         />
         <CampoTexto
-          etiqueta="Confirmar nueva contraseña"
+          etiqueta="Confirmar nueva contrasena"
           tipo="password"
           valor={confirmar}
           alCambiar={setConfirmar}
         />
-      </div>
 
-      {error && <p className="text-danger text-xs">{error}</p>}
-      {exito && <span className="badge-success w-fit">Perfil actualizado correctamente</span>}
+        {error && <p className="text-danger text-xs">{error}</p>}
+        {exito && <span className="badge-success w-fit">Perfil actualizado correctamente</span>}
 
-      <button
-        type="submit"
-        disabled={guardando}
-        className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {guardando && (
-          <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-        )}
-        Guardar cambios
-      </button>
+        <button
+          type="submit"
+          disabled={guardando}
+          className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {guardando && (
+            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          )}
+          Guardar cambios
+        </button>
+      </section>
     </form>
   )
 }
