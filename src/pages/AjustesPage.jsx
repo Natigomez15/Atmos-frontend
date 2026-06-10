@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -31,7 +32,7 @@ function AccesoDenegado() {
   )
 }
 
-function NavegacionAjustes({ esAdmin }) {
+function NavegacionAjustes({ esAdmin, seccionActiva, alCambiarSeccion }) {
   const secciones = [
     { id: "cuenta", etiqueta: "Mi cuenta", Icono: MdPerson },
     { id: "seguridad", etiqueta: "Seguridad", Icono: MdSecurity },
@@ -44,19 +45,26 @@ function NavegacionAjustes({ esAdmin }) {
       <p className="text-xs text-muted uppercase tracking-wide px-2 mb-2">Secciones</p>
       <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
         {secciones.map(({ id, etiqueta, Icono }) => (
-          <a
+          <button
             key={id}
-            href={`#${id}`}
-            className="min-w-fit flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-muted hover:text-dark hover:bg-gray-50 transition-colors"
+            type="button"
+            onClick={() => alCambiarSeccion(id)}
+            className={`min-w-fit flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors text-left ${
+              seccionActiva === id
+                ? "bg-primary text-white shadow-sm"
+                : "text-muted hover:text-dark hover:bg-gray-50"
+            }`}
           >
             <Icono size={17} />
             {etiqueta}
             {id === "sistema" && !esAdmin && (
-              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-muted">
+              <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${
+                seccionActiva === id ? "bg-white/20 text-white" : "bg-gray-100 text-muted"
+              }`}>
                 admin
               </span>
             )}
-          </a>
+          </button>
         ))}
       </nav>
     </aside>
@@ -114,6 +122,7 @@ function InformacionSistema() {
 
 export default function AjustesPage() {
   const { esAdmin, estaLogueado } = useAuth()
+  const [seccionActiva, setSeccionActiva] = useState("cuenta")
 
   const {
     data: configuracion,
@@ -160,38 +169,51 @@ export default function AjustesPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-5 items-start">
-          <NavegacionAjustes esAdmin={esAdmin} />
+          <NavegacionAjustes
+            esAdmin={esAdmin}
+            seccionActiva={seccionActiva}
+            alCambiarSeccion={setSeccionActiva}
+          />
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
-            {cargandoPerfil || !perfil
-              ? <>
-                  <div className="card h-56 animate-pulse bg-gray-50" />
-                  <div className="card h-96 animate-pulse bg-gray-50" />
-                </>
-              : <FormularioPerfil
-                  key={perfil.correo}
-                  perfil={perfil}
-                  alGuardar={recargarPerfil}
-                />
-            }
+          <div className="min-h-[520px]">
+            {seccionActiva === "cuenta" && (
+              cargandoPerfil || !perfil
+                ? <div className="card h-72 animate-pulse bg-gray-50" />
+                : <FormularioPerfil
+                    key={`cuenta-${perfil.correo}`}
+                    modo="cuenta"
+                    perfil={perfil}
+                    alGuardar={recargarPerfil}
+                  />
+            )}
 
-            <TarjetaNotificaciones />
+            {seccionActiva === "seguridad" && (
+              cargandoPerfil || !perfil
+                ? <div className="card h-96 animate-pulse bg-gray-50" />
+                : <FormularioPerfil
+                    key={`seguridad-${perfil.correo}`}
+                    modo="seguridad"
+                    perfil={perfil}
+                    alGuardar={recargarPerfil}
+                  />
+            )}
 
-            <div className="xl:col-span-2">
-              {esAdmin
+            {seccionActiva === "notificaciones" && <TarjetaNotificaciones />}
+
+            {seccionActiva === "sistema" && (
+              esAdmin
                 ? cargandoConfig || !configuracion
                   ? <div className="card h-96 animate-pulse bg-gray-50" />
-                  : <section id="sistema" className="flex flex-col gap-4">
+                  : <div className="flex flex-col gap-4">
                       <FormularioConfiguracion
                         key={configuracion.actualizado_en ?? "configuracion"}
                         configuracion={configuracion}
                         alGuardar={recargarConfig}
                       />
                       <InformacionSistema />
-                    </section>
+                    </div>
                 : <TarjetaSoloAdministrador />
-              }
-            </div>
+            )}
           </div>
         </div>
       </div>

@@ -47,7 +47,7 @@ function CampoTexto({ etiqueta, tipo = "text", valor, alCambiar, ayuda }) {
   )
 }
 
-export default function FormularioPerfil({ perfil, alGuardar }) {
+export default function FormularioPerfil({ perfil, alGuardar, modo = "todo" }) {
   const [nombre, setNombre] = useState(perfil?.nombre ?? "")
   const [contraseniaActual, setContraseniaActual] = useState("")
   const [contraseniaNueva, setContraseniaNueva] = useState("")
@@ -128,7 +128,8 @@ export default function FormularioPerfil({ perfil, alGuardar }) {
 
   return (
     <form onSubmit={manejarEnvio} className="contents">
-      <section id="cuenta" className="card flex flex-col gap-4">
+      {(modo === "todo" || modo === "cuenta") && (
+      <section className="card flex flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -149,9 +150,28 @@ export default function FormularioPerfil({ perfil, alGuardar }) {
         </div>
 
         <CampoTexto etiqueta="Nombre completo" valor={nombre} alCambiar={setNombre} />
-      </section>
 
-      <section id="seguridad" className="card flex flex-col gap-4">
+        {modo === "cuenta" && (
+          <>
+            {error && <p className="text-danger text-xs">{error}</p>}
+            {exito && <span className="badge-success w-fit">Perfil actualizado correctamente</span>}
+            <button
+              type="submit"
+              disabled={guardando}
+              className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {guardando && (
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+              )}
+              Guardar cambios
+            </button>
+          </>
+        )}
+      </section>
+      )}
+
+      {(modo === "todo" || modo === "seguridad") && (
+      <section className="card flex flex-col gap-4">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0">
             <MdSecurity size={20} className="text-secondary" />
@@ -199,6 +219,7 @@ export default function FormularioPerfil({ perfil, alGuardar }) {
           Guardar cambios
         </button>
       </section>
+      )}
     </form>
   )
 }
