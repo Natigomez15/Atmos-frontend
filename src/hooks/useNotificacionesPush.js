@@ -76,9 +76,11 @@ export function useNotificacionesPush() {
 
       const datosSuscripcion = suscripcion.toJSON()
       await suscribirseANotificaciones({
-        endpoint:     datosSuscripcion.endpoint,
-        clave_p256dh: datosSuscripcion.keys.p256dh,
-        clave_auth:   datosSuscripcion.keys.auth,
+        endpoint: datosSuscripcion.endpoint,
+        p256dh: datosSuscripcion.keys.p256dh,
+        auth: datosSuscripcion.keys.auth,
+        permiso: permisoConcedido,
+        user_agent: navigator.userAgent,
       })
 
       setSuscrito(true)
