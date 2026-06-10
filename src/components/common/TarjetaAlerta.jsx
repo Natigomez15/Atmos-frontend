@@ -17,6 +17,11 @@ const ETIQUETA_TIPO = {
   node_offline:      "Nodo sin señal",
   power_anomaly:     "Consumo anómalo",
   temperature_stuck: "Temperatura estancada",
+  sensor_datos_invalidos: "Sensor con datos inválidos",
+  temperatura_alta: "Temperatura alta",
+  temperatura_fuera_rango: "Temperatura fuera de rango",
+  humedad_alta: "Humedad alta",
+  humedad_invalida: "Humedad inválida",
 }
 
 function tiempoTranscurrido(isoFecha) {

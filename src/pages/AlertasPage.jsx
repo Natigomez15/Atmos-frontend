@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useAuth } from "../context/AuthContext"
 import {
-  MdRefresh, MdDoneAll, MdNotificationsNone, MdCheckCircle,
+  MdDoneAll, MdNotificationsNone, MdCheckCircle,
   MdRouter, MdBolt, MdThermostat,
 } from "react-icons/md"
 import PageWrapper              from "../components/layout/PageWrapper"
@@ -13,7 +13,7 @@ import DialogoConfirmacion      from "../components/common/DialogoConfirmacion"
 import { usarToast }            from "../components/common/SistemaToast"
 import {
   obtenerAlertas, obtenerResumenAlertas,
-  resolverAlerta, ejecutarVerificacion,
+  resolverAlerta,
 } from "../api/alertas"
 import clienteAPI from "../api/cliente"
 
@@ -22,7 +22,7 @@ const estiloSelect =
   "focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
 
 export default function AlertasPage() {
-  const { estaLogueado, esAdmin, esMantenimiento } = useAuth()
+  const { estaLogueado } = useAuth()
   const { mostrarToast } = usarToast()
 
   const [filtroSeveridad,  setFiltroSeveridad]  = useState("")
@@ -30,7 +30,6 @@ export default function AlertasPage() {
   const [filtroResuelta,   setFiltroResuelta]   = useState(false)
   const [filtroSalaId,     setFiltroSalaId]     = useState("")
   const [resolviendoId,    setResolviendoId]    = useState(null)
-  const [ejecutandoChecks, setEjecutandoChecks] = useState(false)
 
   // Estado del diálogo de confirmación para "resolver todas"
   const [dialogoResolverTodas, setDialogoResolverTodas] = useState(false)
@@ -79,21 +78,6 @@ export default function AlertasPage() {
       mostrarToast("Error al resolver la alerta", "error")
     } finally {
       setResolviendoId(null)
-    }
-  }
-
-  async function manejarVerificacion() {
-    setEjecutandoChecks(true)
-    try {
-      await ejecutarVerificacion()
-      recargarAlertas()
-      recargarResumen()
-      mostrarToast("Verificación completada", "info")
-    } catch (e) {
-      console.error(e)
-      mostrarToast("Error al ejecutar verificación", "error")
-    } finally {
-      setEjecutandoChecks(false)
     }
   }
 
@@ -149,20 +133,6 @@ export default function AlertasPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
-            {(esAdmin || esMantenimiento) && (
-              <button
-                onClick={manejarVerificacion}
-                disabled={ejecutandoChecks}
-                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {ejecutandoChecks
-                  ? <span className="w-4 h-4 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
-                  : <MdRefresh size={16} />
-                }
-                Verificar ahora
-              </button>
-            )}
-
             {puedeResolver && alertasSinResolver.length > 0 && (
               <button
                 onClick={() => setDialogoResolverTodas(true)}
@@ -222,6 +192,11 @@ export default function AlertasPage() {
               <option value="node_offline">Nodo sin señal</option>
               <option value="power_anomaly">Consumo anómalo</option>
               <option value="temperature_stuck">Temperatura estancada</option>
+              <option value="sensor_datos_invalidos">Sensor con datos inválidos</option>
+              <option value="temperatura_alta">Temperatura alta</option>
+              <option value="temperatura_fuera_rango">Temperatura fuera de rango</option>
+              <option value="humedad_alta">Humedad alta</option>
+              <option value="humedad_invalida">Humedad inválida</option>
             </select>
           </div>
 
@@ -352,6 +327,13 @@ export default function AlertasPage() {
                 <div>
                   <p className="text-xs font-medium text-dark">Temperatura estancada</p>
                   <p className="text-xs text-muted">AC encendido pero temperatura no baja en 30 min</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <MdThermostat size={16} className="text-danger flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-dark">Sensor con datos inválidos</p>
+                  <p className="text-xs text-muted">Lecturas recientes inválidas desde ESP32 o sensor</p>
                 </div>
               </div>
             </div>

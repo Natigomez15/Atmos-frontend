@@ -14,7 +14,7 @@ function TarjetaSeveridad({ Icono, color, cantidad, etiqueta }) {
 
 export default function BarraEstadisticasAlertas({ resumen }) {
   const porSeveridad = resumen?.por_severidad ?? { high: 0, medium: 0, low: 0 }
-  const porTipo      = resumen?.por_tipo      ?? { node_offline: 0, power_anomaly: 0, temperature_stuck: 0 }
+  const porTipo      = resumen?.por_tipo      ?? {}
 
   return (
     <div className="flex flex-wrap gap-4 items-center">
@@ -41,13 +41,19 @@ export default function BarraEstadisticasAlertas({ resumen }) {
       {/* Pills de tipo (ocultos en mobile) */}
       <div className="hidden md:flex flex-wrap gap-2">
         <span className="bg-gray-100 px-3 py-2 rounded-xl text-xs text-muted">
-          Sin señal: <span className="font-semibold text-dark">{porTipo.node_offline}</span>
+          Sin señal: <span className="font-semibold text-dark">{porTipo.node_offline ?? 0}</span>
         </span>
         <span className="bg-gray-100 px-3 py-2 rounded-xl text-xs text-muted">
-          Consumo: <span className="font-semibold text-dark">{porTipo.power_anomaly}</span>
+          Consumo: <span className="font-semibold text-dark">{porTipo.power_anomaly ?? 0}</span>
         </span>
         <span className="bg-gray-100 px-3 py-2 rounded-xl text-xs text-muted">
-          Temperatura: <span className="font-semibold text-dark">{porTipo.temperature_stuck}</span>
+          Temperatura: <span className="font-semibold text-dark">{(porTipo.temperature_stuck ?? 0) + (porTipo.temperatura_alta ?? 0) + (porTipo.temperatura_fuera_rango ?? 0)}</span>
+        </span>
+        <span className="bg-gray-100 px-3 py-2 rounded-xl text-xs text-muted">
+          Sensor: <span className="font-semibold text-dark">{porTipo.sensor_datos_invalidos ?? 0}</span>
+        </span>
+        <span className="bg-gray-100 px-3 py-2 rounded-xl text-xs text-muted">
+          Humedad: <span className="font-semibold text-dark">{(porTipo.humedad_alta ?? 0) + (porTipo.humedad_invalida ?? 0)}</span>
         </span>
       </div>
     </div>
