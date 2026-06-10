@@ -23,7 +23,9 @@ export default function PromptNotificacionesPush() {
     setOculto(fueOcultado)
   }, [])
 
-  if (!estaLogueado || !compatible || suscrito || permiso !== "default" || oculto) {
+  const puedeMostrar = permiso === "default" || permiso === "granted"
+
+  if (!estaLogueado || !compatible || suscrito || !puedeMostrar || oculto) {
     return null
   }
 
@@ -48,7 +50,10 @@ export default function PromptNotificacionesPush() {
         <div>
           <p className="font-semibold text-dark">¿Quieres recibir alertas de ATMOS?</p>
           <p className="text-sm text-muted mt-1">
-            Te avisaremos cuando se cree una alerta real, incluso si no tienes la pagina abierta.
+            {permiso === "granted"
+              ? "El navegador ya tiene permiso. Solo falta activar este dispositivo en ATMOS."
+              : "Te avisaremos cuando se cree una alerta real, incluso si no tienes la pagina abierta."
+            }
           </p>
           {error && (
             <p className="text-xs text-danger mt-2 flex items-center gap-1">
