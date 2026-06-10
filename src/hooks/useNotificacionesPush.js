@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
-import { supabase } from "../lib/supabase"
-import { API_BASE_URL } from "../constants/config"
+import {
+  actualizarHorarioNotificaciones,
+  cancelarNotificaciones,
+  enviarNotificacionPrueba,
+  obtenerClavePublica,
+  suscribirseANotificaciones,
+} from "../api/notificaciones"
 
 // Convierte la clave pública VAPID de base64url a Uint8Array
 // (requerido por pushManager.subscribe)
@@ -17,45 +22,27 @@ function urlBase64AUint8Array(base64String) {
   return salida
 }
 
-async function obtenerTokenSesion() {
-  const { data: { session } } = await supabase.auth.getSession()
-  return session?.access_token ?? null
-}
-
-async function peticionAutenticada(metodo, ruta, cuerpo = null) {
-  const token = await obtenerTokenSesion()
-  const opciones = {
-    method:  metodo,
-    headers: {
-      "Content-Type":  "application/json",
-      "Authorization": `Bearer ${token}`,
-    },
-  }
-  if (cuerpo) opciones.body = JSON.stringify(cuerpo)
-  const respuesta = await fetch(`${API_BASE_URL}${ruta}`, opciones)
-  if (!respuesta.ok) throw new Error(`Error ${respuesta.status}`)
-  return respuesta.json()
-}
-
-async function obtenerClavePublicaVapid() {
-  const respuesta = await fetch(`${API_BASE_URL}/notificaciones/clave-publica`)
-  const datos = await respuesta.json()
-  return datos.clave_publica
-}
-
 export function useNotificacionesPush() {
-  const [permiso,  setPermiso]  = useState(Notification.permission)
+  const compatible = (
+    typeof window !== "undefined" &&
+    "Notification" in window &&
+    "serviceWorker" in navigator &&
+    "PushManager" in window
+  )
+  const [permiso,  setPermiso]  = useState(
+    compatible ? Notification.permission : "unsupported"
+  )
   const [suscrito, setSuscrito] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [error,    setError]    = useState(null)
 
   const verificarSuscripcion = useCallback(async () => {
-    if (!('serviceWorker' in navigator)) return
+    if (!compatible) return
     const registro = await navigator.serviceWorker.getRegistration()
     if (!registro) return
     const suscripcion = await registro.pushManager.getSubscription()
     setSuscrito(!!suscripcion)
-  }, [])
+  }, [compatible])
 
   useEffect(() => {
     verificarSuscripcion()
@@ -65,24 +52,30 @@ export function useNotificacionesPush() {
     setCargando(true)
     setError(null)
     try {
+      if (!compatible) {
+        setError("Este navegador no soporta notificaciones push.")
+        return false
+      }
+
       const permisoConcedido = await Notification.requestPermission()
       setPermiso(permisoConcedido)
       if (permisoConcedido !== 'granted') {
-        setError("Permiso de notificaciones denegado")
+        setError("El navegador bloqueó las notificaciones.")
         return false
       }
 
       const registro = await navigator.serviceWorker.register('/sw.js')
       await navigator.serviceWorker.ready
 
-      const clavePublica = await obtenerClavePublicaVapid()
-      const suscripcion  = await registro.pushManager.subscribe({
+      const clavePublica = await obtenerClavePublica()
+      const suscripcionExistente = await registro.pushManager.getSubscription()
+      const suscripcion  = suscripcionExistente ?? await registro.pushManager.subscribe({
         userVisibleOnly:      true,
         applicationServerKey: urlBase64AUint8Array(clavePublica),
       })
 
       const datosSuscripcion = suscripcion.toJSON()
-      await peticionAutenticada('POST', '/notificaciones/suscribir', {
+      await suscribirseANotificaciones({
         endpoint:     datosSuscripcion.endpoint,
         clave_p256dh: datosSuscripcion.keys.p256dh,
         clave_auth:   datosSuscripcion.keys.auth,
@@ -107,7 +100,7 @@ export function useNotificacionesPush() {
         const suscripcion = await registro.pushManager.getSubscription()
         if (suscripcion) await suscripcion.unsubscribe()
       }
-      await peticionAutenticada('DELETE', '/notificaciones/cancelar')
+      await cancelarNotificaciones()
       setSuscrito(false)
     } catch (err) {
       console.error(err)
@@ -117,11 +110,11 @@ export function useNotificacionesPush() {
   }, [])
 
   const enviarPrueba = useCallback(async () => {
-    await peticionAutenticada('POST', '/notificaciones/prueba')
+    await enviarNotificacionPrueba()
   }, [])
 
   const actualizarHorario = useCallback(async (cambios) => {
-    await peticionAutenticada('PATCH', '/notificaciones/horario', cambios)
+    await actualizarHorarioNotificaciones(cambios)
   }, [])
 
   return {
@@ -133,6 +126,6 @@ export function useNotificacionesPush() {
     cancelarSuscripcion,
     enviarPrueba,
     actualizarHorario,
-    compatible: 'serviceWorker' in navigator && 'PushManager' in window,
+    compatible,
   }
 }
