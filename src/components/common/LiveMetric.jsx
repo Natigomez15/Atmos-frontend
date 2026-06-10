@@ -43,29 +43,29 @@ export default function LiveMetric({
 
   return (
     <div
-      className={`card border-l-4 ${borderClass} transition-colors duration-300 ${
+      className={`card border-l-4 ${borderClass} p-2 lg:p-4 transition-colors duration-300 ${
         destellando ? bgDestello : "bg-surface"
       }`}
     >
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-1.5 mb-1.5">
         <span className={textoValor}>{icono}</span>
-        <p className="text-xs text-muted uppercase tracking-wide">{etiqueta}</p>
+        <p className="text-[10px] lg:text-xs text-muted uppercase tracking-wide truncate">{etiqueta}</p>
       </div>
 
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline gap-0.5">
         {valor != null ? (
           <>
-            <span
-              className={`font-bold text-dark ${
-                tamano === "lg" ? "text-3xl" : "text-2xl"
-              }`}
-            >
+            <span className={`font-bold text-dark leading-tight ${
+              tamano === "lg" ? "text-lg lg:text-2xl" : "text-base lg:text-xl"
+            }`}>
               {typeof valor === "number" ? valor.toFixed(1) : valor}
             </span>
-            {unidad && <span className="text-sm text-muted">{unidad}</span>}
+            {unidad && <span className="text-[10px] lg:text-xs text-muted">{unidad}</span>}
           </>
         ) : (
-          <span className={`font-bold text-muted ${tamano === "lg" ? "text-3xl" : "text-2xl"}`}>
+          <span className={`font-bold text-muted leading-tight ${
+            tamano === "lg" ? "text-lg lg:text-2xl" : "text-base lg:text-xl"
+          }`}>
             —
           </span>
         )}

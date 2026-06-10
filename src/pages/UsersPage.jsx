@@ -30,7 +30,7 @@ export default function UsersPage() {
       <AccionProtegida requiereRol="admin">
         <div className="flex flex-col gap-6">
           <div>
-            <h1 className="text-lg font-bold text-dark">Usuarios</h1>
+            <h1 className="text-xl font-bold text-dark">Usuarios</h1>
             <p className="text-sm text-muted mt-0.5">Gestión de usuarios del sistema</p>
           </div>
           <div className="card flex items-center justify-center h-48">

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import {
   MdBolt, MdSavings, MdMeetingRoom, MdNotifications,
   MdCheckCircle, MdGridView, MdAssessment, MdAir,
-  MdAutoGraph, MdAdd, MdSensors,
+  MdAutoGraph,
 } from "react-icons/md"
 
 import PageWrapper          from "../components/layout/PageWrapper"
@@ -13,7 +13,6 @@ import KPICard              from "../components/common/KPICard"
 import RoomStatusCard       from "../components/common/RoomStatusCard"
 import AlertItem            from "../components/common/AlertItem"
 import ConsumptionLineChart from "../components/charts/ConsumptionLineChart"
-import UltimaActualizacion  from "../components/common/UltimaActualizacion"
 
 import {
   obtenerResumenTablero,
@@ -47,55 +46,10 @@ function etiquetaHoy() {
   })
 }
 
-function EstadoVacio({ esAdmin, navegar }) {
-  return (
-    <div className="flex justify-center mt-12">
-      <div className="card max-w-lg w-full text-center">
-        <div className="w-24 h-24 rounded-full bg-secondary/10 flex items-center justify-center mx-auto">
-          <MdSensors size={48} className="text-secondary" />
-        </div>
-
-        <p className="text-xl font-semibold text-dark mt-6">Bienvenido a ATMOS</p>
-
-        <ol className="flex flex-col gap-2 text-left mt-4 max-w-xs mx-auto">
-          {[
-            "Registra los laboratorios del pabellón",
-            "Conecta los nodos ESP32 a cada laboratorio",
-            "El sistema comenzará a monitorear automáticamente",
-          ].map((paso, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm text-muted">
-              <span className="w-5 h-5 rounded-full bg-secondary/10 text-secondary text-xs
-                               font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
-                {i + 1}
-              </span>
-              {paso}
-            </li>
-          ))}
-        </ol>
-
-        {esAdmin
-          ? (
-            <button
-              onClick={() => navegar("/rooms")}
-              className="btn-primary mt-6 w-full flex items-center justify-center gap-2"
-            >
-              <MdAdd size={18} /> Registrar primer laboratorio
-            </button>
-          ) : (
-            <p className="text-sm text-muted mt-6">
-              Contacta al administrador para configurar el sistema
-            </p>
-          )
-        }
-      </div>
-    </div>
-  )
-}
 
 export default function DashboardPage() {
   const navegar = useNavigate()
   const { estaLogueado, esAdmin } = useAuth()
-  const [ultimaActualizacion, setUltimaActualizacion] = useState(null)
 
   const { data: resumen, isLoading: cargandoResumen, refetch: recargarResumen } = useQuery({
     queryKey:        ["dashboard-summary"],
@@ -105,7 +59,7 @@ export default function DashboardPage() {
 
   const { data: datosSalones, isLoading: cargandoSalones, refetch: recargarSalones } = useQuery({
     queryKey:        ["rooms-latest"],
-    queryFn:         () => obtenerUltimasLecturasSalones().then(d => { setUltimaActualizacion(new Date()); return d }),
+    queryFn:         obtenerUltimasLecturasSalones,
     refetchInterval: REFRESH_INTERVAL_MS,
   })
 
@@ -127,35 +81,23 @@ export default function DashboardPage() {
   const salonesActivos = datosSalones?.filter(s => s.ac_is_on).length ?? "—"
   const totalSalones   = datosSalones?.length ?? 0
   const totalAlertas   = resumenAlertas?.total_unresolved ?? 0
-  const sinDatos       = !cargandoSalones && totalSalones === 0
 
   return (
     <PageWrapper>
 
       <div className="mb-6">
         <PageHeader
-          eyebrow="Resumen"
           title="Bienvenida, ATMOS"
           description="Resumen general de estado y acciones clave"
-          actions={
-            <button className="btn-primary" onClick={() => navegar("/reports") }>
-              Generar Reporte
-            </button>
-          }
         />
       </div>
 
       {/* ── KPI Cards ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-4 gap-2 mb-4">
         <KPICard titulo="Consumo hoy"      valor={resumen?.total_energy_kwh?.toFixed(2) ?? "—"} unidad="kWh"           icono={<MdBolt size={20} />}          color="secondary" cargando={cargandoResumen} />
         <KPICard titulo="Ahorro estimado"  valor={resumen?.total_savings_usd?.toFixed(2) ?? "—"} unidad="USD"          icono={<MdSavings size={20} />}        tendencia={resumen?.avg_savings_pct} color="success" cargando={cargandoResumen} />
         <KPICard titulo="Laboratorios activos" valor={salonesActivos} unidad={`/ ${totalSalones}`}                     icono={<MdMeetingRoom size={20} />}    color="primary"   cargando={cargandoSalones} />
         <KPICard titulo="Alertas activas"  valor={totalAlertas}                                                        icono={<MdNotifications size={20} />}  color={totalAlertas > 0 ? "danger" : "success"} cargando={false} />
-      </div>
-
-      {/* ── Última actualización ────────────────────────────────────────── */}
-      <div className="mb-6">
-        <UltimaActualizacion fechaActualizacion={ultimaActualizacion} alRecargar={recargarTodo} />
       </div>
 
       {/* ── Acciones rápidas ────────────────────────────────────────────── */}
@@ -175,12 +117,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Estado vacío (sin laboratorios) ─────────────────────────────── */}
-      {sinDatos && <EstadoVacio esAdmin={esAdmin} navegar={navegar} />}
-
-      {!sinDatos && (
-        <>
-          {/* ── Gráfico + Alertas recientes ─────────────────────────────── */}
+      {/* ── Gráfico + Alertas recientes ─────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
             <div className="lg:col-span-3 card">
               <div className="mb-4">
@@ -252,8 +189,6 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-        </>
-      )}
     </PageWrapper>
   )
 }

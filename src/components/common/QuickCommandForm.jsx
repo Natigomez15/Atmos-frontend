@@ -70,7 +70,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
   }
 
   return (
-    <form onSubmit={manejarEnvio} className="card flex flex-col gap-4">
+    <form onSubmit={manejarEnvio} className="card flex flex-col gap-4 h-full">
       <div>
         <p className="font-semibold text-dark text-sm">Enviar comando</p>
         <p className="text-xs text-muted mt-0.5">

@@ -13,12 +13,20 @@
   }
   ::-webkit-scrollbar {
     width: 4px;
+    height: 4px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-secondary rounded-full;
+    @apply bg-gray-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
   }
 }
 

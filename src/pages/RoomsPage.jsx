@@ -149,7 +149,7 @@ export default function RoomsPage() {
       {/* ── Fila 1: Encabezado ──────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
-          <h2 className="text-lg font-bold text-dark">Salones registrados</h2>
+          <h2 className="text-xl font-bold text-dark">Salones registrados</h2>
           <p className="text-sm text-muted mt-0.5">
             {salones?.length ?? 0} salones en el sistema
           </p>

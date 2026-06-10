@@ -115,13 +115,10 @@ export default function AlertasPage() {
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs uppercase tracking-wide text-primary font-semibold">
-              Monitoreo
-            </p>
-            <h1 className="text-xl lg:text-2xl font-bold text-dark mt-0.5">
+            <h1 className="text-xl font-bold text-dark">
               Centro de alertas
             </h1>
-            <p className="text-sm text-muted mt-0.5">
+            <p className="text-xs text-muted mt-0.5">
               {totalSinResolver > 0
                 ? <span className="text-danger font-medium">
                     {totalSinResolver} {totalSinResolver === 1 ? "alerta activa" : "alertas activas"}
@@ -142,14 +139,15 @@ export default function AlertasPage() {
         </div>
 
         {/* ── Filtros ─────────────────────────────────────────────────────── */}
-        <div className="card p-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+        <div className="card p-3 lg:p-4">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={filtroSalaId}
               onChange={e => setFiltroSalaId(e.target.value)}
-              className={SELECT_CLS}
+              className="h-9 flex-1 min-w-[120px] border border-gray-200 rounded-xl px-3 text-sm bg-white
+                         focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
             >
-              <option value="">Todos los salones</option>
+              <option value="">Salón</option>
               {salas.map(s => (
                 <option key={s.id} value={s.id}>{s.nombre}</option>
               ))}
@@ -158,9 +156,10 @@ export default function AlertasPage() {
             <select
               value={filtroSeveridad}
               onChange={e => setFiltroSeveridad(e.target.value)}
-              className={SELECT_CLS}
+              className="h-9 flex-1 min-w-[110px] border border-gray-200 rounded-xl px-3 text-sm bg-white
+                         focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
             >
-              <option value="">Toda severidad</option>
+              <option value="">Severidad</option>
               <option value="high">Alta</option>
               <option value="medium">Media</option>
               <option value="low">Baja</option>
@@ -169,32 +168,32 @@ export default function AlertasPage() {
             <select
               value={filtroTipo}
               onChange={e => setFiltroTipo(e.target.value)}
-              className={SELECT_CLS}
+              className="h-9 flex-1 min-w-[120px] border border-gray-200 rounded-xl px-3 text-sm bg-white
+                         focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
             >
-              <option value="">Todos los tipos</option>
+              <option value="">Tipo</option>
               <option value="node_offline">Nodo sin señal</option>
               <option value="power_anomaly">Consumo anómalo</option>
-              <option value="temperature_stuck">Temperatura estancada</option>
-              <option value="sensor_datos_invalidos">Sensor con datos inválidos</option>
-              <option value="temperatura_alta">Temperatura alta</option>
-              <option value="temperatura_fuera_rango">Temperatura fuera de rango</option>
+              <option value="temperature_stuck">Temp. estancada</option>
+              <option value="sensor_datos_invalidos">Datos inválidos</option>
+              <option value="temperatura_alta">Temp. alta</option>
+              <option value="temperatura_fuera_rango">Temp. fuera de rango</option>
               <option value="humedad_alta">Humedad alta</option>
               <option value="humedad_invalida">Humedad inválida</option>
             </select>
 
-            <div className="flex gap-2">
-              <button
-                onClick={() => setFiltroResuelta(p => !p)}
-                className={`h-10 flex-1 text-sm rounded-xl transition-colors ${
-                  filtroResuelta ? "bg-gray-200 text-dark" : "bg-gray-100 text-muted"
-                }`}
-              >
-                Resueltas
-              </button>
-              <span className="h-10 flex items-center bg-gray-100 text-muted text-xs px-3 rounded-xl whitespace-nowrap">
-                {alertas.length} {alertas.length === 1 ? "alerta" : "alertas"}
-              </span>
-            </div>
+            <button
+              onClick={() => setFiltroResuelta(p => !p)}
+              className={`h-9 px-3 shrink-0 text-sm rounded-xl transition-colors whitespace-nowrap ${
+                filtroResuelta ? "bg-gray-200 text-dark" : "bg-gray-100 text-muted"
+              }`}
+            >
+              Resueltas
+            </button>
+
+            <span className="h-9 flex items-center shrink-0 bg-gray-100 text-muted text-xs px-3 rounded-xl whitespace-nowrap">
+              {alertas.length} {alertas.length === 1 ? "alerta" : "alertas"}
+            </span>
           </div>
         </div>
 

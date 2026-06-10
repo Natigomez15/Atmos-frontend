@@ -1,11 +1,14 @@
 import { useState } from "react"
-import { MdNotifications, MdNotificationsOff } from "react-icons/md"
+import { MdNotifications, MdNotificationsOff, MdBedtime } from "react-icons/md"
 
 import { useAuth } from "../../context/AuthContext"
 import { useNotificacionesPush } from "../../hooks/useNotificacionesPush"
 
 export default function TarjetaNotificaciones() {
   const { estaLogueado } = useAuth()
+  const [silenciosoActivo, setSilenciosoActivo] = useState(false)
+  const [horarioDesde,     setHorarioDesde]     = useState("22:00")
+  const [horarioHasta,     setHorarioHasta]     = useState("06:00")
   const {
     suscrito,
     cargando,
@@ -80,7 +83,7 @@ export default function TarjetaNotificaciones() {
         <button
           onClick={suscribirse}
           disabled={cargando}
-          className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {cargando && (
             <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -113,6 +116,60 @@ export default function TarjetaNotificaciones() {
       )}
 
       {error && <p className="text-xs text-danger">{error}</p>}
+
+      {/* Horario silencioso */}
+      <div className="rounded-2xl bg-white border border-gray-100 p-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-semibold text-dark">Horario silencioso</p>
+            <p className="text-sm text-muted mt-1">Pausa las notificaciones no críticas en este rango.</p>
+          </div>
+
+          <button
+            aria-pressed={silenciosoActivo}
+            onClick={() => setSilenciosoActivo(s => !s)}
+            className={`relative inline-flex items-center h-7 w-12 rounded-full transition-colors focus:outline-none ${silenciosoActivo ? 'bg-secondary' : 'bg-gray-200'}`}
+            title={silenciosoActivo ? 'Silencioso activado' : 'Silencioso desactivado'}
+          >
+            <span className={`inline-block h-5 w-5 transform bg-white rounded-full shadow-sm transition-transform ${silenciosoActivo ? 'translate-x-5' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <p className="text-xs text-muted uppercase tracking-wide">Desde</p>
+              <div className="mt-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+                <input
+                  type="time"
+                  value={horarioDesde}
+                  onChange={e => setHorarioDesde(e.target.value)}
+                  disabled={!silenciosoActivo}
+                  className="w-full bg-transparent text-2xl font-bold text-dark focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="hidden sm:block text-muted">
+              <MdBedtime size={20} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 text-right">
+              <p className="text-xs text-muted uppercase tracking-wide">Hasta</p>
+              <div className="mt-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
+                <input
+                  type="time"
+                  value={horarioHasta}
+                  onChange={e => setHorarioHasta(e.target.value)}
+                  disabled={!silenciosoActivo}
+                  className="w-full bg-transparent text-2xl font-bold text-dark focus:outline-none text-right"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
   )
 }

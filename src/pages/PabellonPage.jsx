@@ -106,7 +106,7 @@ export default function PabellonPage() {
     return (
       <button
         onClick={() => setFiltro(valor)}
-        className={`px-4 py-2 text-sm rounded-xl transition-colors ${
+        className={`flex-1 py-2 text-xs sm:text-sm sm:flex-none sm:px-4 rounded-xl transition-colors whitespace-nowrap ${
           activo ? "bg-primary text-white" : "bg-gray-100 text-muted hover:bg-gray-200"
         }`}
       >
@@ -122,7 +122,7 @@ export default function PabellonPage() {
         {/* FILA 1 — Encabezado ─────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-dark">Estado del pabellón</h1>
+            <h1 className="text-xl font-bold text-dark">Estado del pabellón</h1>
             <p className="text-sm text-muted mt-0.5">
               {salones?.length ?? 0} laboratorios monitoreados
             </p>
@@ -157,7 +157,7 @@ export default function PabellonPage() {
           </div>
 
           {/* Botones de filtro */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex gap-1.5">
             <BtnFiltro valor="todos"      etiqueta="Todos" />
             <BtnFiltro valor="encendidos" etiqueta="Encendidos" />
             <BtnFiltro valor="apagados"   etiqueta="Apagados" />

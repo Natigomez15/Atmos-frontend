@@ -85,15 +85,17 @@ export default function CommandsPage() {
       </div>
 
       {/* ── Fila 2: Dos columnas ────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:items-stretch">
 
         {/* Columna izquierda — 35% */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 lg:flex lg:flex-col">
           {estaLogueado ? (
-            <QuickCommandForm
-              salones={salones ?? []}
-              alExito={recargarComandos}
-            />
+            <div className="h-full">
+              <QuickCommandForm
+                salones={salones ?? []}
+                alExito={recargarComandos}
+              />
+            </div>
           ) : (
             <div className="bg-gray-50 rounded-2xl p-6 text-center">
               <MdLock size={32} className="text-muted mx-auto mb-3" />

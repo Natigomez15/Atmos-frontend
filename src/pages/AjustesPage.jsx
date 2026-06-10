@@ -35,40 +35,30 @@ function AccesoDenegado() {
 
 function NavegacionAjustes({ esAdmin, seccionActiva, alCambiarSeccion }) {
   const secciones = [
-    { id: "cuenta", etiqueta: "Mi cuenta", Icono: MdPerson },
-    { id: "seguridad", etiqueta: "Seguridad", Icono: MdSecurity },
-    { id: "notificaciones", etiqueta: "Notificaciones", Icono: MdNotifications },
-    { id: "sistema", etiqueta: "Sistema", Icono: MdSettings },
+    { id: "cuenta",        etiqueta: "Cuenta",    Icono: MdPerson },
+    { id: "seguridad",     etiqueta: "Seguridad", Icono: MdSecurity },
+    { id: "notificaciones",etiqueta: "Alertas",   Icono: MdNotifications },
+    { id: "sistema",       etiqueta: "Sistema",   Icono: MdSettings },
   ]
 
   return (
-    <aside className="card lg:sticky lg:top-24 p-3">
-      <p className="text-xs text-muted uppercase tracking-wide px-2 mb-2">Secciones</p>
-      <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0">
-        {secciones.map(({ id, etiqueta, Icono }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => alCambiarSeccion(id)}
-            className={`min-w-fit flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors text-left ${
-              seccionActiva === id
-                ? "bg-primary text-white shadow-sm"
-                : "text-muted hover:text-dark hover:bg-gray-50"
-            }`}
-          >
-            <Icono size={17} />
-            {etiqueta}
-            {id === "sistema" && !esAdmin && (
-              <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full ${
-                seccionActiva === id ? "bg-white/20 text-white" : "bg-gray-100 text-muted"
-              }`}>
-                admin
-              </span>
-            )}
-          </button>
-        ))}
-      </nav>
-    </aside>
+    <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+      {secciones.map(({ id, etiqueta, Icono }) => (
+        <button
+          key={id}
+          type="button"
+          onClick={() => alCambiarSeccion(id)}
+          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+            seccionActiva === id
+              ? "bg-white text-dark shadow-sm"
+              : "text-muted hover:text-dark"
+          }`}
+        >
+          <Icono size={14} />
+          {etiqueta}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -139,10 +129,12 @@ export default function AjustesPage() {
     data: perfil,
     refetch: recargarPerfil,
     isLoading: cargandoPerfil,
+    isError: errorPerfil,
   } = useQuery({
     queryKey: ["perfil-usuario"],
     queryFn: obtenerPerfil,
     enabled: estaLogueado,
+    retry: 1,
   })
 
   if (!estaLogueado) {
@@ -151,49 +143,51 @@ export default function AjustesPage() {
 
   return (
     <PageWrapper>
-      <div className="max-w-7xl mx-auto flex flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <PageHeader
-          eyebrow="Configuración"
           title="Ajustes de ATMOS"
           description="Gestiona tu cuenta, seguridad, notificaciones y parámetros del sistema."
-          actions={(
-            <div className="flex flex-wrap gap-2">
-              <span className="badge-success text-xs">Sesion activa</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-muted font-medium">
-                {esAdmin ? "Administrador" : "Usuario autenticado"}
-              </span>
-            </div>
-          )}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-5 items-start">
-          <NavegacionAjustes
-            esAdmin={esAdmin}
-            seccionActiva={seccionActiva}
-            alCambiarSeccion={setSeccionActiva}
-          />
+        <NavegacionAjustes
+          esAdmin={esAdmin}
+          seccionActiva={seccionActiva}
+          alCambiarSeccion={setSeccionActiva}
+        />
 
-          <div className="min-h-[520px]">
+        <div className="min-h-[520px] max-w-3xl mx-auto w-full">
             {seccionActiva === "cuenta" && (
-              cargandoPerfil || !perfil
+              cargandoPerfil
                 ? <div className="card h-72 animate-pulse bg-gray-50" />
-                : <FormularioPerfil
-                    key={`cuenta-${perfil.correo}`}
-                    modo="cuenta"
-                    perfil={perfil}
-                    alGuardar={recargarPerfil}
-                  />
+                : errorPerfil || !perfil
+                  ? <div className="card flex flex-col items-center justify-center py-12 gap-3 text-center">
+                      <MdPerson size={36} className="text-muted" />
+                      <p className="text-sm text-muted">No se pudo cargar el perfil</p>
+                      <button className="btn-secondary text-sm" onClick={recargarPerfil}>Reintentar</button>
+                    </div>
+                  : <FormularioPerfil
+                      key={`cuenta-${perfil.correo}`}
+                      modo="cuenta"
+                      perfil={perfil}
+                      alGuardar={recargarPerfil}
+                    />
             )}
 
             {seccionActiva === "seguridad" && (
-              cargandoPerfil || !perfil
+              cargandoPerfil
                 ? <div className="card h-96 animate-pulse bg-gray-50" />
-                : <FormularioPerfil
-                    key={`seguridad-${perfil.correo}`}
-                    modo="seguridad"
-                    perfil={perfil}
-                    alGuardar={recargarPerfil}
-                  />
+                : errorPerfil || !perfil
+                  ? <div className="card flex flex-col items-center justify-center py-12 gap-3 text-center">
+                      <MdPerson size={36} className="text-muted" />
+                      <p className="text-sm text-muted">No se pudo cargar el perfil</p>
+                      <button className="btn-secondary text-sm" onClick={recargarPerfil}>Reintentar</button>
+                    </div>
+                  : <FormularioPerfil
+                      key={`seguridad-${perfil.correo}`}
+                      modo="seguridad"
+                      perfil={perfil}
+                      alGuardar={recargarPerfil}
+                    />
             )}
 
             {seccionActiva === "notificaciones" && <TarjetaNotificaciones />}
@@ -212,7 +206,6 @@ export default function AjustesPage() {
                     </div>
                 : <TarjetaSoloAdministrador />
             )}
-          </div>
         </div>
       </div>
     </PageWrapper>

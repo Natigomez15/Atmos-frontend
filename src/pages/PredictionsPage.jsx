@@ -162,9 +162,9 @@ export default function PredictionsPage() {
     <PageWrapper>
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
-          <h2 className="text-lg font-bold text-dark">Predicciones ATMOS</h2>
-          <p className="text-sm text-muted mt-0.5">
-            Recomendaciones operativas y predicciones guardadas usando registros reales.
+          <h2 className="text-xl font-bold text-dark">Predicciones ATMOS</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Recomendaciones y predicciones en tiempo real.
           </p>
         </div>
 
@@ -191,7 +191,7 @@ export default function PredictionsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-2 mb-6">
         <KPICard
           titulo="Ahorro proyectado"
           valor={promedioAhorro ?? "-"}

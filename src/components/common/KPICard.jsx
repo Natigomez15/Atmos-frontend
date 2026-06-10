@@ -19,39 +19,33 @@ export default function KPICard({
 
   if (cargando) {
     return (
-      <div className="card animate-pulse">
-        <div className="flex items-start justify-between">
-          <div className="w-10 h-10 rounded-full bg-gray-200" />
-        </div>
-        <div className="mt-4 space-y-2">
-          <div className="h-3 w-24 bg-gray-200 rounded" />
-          <div className="h-8 w-16 bg-gray-200 rounded" />
-        </div>
+      <div className="card p-2 lg:p-4 animate-pulse">
+        <div className="w-6 h-6 rounded-full bg-gray-200 mb-2" />
+        <div className="h-2.5 w-full bg-gray-200 rounded mb-1.5" />
+        <div className="h-5 w-3/4 bg-gray-200 rounded" />
       </div>
     )
   }
 
   return (
-    <div className="card">
-      <div className="flex items-start justify-between">
-        <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-full ${fondo} flex items-center justify-center`}>
+    <div className="card p-2 lg:p-4">
+      <div className="flex items-start justify-between mb-1.5">
+        <div className={`w-6 h-6 lg:w-8 lg:h-8 rounded-full ${fondo} flex items-center justify-center shrink-0`}>
           <span className={texto}>{icono}</span>
         </div>
         {tendencia != null && (
-          <span
-            className={`text-xs font-medium flex items-center gap-0.5 ${
-              tendencia >= 0 ? "text-success" : "text-danger"
-            }`}
-          >
+          <span className={`hidden lg:flex text-xs font-medium items-center gap-0.5 ${
+            tendencia >= 0 ? "text-success" : "text-danger"
+          }`}>
             {tendencia >= 0 ? "↑" : "↓"} {Math.abs(tendencia).toFixed(1)}%
           </span>
         )}
       </div>
 
-      <p className="mt-4 text-xs text-muted">{titulo}</p>
-      <div className="flex items-baseline gap-1 mt-0.5">
-        <span className="text-2xl lg:text-3xl font-bold text-dark">{valor}</span>
-        {unidad && <span className="text-sm text-muted">{unidad}</span>}
+      <p className="text-[10px] lg:text-xs text-muted truncate leading-tight">{titulo}</p>
+      <div className="flex items-baseline gap-0.5 mt-0.5">
+        <span className="text-base lg:text-xl font-bold text-dark leading-tight">{valor}</span>
+        {unidad && <span className="text-[10px] lg:text-xs text-muted">{unidad}</span>}
       </div>
     </div>
   )
