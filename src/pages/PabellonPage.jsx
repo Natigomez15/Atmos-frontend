@@ -6,7 +6,6 @@ import {
 } from "react-icons/md"
 import { useAuth }           from "../context/AuthContext"
 import PageWrapper           from "../components/layout/PageWrapper"
-import Migas                 from "../components/common/Migas"
 import UltimaActualizacion   from "../components/common/UltimaActualizacion"
 import { usarToast }         from "../components/common/SistemaToast"
 import { obtenerSalonesConLecturas, enviarComandoRapido } from "../api/pabellon"
@@ -119,7 +118,6 @@ export default function PabellonPage() {
   return (
     <PageWrapper>
       <div className="flex flex-col gap-6">
-        <Migas migas={[{ label: "Inicio", ruta: "/" }, { label: "Vista general", ruta: null }]} />
 
         {/* FILA 1 — Encabezado ─────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-start justify-between gap-3">

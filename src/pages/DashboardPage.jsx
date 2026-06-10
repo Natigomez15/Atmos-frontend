@@ -13,7 +13,6 @@ import KPICard              from "../components/common/KPICard"
 import RoomStatusCard       from "../components/common/RoomStatusCard"
 import AlertItem            from "../components/common/AlertItem"
 import ConsumptionLineChart from "../components/charts/ConsumptionLineChart"
-import Migas                from "../components/common/Migas"
 import UltimaActualizacion  from "../components/common/UltimaActualizacion"
 
 import {
@@ -132,7 +131,6 @@ export default function DashboardPage() {
 
   return (
     <PageWrapper>
-      <Migas migas={[{ label: "Inicio", ruta: null }]} />
 
       <div className="mb-6">
         <PageHeader

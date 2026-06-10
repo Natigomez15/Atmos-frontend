@@ -141,8 +141,8 @@ export default function PageWrapper({ children }) {
           alAbrirMenu={() => setSidebarAbierto(true)}
         />
 
-        {/* mt-16 compensa el topbar fijo de h-16 */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 mt-16">
+        {/* mt-14 compensa el topbar fijo de h-14 */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 mt-14">
           {children}
         </main>
       </div>

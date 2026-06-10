@@ -14,7 +14,6 @@ import PageHeader        from "../components/common/PageHeader"
 import LiveMetric        from "../components/common/LiveMetric"
 import TempHumidityChart from "../components/charts/TempHumidityChart"
 import PowerChart        from "../components/charts/PowerChart"
-import Migas             from "../components/common/Migas"
 
 import {
   obtenerSalones,
@@ -192,11 +191,6 @@ export default function MonitoringPage() {
 
   return (
     <PageWrapper>
-      <Migas migas={[
-        { label: "Inicio",         ruta: "/" },
-        { label: "Vista general",  ruta: "/pabellon" },
-        { label: nombreSalaActual, ruta: null },
-      ]} />
 
       <div className="mb-6">
         <PageHeader

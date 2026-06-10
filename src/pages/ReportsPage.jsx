@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom"
 import { MdAssessment, MdCompareArrows, MdHistory, MdBolt, MdSavings, MdTrendingDown, MdLock } from "react-icons/md"
 import { useAuth } from "../context/AuthContext"
 import PageWrapper         from "../components/layout/PageWrapper"
-import Migas               from "../components/common/Migas"
 import KPICard             from "../components/common/KPICard"
 import ReportGeneratorForm from "../components/common/ReportGeneratorForm"
 import EnergyReportResults from "../components/common/EnergyReportResults"
@@ -100,7 +99,6 @@ export default function ReportsPage() {
 
   return (
     <PageWrapper>
-      <Migas migas={[{ label: "Inicio", ruta: "/" }, { label: "Reportes", ruta: null }]} />
       <div className="flex flex-col gap-6">
 
         {/* KPIs del pabellón */}
