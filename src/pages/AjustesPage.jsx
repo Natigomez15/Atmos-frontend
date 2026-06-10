@@ -11,6 +11,7 @@ import {
 } from "react-icons/md"
 import { useAuth } from "../context/AuthContext"
 import PageWrapper from "../components/layout/PageWrapper"
+import PageHeader from "../components/common/PageHeader"
 import FormularioPerfil from "../components/common/FormularioPerfil"
 import FormularioConfiguracion from "../components/common/FormularioConfiguracion"
 import TarjetaNotificaciones from "../components/common/TarjetaNotificaciones"
@@ -151,22 +152,19 @@ export default function AjustesPage() {
   return (
     <PageWrapper>
       <div className="max-w-7xl mx-auto flex flex-col gap-6">
-        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-          <div>
-            <p className="text-xs text-secondary uppercase tracking-wide font-semibold">Configuracion</p>
-            <h1 className="text-2xl lg:text-3xl font-bold text-dark mt-1">Ajustes de ATMOS</h1>
-            <p className="text-sm text-muted mt-1">
-              Gestiona tu cuenta, seguridad, notificaciones y parametros del sistema.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <span className="badge-success text-xs">Sesion activa</span>
-            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-muted font-medium">
-              {esAdmin ? "Administrador" : "Usuario autenticado"}
-            </span>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Configuración"
+          title="Ajustes de ATMOS"
+          description="Gestiona tu cuenta, seguridad, notificaciones y parámetros del sistema."
+          actions={(
+            <div className="flex flex-wrap gap-2">
+              <span className="badge-success text-xs">Sesion activa</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-muted font-medium">
+                {esAdmin ? "Administrador" : "Usuario autenticado"}
+              </span>
+            </div>
+          )}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] gap-5 items-start">
           <NavegacionAjustes

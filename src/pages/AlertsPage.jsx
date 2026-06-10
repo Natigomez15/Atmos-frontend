@@ -6,6 +6,7 @@ import {
   MdRouter, MdBolt, MdThermostat,
 } from "react-icons/md"
 import PageWrapper     from "../components/layout/PageWrapper"
+import PageHeader      from "../components/common/PageHeader"
 import AlertCard       from "../components/common/AlertCard"
 import AlertStatsBar   from "../components/common/AlertStatsBar"
 import AccionProtegida  from "../components/common/AccionProtegida"
@@ -114,42 +115,39 @@ export default function AlertsPage() {
     <PageWrapper>
       <div className="flex flex-col gap-6">
 
-        {/* ROW 1 — Encabezado */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-dark">Alertas</h1>
-            {(resumen?.total_unresolved ?? 0) > 0
-              ? <p className="text-sm text-danger font-medium mt-0.5">
-                  {resumen.total_unresolved} {resumen.total_unresolved === 1 ? "alerta activa" : "alertas activas"} sin resolver
-                </p>
-              : <p className="text-sm text-success mt-0.5">Sin alertas activas</p>
-            }
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={manejarEjecutarChecks}
-              disabled={ejecutandoChecks}
-              title="Ejecuta todos los checks manualmente"
-              className="btn-secondary flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {ejecutandoChecks
-                ? <span className="w-4 h-4 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
-                : <MdRefresh size={16} />
-              }
-              Verificar ahora
-            </button>
-            {estaLogueado && alertasSinResolver.length > 0 && (
-              <AccionProtegida requiereRol="mantenimiento">
-                <button
-                  onClick={manejarResolverTodas}
-                  className="btn-secondary flex items-center gap-1.5"
-                >
-                  <MdDoneAll size={16} /> Marcar todas resueltas
-                </button>
-              </AccionProtegida>
-            )}
-          </div>
-        </div>
+        <PageHeader
+          title="Alertas"
+          description={(resumen?.total_unresolved ?? 0) > 0
+            ? `${resumen.total_unresolved} alertas activas sin resolver`
+            : "Sin alertas activas"
+          }
+          actions={(
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={manejarEjecutarChecks}
+                disabled={ejecutandoChecks}
+                title="Ejecuta todos los checks manualmente"
+                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {ejecutandoChecks
+                  ? <span className="w-4 h-4 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
+                  : <MdRefresh size={16} />
+                }
+                Verificar ahora
+              </button>
+              {estaLogueado && alertasSinResolver.length > 0 && (
+                <AccionProtegida requiereRol="mantenimiento">
+                  <button
+                    onClick={manejarResolverTodas}
+                    className="btn-secondary flex items-center gap-1.5"
+                  >
+                    <MdDoneAll size={16} /> Marcar todas resueltas
+                  </button>
+                </AccionProtegida>
+              )}
+            </div>
+          )}
+        />
 
         {/* ROW 2 — Stats bar */}
         <AlertStatsBar resumen={resumen} />

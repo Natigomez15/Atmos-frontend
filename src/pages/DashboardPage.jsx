@@ -8,6 +8,7 @@ import {
 } from "react-icons/md"
 
 import PageWrapper          from "../components/layout/PageWrapper"
+import PageHeader           from "../components/common/PageHeader"
 import KPICard              from "../components/common/KPICard"
 import RoomStatusCard       from "../components/common/RoomStatusCard"
 import AlertItem            from "../components/common/AlertItem"
@@ -133,15 +134,17 @@ export default function DashboardPage() {
     <PageWrapper>
       <Migas migas={[{ label: "Inicio", ruta: null }]} />
 
-      {/* ── Encabezado ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-dark">Bienvenida, ATMOS</h2>
-          <p className="text-sm text-muted mt-0.5 capitalize">{etiquetaHoy()}</p>
-        </div>
-        <button className="btn-primary" onClick={() => navegar("/reports")}>
-          Generar Reporte
-        </button>
+      <div className="mb-6">
+        <PageHeader
+          eyebrow="Resumen"
+          title="Bienvenida, ATMOS"
+          description="Resumen general de estado y acciones clave"
+          actions={
+            <button className="btn-primary" onClick={() => navegar("/reports") }>
+              Generar Reporte
+            </button>
+          }
+        />
       </div>
 
       {/* ── KPI Cards ──────────────────────────────────────────────────── */}

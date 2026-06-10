@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom"
 import { MdRefresh, MdAir, MdLock } from "react-icons/md"
 
 import PageWrapper       from "../components/layout/PageWrapper"
+import PageHeader        from "../components/common/PageHeader"
 import QuickCommandForm  from "../components/common/QuickCommandForm"
 import CommandRow        from "../components/common/CommandRow"
 import { obtenerComandos, obtenerSalonesComandos } from "../api/commands"
@@ -75,12 +76,12 @@ export default function CommandsPage() {
   return (
     <PageWrapper>
 
-      {/* ── Fila 1: Encabezado ──────────────────────────────────────── */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-dark">Comandos AC</h2>
-        <p className="text-sm text-muted mt-0.5">
-          {conteoTotal} comandos
-        </p>
+        <PageHeader
+          eyebrow="Comandos"
+          title="Comandos AC"
+          description={`${conteoTotal} comandos registrados`}
+        />
       </div>
 
       {/* ── Fila 2: Dos columnas ────────────────────────────────────── */}

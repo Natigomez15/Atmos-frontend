@@ -6,7 +6,7 @@ export default function LiveMetric({
   unidad,
   icono,
   color  = "secondary",
-  tamano = "lg",
+  tamano = "md",
 }) {
   const [destellando, setDestellando] = useState(false)
 
@@ -57,7 +57,7 @@ export default function LiveMetric({
           <>
             <span
               className={`font-bold text-dark ${
-                tamano === "lg" ? "text-4xl" : "text-2xl"
+                tamano === "lg" ? "text-3xl" : "text-2xl"
               }`}
             >
               {typeof valor === "number" ? valor.toFixed(1) : valor}
@@ -65,7 +65,7 @@ export default function LiveMetric({
             {unidad && <span className="text-sm text-muted">{unidad}</span>}
           </>
         ) : (
-          <span className={`font-bold text-muted ${tamano === "lg" ? "text-4xl" : "text-2xl"}`}>
+          <span className={`font-bold text-muted ${tamano === "lg" ? "text-3xl" : "text-2xl"}`}>
             —
           </span>
         )}

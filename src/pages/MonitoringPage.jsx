@@ -10,8 +10,8 @@ import {
 } from "react-icons/md"
 
 import PageWrapper       from "../components/layout/PageWrapper"
+import PageHeader        from "../components/common/PageHeader"
 import LiveMetric        from "../components/common/LiveMetric"
-import ACControlPanel    from "../components/common/ACControlPanel"
 import TempHumidityChart from "../components/charts/TempHumidityChart"
 import PowerChart        from "../components/charts/PowerChart"
 import Migas             from "../components/common/Migas"
@@ -198,21 +198,27 @@ export default function MonitoringPage() {
         { label: nombreSalaActual, ruta: null },
       ]} />
 
-      {/* ── Fila 1: Encabezado ──────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
-        <div>
-          <select
-            value={idSalonSeleccionado ?? ""}
-            onChange={cambiarSalon}
-            className="text-lg font-semibold text-dark bg-transparent border-none outline-none cursor-pointer pr-2"
-          >
-            {salones?.map(salon => (
-              <option key={salon.id} value={salon.id}>{salon.name}</option>
-            ))}
-          </select>
+      <div className="mb-6">
+        <PageHeader
+          eyebrow="Monitoreo"
+          title={`Laboratorio ${nombreSalaActual}`}
+          description="Observa lecturas, presencia y estado energético en tiempo real."
+          actions={(
+            <select
+              value={idSalonSeleccionado ?? ""}
+              onChange={cambiarSalon}
+              className="border border-gray-200 rounded-xl px-3 py-2 bg-white text-dark text-sm focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
+            >
+              {salones?.map(salon => (
+                <option key={salon.id} value={salon.id}>{salon.name}</option>
+              ))}
+            </select>
+          )}
+        />
 
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between text-xs text-muted">
           {salonSeleccionado && (
-            <p className="text-xs text-muted mt-0.5">
+            <p>
               Área: {salonSeleccionado.area_m2}m²
               {" • "}Capacidad: {salonSeleccionado.capacity} personas
               {salonSeleccionado.ac_brand && (
@@ -220,25 +226,24 @@ export default function MonitoringPage() {
               )}
             </p>
           )}
-        </div>
 
-        {/* Estado WebSocket */}
-        <div className="flex items-center gap-1.5 text-xs text-muted">
-          <span
-            className={`w-2 h-2 rounded-full ${
-              estaConectado
-                ? "bg-success animate-pulse"
-                : reconectando
-                  ? "bg-warning animate-pulse"
-                  : "bg-danger"
-            }`}
-          />
-          {estaConectado
-            ? "Tiempo real activo"
-            : reconectando
-              ? "Reconectando..."
-              : "Sin conexión"
-          }
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                estaConectado
+                  ? "bg-success animate-pulse"
+                  : reconectando
+                    ? "bg-warning animate-pulse"
+                    : "bg-danger"
+              }`}
+            />
+            {estaConectado
+              ? "Tiempo real activo"
+              : reconectando
+                ? "Reconectando..."
+                : "Sin conexión"
+            }
+          </div>
         </div>
       </div>
 
@@ -258,13 +263,14 @@ export default function MonitoringPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <LiveMetric
           etiqueta="Temperatura"
           valor={lecturaActual?.temperature ?? null}
           unidad="°C"
           icono={<MdThermostat size={18} />}
           color={lecturaActual?.temperature > 26 ? "warning" : "secondary"}
+          tamano="md"
         />
         <LiveMetric
           etiqueta="Humedad"
@@ -272,6 +278,7 @@ export default function MonitoringPage() {
           unidad="%"
           icono={<MdWaterDrop size={18} />}
           color="primary"
+          tamano="md"
         />
 
         {/* Tarjeta de presencia personalizada */}
@@ -299,6 +306,7 @@ export default function MonitoringPage() {
           unidad="W"
           icono={<MdBolt size={18} />}
           color="secondary"
+          tamano="md"
         />
       </div>
 
@@ -352,18 +360,42 @@ export default function MonitoringPage() {
         {/* Columna derecha — 35% */}
         <div className="lg:col-span-2 flex flex-col gap-4">
 
-          {/* Panel de control AC */}
-          {idSalonSeleccionado && (
-            <ACControlPanel
-              idSalon={idSalonSeleccionado}
-              nombreSalon={salonSeleccionado?.name ?? ""}
-              acEncendido={!!lecturaActual?.ac_is_on}
-              setpoint={lecturaActual?.setpoint_c ?? null}
-              alComando={recargarLectura}
-            />
-          )}
+            <div className="card">
+            <div className="flex items-center justify-between mb-3 gap-3">
+              <div>
+                <p className="font-semibold text-dark text-sm">Estado AC</p>
+                <p className="text-xs text-muted mt-0.5">Solo lectura. Usa la página de comandos para cambiar el setpoint.</p>
+              </div>
+              <button
+                onClick={() => navegar("/commands")}
+                className="btn-secondary text-sm"
+              >
+                Ir a Comandos
+              </button>
+            </div>
 
-          {/* Comandos pendientes */}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="rounded-2xl bg-gray-50 p-4">
+                <p className="text-xs text-muted uppercase tracking-wide">Encendido</p>
+                <p className="text-lg font-semibold text-dark mt-1">
+                  {lecturaActual?.ac_is_on ? "Sí" : "No"}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-gray-50 p-4">
+                <p className="text-xs text-muted uppercase tracking-wide">Setpoint</p>
+                <p className="text-lg font-semibold text-dark mt-1">
+                  {lecturaActual?.setpoint_c != null ? `${lecturaActual.setpoint_c} °C` : "—"}
+                </p>
+              </div>
+              {lecturaActual?.ac_error && (
+                <div className="rounded-2xl bg-warning/10 border border-warning/20 p-4">
+                  <p className="text-xs font-semibold text-warning">Atención</p>
+                  <p className="text-xs text-muted mt-1">{lecturaActual.ac_error}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="card">
             <p className="font-semibold text-dark text-sm mb-3">Comandos pendientes</p>
             {!comandosPendientes?.length ? (
