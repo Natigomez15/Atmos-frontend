@@ -196,13 +196,13 @@ export default function MonitoringPage() {
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-1">
               {/* Estado conexión — punto + texto, sin cápsula */}
-              <span className={`inline-flex items-center gap-1.5 text-xs ${badgeConexion.color}`}>
+              <span className={`hidden sm:inline-flex items-center gap-1.5 text-xs ${badgeConexion.color}`}>
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${badgeConexion.dot}`} />
                 {badgeConexion.txt}
               </span>
               {/* Info del salón */}
               {salonSeleccionado && (
-                <span className="text-xs text-muted">
+                <span className="hidden sm:inline text-xs text-muted">
                   {salonSeleccionado.area_m2}m²
                   {" · "}{salonSeleccionado.capacity} personas
                   {salonSeleccionado.ac_brand && ` · ${salonSeleccionado.ac_brand}`}
@@ -272,7 +272,7 @@ export default function MonitoringPage() {
             <p className="text-[10px] lg:text-xs text-muted uppercase tracking-wide truncate">Presencia</p>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className={`text-base lg:text-xl font-bold leading-tight ${lecturaActual?.presence ? "text-secondary" : "text-muted"}`}>
+            <span className={`text-sm lg:text-xl font-bold leading-tight ${lecturaActual?.presence ? "text-secondary" : "text-muted"}`}>
               {lecturaActual?.presence ? "Sí" : "No"}
             </span>
             {lecturaActual?.presence && (

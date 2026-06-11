@@ -1,5 +1,5 @@
-import { NavLink } from "react-router-dom"
-import { MdClose } from "react-icons/md"
+import { NavLink, useNavigate } from "react-router-dom"
+import { MdClose, MdLogout } from "react-icons/md"
 import logoAtmos from "../../assets/logo_atmos.png"
 import {
   MdDashboard,
@@ -20,7 +20,6 @@ const navPublico = [
   { etiqueta: "Dashboard",  icono: MdDashboard,     ruta: "/dashboard" },
   { etiqueta: "Laboratorios", icono: MdMeetingRoom, ruta: "/rooms" },
   { etiqueta: "Monitoreo",  icono: MdMonitor,       ruta: "/monitoring" },
-  { etiqueta: "Vista general", icono: MdGridView,    ruta: "/pabellon" },
   { etiqueta: "Predicciones ML", icono: MdAutoGraph, ruta: "/predictions" },
   { etiqueta: "Alertas",    icono: MdNotifications, ruta: "/alerts" },
 ]
@@ -68,8 +67,20 @@ function ElementoNav({ elemento, cantidadAlertas }) {
   )
 }
 
+const ETIQUETAS_ROL = {
+  admin:         "Administrador",
+  mantenimiento: "Mantenimiento",
+  usuario:       "Usuario",
+}
+
 export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCerrar }) {
-  const { estaLogueado, esAdmin } = useAuth()
+  const { estaLogueado, esAdmin, perfil, cerrarSesion } = useAuth()
+  const navegar = useNavigate()
+
+  async function manejarCerrarSesion() {
+    await cerrarSesion()
+    navegar("/login")
+  }
 
   return (
     <>
@@ -103,9 +114,6 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
             alt="ATMOS"
             className="h-10 w-auto object-contain mx-auto"
           />
-          <p className="block md:hidden lg:block text-xs text-muted mt-0.5 text-center">
-            Sistema de Control Energético
-          </p>
           <hr className="mt-4 border-gray-100 w-full" />
         </div>
 
@@ -144,11 +152,36 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
           )}
         </nav>
 
-        {/* Pie */}
-        <div className="px-4 py-4 block md:hidden lg:block">
-          <p className="text-xs text-muted">ATMOS v1.0</p>
-          <p className="text-xs text-muted/60 mt-0.5">Presiona / para buscar</p>
-        </div>
+        {/* Pie — perfil + cerrar sesión */}
+        {perfil && (
+          <div className="px-3 py-4 border-t border-gray-100 block md:hidden lg:block">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                onClick={() => navegar("/settings")}
+                className="flex items-center gap-2.5 min-w-0 text-left hover:opacity-70 transition-opacity"
+              >
+                <img
+                  src={logoAtmos}
+                  alt="perfil"
+                  className="w-8 h-8 rounded-full border border-gray-200 bg-gray-50 object-contain p-1 shrink-0"
+                />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-dark truncate">{perfil.nombre}</p>
+                  <p className="text-[11px] text-muted truncate mt-0.5">
+                    {ETIQUETAS_ROL[perfil.rol] ?? perfil.rol ?? "Usuario"}
+                  </p>
+                </div>
+              </button>
+              <button
+                onClick={manejarCerrarSesion}
+                title="Cerrar sesión"
+                className="shrink-0 p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+              >
+                <MdLogout size={16} />
+              </button>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   )

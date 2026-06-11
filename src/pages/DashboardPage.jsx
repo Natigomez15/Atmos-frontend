@@ -100,23 +100,6 @@ export default function DashboardPage() {
         <KPICard titulo="Alertas activas"  valor={totalAlertas}                                                        icono={<MdNotifications size={20} />}  color={totalAlertas > 0 ? "danger" : "success"} cargando={false} />
       </div>
 
-      {/* ── Acciones rápidas ────────────────────────────────────────────── */}
-      <div className="bg-gray-50/50 rounded-2xl p-4 mb-6">
-        <p className="text-xs text-muted uppercase tracking-wide font-semibold mb-3">
-          Acciones rápidas
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => navegar("/pabellon")}    className="btn-secondary flex items-center gap-1.5"><MdGridView size={15} />   Ver estado general</button>
-          <button onClick={() => navegar("/reports")}     className="btn-secondary flex items-center gap-1.5"><MdAssessment size={15} /> Generar reporte</button>
-          {estaLogueado && (
-            <button onClick={() => navegar("/commands")}  className="btn-secondary flex items-center gap-1.5"><MdAir size={15} />        Comandos AC</button>
-          )}
-          {esAdmin && (
-            <button onClick={() => navegar("/predictions")} className="btn-secondary flex items-center gap-1.5"><MdAutoGraph size={15} /> Ver predicciones</button>
-          )}
-        </div>
-      </div>
-
       {/* ── Gráfico + Alertas recientes ─────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
             <div className="lg:col-span-3 card">
@@ -167,9 +150,6 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-dark">Estado de laboratorios</h3>
               <span className="text-xs text-muted">Actualización cada 30 segundos</span>
             </div>
-            <button onClick={() => navegar("/pabellon")} className="btn-secondary flex items-center gap-1.5 text-sm py-1.5">
-              <MdGridView size={15} /> Ver pabellón
-            </button>
           </div>
 
           {cargandoSalones ? (

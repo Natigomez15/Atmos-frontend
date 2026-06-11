@@ -56,7 +56,7 @@ export default function LiveMetric({
         {valor != null ? (
           <>
             <span className={`font-bold text-dark leading-tight ${
-              tamano === "lg" ? "text-lg lg:text-2xl" : "text-base lg:text-xl"
+              tamano === "lg" ? "text-base lg:text-2xl" : "text-sm lg:text-xl"
             }`}>
               {typeof valor === "number" ? valor.toFixed(1) : valor}
             </span>
@@ -64,7 +64,7 @@ export default function LiveMetric({
           </>
         ) : (
           <span className={`font-bold text-muted leading-tight ${
-            tamano === "lg" ? "text-lg lg:text-2xl" : "text-base lg:text-xl"
+            tamano === "lg" ? "text-base lg:text-2xl" : "text-sm lg:text-xl"
           }`}>
             —
           </span>

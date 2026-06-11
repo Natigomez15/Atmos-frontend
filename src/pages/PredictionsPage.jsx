@@ -32,11 +32,10 @@ const SENALES_OPERATIVAS = [
 ]
 
 const INFO_MOTOR_ATMOS = [
-  { etiqueta: "Tipo", valor: "RandomForestClassifier + reglas de seguridad" },
-  { etiqueta: "Datos", valor: "Lecturas validas sincronizadas desde Firebase/Supabase" },
-  { etiqueta: "Estado", valor: "Modelo disponible; ejecucion depende de features validas" },
-  { etiqueta: "Actualiza", valor: "Cada vez que se procesa una lectura" },
-  { etiqueta: "Version", valor: "modelo_atmos_rf_v1" },
+  { etiqueta: "Tipo",      valor: "RandomForestClassifier" },
+  { etiqueta: "Estado",    valor: "Disponible" },
+  { etiqueta: "Actualiza", valor: "Por lectura" },
+  { etiqueta: "Versión",   valor: "modelo_atmos_rf_v1" },
 ]
 
 function BarraSenal({ etiqueta, porcentaje }) {
@@ -298,12 +297,7 @@ export default function PredictionsPage() {
           <hr className="border-gray-100" />
 
           <div>
-            <p className="text-sm font-medium text-dark mb-0.5">
-              Senales usadas
-            </p>
-            <p className="text-xs text-muted mb-3">
-              Referencias operativas para explicar la decision actual.
-            </p>
+            <p className="text-sm font-medium text-dark mb-3">Señales usadas</p>
             <div className="flex flex-col gap-2.5">
               {SENALES_OPERATIVAS.map(variable => (
                 <BarraSenal
@@ -313,9 +307,6 @@ export default function PredictionsPage() {
                 />
               ))}
             </div>
-            <p className="text-xs text-muted italic mt-3">
-              Estos porcentajes son orientativos; no representan importancia entrenada de un modelo historico.
-            </p>
           </div>
         </div>
       </div>

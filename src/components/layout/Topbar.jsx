@@ -1,15 +1,10 @@
 import { useNavigate } from "react-router-dom"
-import { MdNotifications, MdMenu, MdLogin, MdLogout } from "react-icons/md"
+import { MdNotifications, MdMenu, MdLogin } from "react-icons/md"
 import { useAuth } from "../../context/AuthContext"
 
 export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
   const navegar = useNavigate()
-  const { estaLogueado, cerrarSesion } = useAuth()
-
-  async function manejarCerrarSesion() {
-    await cerrarSesion()
-    navegar("/dashboard", { replace: true })
-  }
+  const { estaLogueado } = useAuth()
 
   return (
     <header className="fixed top-0 right-0 left-0 md:left-16 lg:left-60 h-14 bg-white border-b border-gray-100
@@ -43,16 +38,7 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
           )}
         </button>
 
-        {estaLogueado ? (
-          <button
-            onClick={manejarCerrarSesion}
-            title="Cerrar sesión"
-            className="flex items-center gap-1.5 text-xs text-muted hover:text-danger transition-colors px-2 py-1.5 rounded-lg hover:bg-danger/5"
-          >
-            <MdLogout size={16} />
-            <span className="hidden sm:block">Salir</span>
-          </button>
-        ) : (
+        {!estaLogueado && (
           <button
             onClick={() => navegar("/login")}
             className="btn-primary flex items-center gap-1.5 text-xs py-1.5 px-3"
