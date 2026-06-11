@@ -236,7 +236,7 @@ export default function MonitoringPage() {
               ))}
             </select>
 
-            {airesDisponibles?.length > 1 && (
+            {airesDisponibles?.length > 0 && (
               <>
                 <span className="text-xs text-muted shrink-0">Aire:</span>
                 <select

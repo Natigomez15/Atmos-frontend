@@ -4,9 +4,10 @@ export const obtenerResumenTablero = () =>
   cliente.get("/reports/summary/pavilion?period_days=1").then(res => res.data)
 
 function parametrosRegistro(salon) {
+  const aires = salon?.aires ?? []
   return {
     pabellon: salon?.pabellon ?? salon?.pavilion ?? salon?.edificio,
-    aire: salon?.nombre ?? salon?.name,
+    aire: aires[0] ?? salon?.nombre ?? salon?.name,
   }
 }
 
