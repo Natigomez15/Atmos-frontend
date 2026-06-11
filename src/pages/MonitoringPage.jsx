@@ -222,23 +222,29 @@ export default function MonitoringPage() {
             </div>
           </div>
 
-          {/* Selectores de sala y aire */}
-          <div className="flex items-center gap-2 flex-wrap sm:min-w-[200px]">
-            <span className="text-xs text-muted shrink-0">Ver sala:</span>
-            <select
-              value={idSalonSeleccionado ?? ""}
-              onChange={cambiarSalon}
-              className="h-10 flex-1 border border-gray-200 rounded-xl px-3 bg-white text-dark text-sm
-                         focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
-            >
-              {salones?.map(salon => (
-                <option key={salon.id} value={salon.id}>{salon.name ?? salon.nombre}</option>
-              ))}
-            </select>
+          {/* Selectores */}
+          <div className="flex flex-col gap-2 sm:min-w-[200px]">
+            {/* Selector de sala — solo si hay más de una */}
+            {salones?.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted shrink-0">Ver sala:</span>
+                <select
+                  value={idSalonSeleccionado ?? ""}
+                  onChange={cambiarSalon}
+                  className="h-10 flex-1 border border-gray-200 rounded-xl px-3 bg-white text-dark text-sm
+                             focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
+                >
+                  {salones.map(salon => (
+                    <option key={salon.id} value={salon.id}>{salon.name ?? salon.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
+            {/* Selector de aire */}
             {airesDisponibles?.length > 0 && (
-              <>
-                <span className="text-xs text-muted shrink-0">Aire:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted shrink-0">Ver aire:</span>
                 <select
                   value={aireActivo ?? ""}
                   onChange={e => setAireSeleccionado(e.target.value)}
@@ -249,7 +255,7 @@ export default function MonitoringPage() {
                     <option key={a} value={a}>{a}</option>
                   ))}
                 </select>
-              </>
+              </div>
             )}
           </div>
         </div>
