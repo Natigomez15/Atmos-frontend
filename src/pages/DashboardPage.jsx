@@ -49,7 +49,7 @@ function etiquetaHoy() {
 
 export default function DashboardPage() {
   const navegar = useNavigate()
-  const { estaLogueado, esAdmin } = useAuth()
+  const { estaLogueado, esAdmin, perfil } = useAuth()
 
   const { data: resumen, isLoading: cargandoResumen, refetch: recargarResumen } = useQuery({
     queryKey:        ["dashboard-summary"],
@@ -87,8 +87,8 @@ export default function DashboardPage() {
 
       <div className="mb-6">
         <PageHeader
-          title="Bienvenida, ATMOS"
-          description="Resumen general de estado y acciones clave"
+          title={estaLogueado && perfil?.nombre ? `Hola, ${perfil.nombre}` : "Panel general"}
+          description="Resumen general del sistema"
         />
       </div>
 

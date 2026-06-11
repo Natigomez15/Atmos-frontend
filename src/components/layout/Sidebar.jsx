@@ -93,7 +93,7 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
 
       <aside
         className={`
-          fixed left-0 top-0 h-full bg-white border-r border-gray-100
+          fixed left-0 top-0 h-screen bg-white border-r border-gray-100
           flex flex-col flex-shrink-0 z-50
           transition-transform duration-300 ease-in-out
           w-64 md:w-16 lg:w-60

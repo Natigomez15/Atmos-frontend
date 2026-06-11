@@ -29,6 +29,11 @@ export default function PageWrapper({ children }) {
     setSidebarAbierto(false)
   }, [ubicacion.pathname])
 
+  useEffect(() => {
+    document.body.style.overflow = sidebarAbierto ? "hidden" : ""
+    return () => { document.body.style.overflow = "" }
+  }, [sidebarAbierto])
+
   // ── Toast helpers ────────────────────────────────────────────────────────
   const agregarToast = useCallback((datos) => {
     const nuevoToast = { ...datos, id: `${Date.now()}-${Math.random()}` }

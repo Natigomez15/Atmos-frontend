@@ -41,9 +41,8 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
         {!estaLogueado && (
           <button
             onClick={() => navegar("/login")}
-            className="btn-primary flex items-center gap-1.5 text-xs py-1.5 px-3"
+            className="text-xs text-secondary font-medium px-3 py-1.5 rounded-lg border border-secondary/30 hover:border-secondary hover:bg-secondary hover:text-white transition-all duration-200"
           >
-            <MdLogin size={15} />
             Iniciar sesión
           </button>
         )}
