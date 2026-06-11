@@ -20,6 +20,7 @@ import {
   obtenerLecturasHistoricas,
   obtenerComandosPendientes,
   obtenerDiagnosticoLecturas,
+  obtenerAiresDeSalon,
 } from "../api/monitoring"
 import { useRoomWebSocket } from "../hooks/useRoomWebSocket"
 
@@ -73,6 +74,7 @@ export default function MonitoringPage() {
   )
   const [lecturasEnVivo, setLecturasEnVivo] = useState([])
   const [horasHistorico,  setHorasHistorico]  = useState(6)
+  const [aireSeleccionado, setAireSeleccionado] = useState(null)
 
   // ── Queries ────────────────────────────────────────────────────────────
 
@@ -104,6 +106,7 @@ export default function MonitoringPage() {
 
   useEffect(() => {
     setLecturasEnVivo([])
+    setAireSeleccionado(null)
   }, [idSalonSeleccionado])
 
   useEffect(() => {
@@ -118,23 +121,31 @@ export default function MonitoringPage() {
 
   const salonSeleccionado = salones?.find(s => String(s.id) === idSalonSeleccionado)
 
+  const aireActivo = aireSeleccionado ?? salonSeleccionado?.aires?.[0] ?? null
+
+  const { data: airesDisponibles } = useQuery({
+    queryKey: ["aires", idSalonSeleccionado],
+    queryFn:  () => obtenerAiresDeSalon(salonSeleccionado),
+    enabled:  !!salonSeleccionado,
+  })
+
   const { data: lecturaMasReciente } = useQuery({
-    queryKey:        ["latest-reading", idSalonSeleccionado],
-    queryFn:         () => obtenerUltimaLectura(salonSeleccionado),
+    queryKey:        ["latest-reading", idSalonSeleccionado, aireActivo],
+    queryFn:         () => obtenerUltimaLectura(salonSeleccionado, aireActivo),
     enabled:         !!salonSeleccionado,
     refetchInterval: 60000,
   })
 
   const { data: diagnosticoLecturas } = useQuery({
-    queryKey:        ["reading-diagnostics", idSalonSeleccionado],
-    queryFn:         () => obtenerDiagnosticoLecturas(salonSeleccionado),
+    queryKey:        ["reading-diagnostics", idSalonSeleccionado, aireActivo],
+    queryFn:         () => obtenerDiagnosticoLecturas(salonSeleccionado, aireActivo),
     enabled:         !!salonSeleccionado,
     refetchInterval: 60000,
   })
 
   const { data: historico, isLoading: cargandoHistorico } = useQuery({
-    queryKey:        ["historical", idSalonSeleccionado, horasHistorico],
-    queryFn:         () => obtenerLecturasHistoricas(salonSeleccionado, horasHistorico),
+    queryKey:        ["historical", idSalonSeleccionado, horasHistorico, aireActivo],
+    queryFn:         () => obtenerLecturasHistoricas(salonSeleccionado, horasHistorico, aireActivo),
     enabled:         !!salonSeleccionado,
     refetchInterval: 300000,
   })
@@ -211,8 +222,8 @@ export default function MonitoringPage() {
             </div>
           </div>
 
-          {/* Selector de laboratorio */}
-          <div className="flex items-center gap-2 sm:min-w-[200px]">
+          {/* Selectores de sala y aire */}
+          <div className="flex items-center gap-2 flex-wrap sm:min-w-[200px]">
             <span className="text-xs text-muted shrink-0">Ver sala:</span>
             <select
               value={idSalonSeleccionado ?? ""}
@@ -224,6 +235,22 @@ export default function MonitoringPage() {
                 <option key={salon.id} value={salon.id}>{salon.name ?? salon.nombre}</option>
               ))}
             </select>
+
+            {airesDisponibles?.length > 1 && (
+              <>
+                <span className="text-xs text-muted shrink-0">Aire:</span>
+                <select
+                  value={aireActivo ?? ""}
+                  onChange={e => setAireSeleccionado(e.target.value)}
+                  className="h-10 flex-1 border border-gray-200 rounded-xl px-3 bg-white text-dark text-sm
+                             focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
+                >
+                  {airesDisponibles.map(a => (
+                    <option key={a} value={a}>{a}</option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
         </div>
       </div>

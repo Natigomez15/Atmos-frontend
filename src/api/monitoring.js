@@ -3,11 +3,17 @@ import cliente from "./client"
 export const obtenerSalones = () =>
   cliente.get("/rooms").then(res => res.data)
 
-function parametrosRegistro(salon) {
-  return {
-    pabellon: salon?.pabellon ?? salon?.pavilion ?? salon?.edificio,
-    aire: salon?.nombre ?? salon?.name,
-  }
+export const obtenerAiresDeSalon = (salon) => {
+  const pabellon = salon?.pabellon ?? salon?.pavilion ?? salon?.edificio
+  if (!pabellon) return Promise.resolve([])
+  return cliente.get("/lecturas/registros/aires", { params: { pabellon } }).then(r => r.data)
+}
+
+function parametrosRegistro(salon, aireSeleccionado) {
+  const pabellon = salon?.pabellon ?? salon?.pavilion ?? salon?.edificio
+  const aires = salon?.aires ?? []
+  const aire = aireSeleccionado ?? aires[0] ?? salon?.nombre ?? salon?.name
+  return { pabellon, aire }
 }
 
 function datoSensorValido(valor) {
@@ -32,20 +38,20 @@ function mapearRegistro(registro) {
   }
 }
 
-export const obtenerUltimaLectura = (salon) =>
+export const obtenerUltimaLectura = (salon, aire) =>
   cliente.get("/lecturas/registros/reciente", {
-    params: parametrosRegistro(salon),
+    params: parametrosRegistro(salon, aire),
   }).then(res => mapearRegistro(res.data))
 
-export const obtenerDiagnosticoLecturas = (salon) =>
+export const obtenerDiagnosticoLecturas = (salon, aire) =>
   cliente.get("/atmos/diagnostico", {
-    params: parametrosRegistro(salon),
+    params: parametrosRegistro(salon, aire),
   }).then(res => res.data)
 
-export const obtenerLecturasHistoricas = (salon, horas = 6) =>
+export const obtenerLecturasHistoricas = (salon, horas = 6, aire) =>
   cliente.get("/lecturas/registros", {
     params: {
-      ...parametrosRegistro(salon),
+      ...parametrosRegistro(salon, aire),
       limite: 500,
     }
   }).then(res => {
