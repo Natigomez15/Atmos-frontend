@@ -26,6 +26,12 @@ function mapearRegistro(registro) {
     ...registro,
     room_id: registro.sala_id,
     temperature: datoSensorValido(registro.temperature ?? registro.temperatura_ambiente),
+    outlet_temperature: datoSensorValido(
+      registro.outlet_temperature
+        ?? registro.temperatura_salida_aire
+        ?? registro.temperatura_ac
+        ?? registro.temperatura_ds18b20
+    ),
     humidity: datoSensorValido(registro.humidity ?? registro.humedad),
     presence: registro.presence ?? registro.estado_ocupacion ?? false,
     ac_is_on: registro.ac_is_on ?? registro.aire_encendido_atmos ?? false,

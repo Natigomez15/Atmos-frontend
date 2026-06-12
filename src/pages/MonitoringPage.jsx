@@ -133,14 +133,14 @@ export default function MonitoringPage() {
     queryKey:        ["latest-reading", idSalonSeleccionado, aireActivo],
     queryFn:         () => obtenerUltimaLectura(salonSeleccionado, aireActivo),
     enabled:         !!salonSeleccionado,
-    refetchInterval: 60000,
+    refetchInterval: 10000,
   })
 
   const { data: diagnosticoLecturas } = useQuery({
     queryKey:        ["reading-diagnostics", idSalonSeleccionado, aireActivo],
     queryFn:         () => obtenerDiagnosticoLecturas(salonSeleccionado, aireActivo),
     enabled:         !!salonSeleccionado,
-    refetchInterval: 60000,
+    refetchInterval: 10000,
   })
 
   const { data: historico, isLoading: cargandoHistorico } = useQuery({
@@ -277,13 +277,21 @@ export default function MonitoringPage() {
       )}
 
       {/* ── 3. Métricas en vivo ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
         <LiveMetric
           etiqueta="Temperatura"
           valor={lecturaActual?.temperature ?? null}
           unidad="°C"
           icono={<MdThermostat size={18} />}
           color={lecturaActual?.temperature > 26 ? "warning" : "secondary"}
+          tamano="md"
+        />
+        <LiveMetric
+          etiqueta="Salida aire"
+          valor={lecturaActual?.outlet_temperature ?? null}
+          unidad="°C"
+          icono={<MdThermostat size={18} />}
+          color="primary"
           tamano="md"
         />
         <LiveMetric
@@ -458,10 +466,14 @@ export default function MonitoringPage() {
                   }
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-muted">Temp</p>
                   <p className="font-medium text-dark">{l.temperature?.toFixed(1) ?? "—"}°C</p>
+                </div>
+                <div>
+                  <p className="text-muted">Salida aire</p>
+                  <p className="font-medium text-dark">{l.outlet_temperature?.toFixed(1) ?? "—"}°C</p>
                 </div>
                 <div>
                   <p className="text-muted">Humedad</p>
@@ -484,6 +496,7 @@ export default function MonitoringPage() {
                 {[
                   { label: "Hora",      cls: "" },
                   { label: "Temp",      cls: "" },
+                  { label: "Salida",    cls: "hidden lg:table-cell" },
                   { label: "Humedad",   cls: "hidden lg:table-cell" },
                   { label: "Presencia", cls: "" },
                   { label: "AC",        cls: "" },
@@ -501,6 +514,7 @@ export default function MonitoringPage() {
                 <tr key={l.recorded_at ?? i} className={`border-b border-gray-50 ${i % 2 === 1 ? "bg-gray-50/50" : ""}`}>
                   <td className="py-2 pr-4 text-muted">{formatearHora(l.recorded_at)}</td>
                   <td className="py-2 pr-4 font-medium text-dark">{l.temperature?.toFixed(1) ?? "—"} °C</td>
+                  <td className="py-2 pr-4 font-medium text-dark hidden lg:table-cell">{l.outlet_temperature?.toFixed(1) ?? "—"} °C</td>
                   <td className="py-2 pr-4 font-medium text-dark hidden lg:table-cell">{l.humidity?.toFixed(0) ?? "—"} %</td>
                   <td className="py-2 pr-4">
                     {l.presence ? <span className="badge-success">Sí</span> : <span className="badge-muted">No</span>}
@@ -514,7 +528,7 @@ export default function MonitoringPage() {
               ))}
               {!ultimasLecturas.length && (
                 <tr>
-                  <td colSpan={7} className="py-6 text-center text-muted">Sin lecturas disponibles</td>
+                  <td colSpan={8} className="py-6 text-center text-muted">Sin lecturas disponibles</td>
                 </tr>
               )}
             </tbody>
