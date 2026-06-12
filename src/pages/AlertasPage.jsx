@@ -173,6 +173,8 @@ export default function AlertasPage() {
             >
               <option value="">Tipo</option>
               <option value="node_offline">Nodo sin señal</option>
+              <option value="aire_sin_datos">Aire sin datos</option>
+              <option value="control_ir_inactivo">Señal IR detenida</option>
               <option value="power_anomaly">Consumo anómalo</option>
               <option value="temperature_stuck">Temp. estancada</option>
               <option value="sensor_datos_invalidos">Datos inválidos</option>

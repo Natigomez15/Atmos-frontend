@@ -45,7 +45,7 @@ export default function AlertStatsBar({ resumen }) {
       <div className="hidden md:flex flex-wrap gap-2">
         <div className="bg-gray-100 px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs text-muted">
           <MdRouter size={14} />
-          Sin señal: <span className="font-semibold text-dark">{porTipo.node_offline ?? 0}</span>
+          Sin señal: <span className="font-semibold text-dark">{(porTipo.node_offline ?? 0) + (porTipo.aire_sin_datos ?? 0) + (porTipo.control_ir_inactivo ?? 0)}</span>
         </div>
         <div className="bg-gray-100 px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs text-muted">
           <MdBolt size={14} />

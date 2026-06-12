@@ -22,6 +22,8 @@ const ETIQUETA_TIPO = {
   temperatura_fuera_rango: "Temperatura fuera de rango",
   humedad_alta: "Humedad alta",
   humedad_invalida: "Humedad inválida",
+  aire_sin_datos: "Aire sin datos",
+  control_ir_inactivo: "Señal IR detenida",
 }
 
 function tiempoTranscurrido(isoFecha) {

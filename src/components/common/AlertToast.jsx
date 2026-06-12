@@ -11,6 +11,8 @@ const ETIQUETAS_TIPO = {
   node_offline:      "Nodo sin señal",
   power_anomaly:     "Consumo anómalo",
   temperature_stuck: "Temperatura estancada",
+  aire_sin_datos: "Aire sin datos",
+  control_ir_inactivo: "Señal IR detenida",
 }
 
 function ToastIndividual({ toast, alCerrar }) {
