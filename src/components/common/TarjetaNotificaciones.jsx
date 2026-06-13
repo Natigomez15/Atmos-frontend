@@ -122,7 +122,7 @@ export default function TarjetaNotificaciones() {
         <div className="flex items-start justify-between">
           <div>
             <p className="font-semibold text-dark">Horario silencioso</p>
-            <p className="text-sm text-muted mt-1">Pausa las notificaciones no críticas en este rango.</p>
+            <p className="text-xs text-muted mt-1">Pausa las notificaciones no críticas en este rango.</p>
           </div>
 
           <button
@@ -135,7 +135,7 @@ export default function TarjetaNotificaciones() {
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+        <div className="mt-4 grid grid-cols-2 gap-4 items-center">
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <p className="text-xs text-muted uppercase tracking-wide">Desde</p>
@@ -145,11 +145,11 @@ export default function TarjetaNotificaciones() {
                   value={horarioDesde}
                   onChange={e => setHorarioDesde(e.target.value)}
                   disabled={!silenciosoActivo}
-                  className="w-full bg-transparent text-2xl font-bold text-dark focus:outline-none"
+                  className="w-full bg-transparent text-base sm:text-2xl font-bold text-dark focus:outline-none"
                 />
               </div>
             </div>
-            <div className="hidden sm:block text-muted">
+            <div className="text-muted">
               <MdBedtime size={20} />
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function TarjetaNotificaciones() {
                   value={horarioHasta}
                   onChange={e => setHorarioHasta(e.target.value)}
                   disabled={!silenciosoActivo}
-                  className="w-full bg-transparent text-2xl font-bold text-dark focus:outline-none text-right"
+                  className="w-full bg-transparent text-base sm:text-2xl font-bold text-dark focus:outline-none text-right"
                 />
               </div>
             </div>

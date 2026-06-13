@@ -23,7 +23,6 @@ export default function AlertasPage() {
   const { estaLogueado } = useAuth()
   const { mostrarToast }  = usarToast()
 
-  const [filtroSeveridad,      setFiltroSeveridad]      = useState("")
   const [filtroTipo,           setFiltroTipo]           = useState("")
   const [filtroResuelta,       setFiltroResuelta]       = useState(false)
   const [filtroSalaId,         setFiltroSalaId]         = useState("")
@@ -40,9 +39,8 @@ export default function AlertasPage() {
   })
 
   const { data: alertas = [], isLoading: cargando, refetch: recargarAlertas } = useQuery({
-    queryKey: ["alertas", filtroSeveridad, filtroTipo, filtroResuelta, filtroSalaId],
+    queryKey: ["alertas", filtroTipo, filtroResuelta, filtroSalaId],
     queryFn:  () => obtenerAlertas({
-      severidad:     filtroSeveridad || undefined,
       tipo_alerta:   filtroTipo      || undefined,
       esta_resuelta: filtroResuelta,
       sala_id:       filtroSalaId    || undefined,
@@ -86,7 +84,6 @@ export default function AlertasPage() {
   }
 
   function limpiarFiltros() {
-    setFiltroSeveridad("")
     setFiltroTipo("")
     setFiltroResuelta(false)
     setFiltroSalaId("")
@@ -95,7 +92,7 @@ export default function AlertasPage() {
   // ── Derivados ──────────────────────────────────────────────────────────────
   const alertasSinResolver = alertas.filter(a => !a.esta_resuelta)
   const alertasResueltas   = alertas.filter(a =>  a.esta_resuelta)
-  const hayFiltrosActivos  = filtroSeveridad || filtroTipo || filtroSalaId
+  const hayFiltrosActivos  = filtroTipo || filtroSalaId
   const totalSinResolver   = resumen?.total_sin_resolver ?? 0
 
   return (
@@ -140,29 +137,17 @@ export default function AlertasPage() {
 
         {/* ── Filtros ─────────────────────────────────────────────────────── */}
         <div className="card p-3 lg:p-4">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
             <select
               value={filtroSalaId}
               onChange={e => setFiltroSalaId(e.target.value)}
-              className="h-9 flex-1 min-w-[120px] border border-gray-200 rounded-xl px-3 text-sm bg-white
+              className="h-9 flex-1 min-w-[110px] border border-gray-200 rounded-xl px-3 text-sm bg-white
                          focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
             >
               <option value="">Salón</option>
               {salas.map(s => (
                 <option key={s.id} value={s.id}>{s.nombre}</option>
               ))}
-            </select>
-
-            <select
-              value={filtroSeveridad}
-              onChange={e => setFiltroSeveridad(e.target.value)}
-              className="h-9 flex-1 min-w-[110px] border border-gray-200 rounded-xl px-3 text-sm bg-white
-                         focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
-            >
-              <option value="">Severidad</option>
-              <option value="high">Alta</option>
-              <option value="medium">Media</option>
-              <option value="low">Baja</option>
             </select>
 
             <select
@@ -186,18 +171,19 @@ export default function AlertasPage() {
 
             <button
               onClick={() => setFiltroResuelta(p => !p)}
-              className={`h-9 px-3 shrink-0 text-sm rounded-xl transition-colors whitespace-nowrap ${
-                filtroResuelta ? "bg-gray-200 text-dark" : "bg-gray-100 text-muted"
+              className={`h-9 px-3 shrink-0 text-sm rounded-xl border transition-colors whitespace-nowrap ${
+                filtroResuelta
+                  ? "border-secondary text-secondary bg-white"
+                  : "border-gray-200 text-dark bg-white"
               }`}
             >
               Resueltas
             </button>
-
-            <span className="h-9 flex items-center shrink-0 bg-gray-100 text-muted text-xs px-3 rounded-xl whitespace-nowrap">
-              {alertas.length} {alertas.length === 1 ? "alerta" : "alertas"}
-            </span>
           </div>
         </div>
+        <p className="text-xs text-muted text-right mt-1">
+          {alertas.length} {alertas.length === 1 ? "alerta" : "alertas"}
+        </p>
 
         {/* ── Lista ───────────────────────────────────────────────────────── */}
         {cargando

@@ -64,6 +64,21 @@ function construirDatosGrafico(lecturas) {
     }))
 }
 
+function construirDatosPotenciaPorDia(lecturas) {
+  const porDia = {}
+  deduplicar(lecturas).forEach(l => {
+    if (!l.recorded_at || l.power_w == null) return
+    const dia = new Date(l.recorded_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })
+    if (!porDia[dia]) porDia[dia] = { suma: 0, count: 0 }
+    porDia[dia].suma  += l.power_w
+    porDia[dia].count += 1
+  })
+  return Object.entries(porDia).map(([dia, { suma }]) => ({
+    tiempo:     dia,
+    potencia_w: Math.round(suma),
+  }))
+}
+
 // ── Componente ─────────────────────────────────────────────────────────────
 
 export default function MonitoringPage() {
@@ -162,12 +177,17 @@ export default function MonitoringPage() {
     return construirDatosGrafico(todasLasLecturas)
   }, [historico, lecturasEnVivo])
 
-  const valoresPotencia  = datosGrafico.map(d => d.potencia_w).filter(Boolean)
-  const promedioPotencia = valoresPotencia.length
-    ? (valoresPotencia.reduce((a, b) => a + b, 0) / valoresPotencia.length).toFixed(0)
+  const datosPotenciaDia = useMemo(() => {
+    const todasLasLecturas = [...(historico ?? []), ...lecturasEnVivo]
+    return construirDatosPotenciaPorDia(todasLasLecturas)
+  }, [historico, lecturasEnVivo])
+
+  const valoresPotenciaDia = datosPotenciaDia.map(d => d.potencia_w).filter(Boolean)
+  const promedioPotencia   = valoresPotenciaDia.length
+    ? (valoresPotenciaDia.reduce((a, b) => a + b, 0) / valoresPotenciaDia.length).toFixed(0)
     : "—"
-  const picoPotencia = valoresPotencia.length
-    ? Math.max(...valoresPotencia).toFixed(0)
+  const picoPotencia = valoresPotenciaDia.length
+    ? Math.max(...valoresPotenciaDia).toFixed(0)
     : "—"
 
   const ultimasLecturas = useMemo(() => {
@@ -362,13 +382,13 @@ export default function MonitoringPage() {
           <div className="card">
             <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
               <p className="font-semibold text-dark text-sm">
-                Consumo eléctrico — últimas {horasHistorico}h
+                Consumo eléctrico — por día
               </p>
               <p className="text-xs text-muted">
                 Promedio: {promedioPotencia} W · Pico: {picoPotencia} W
               </p>
             </div>
-            <PowerChart datos={datosGrafico} cargando={cargandoHistorico} />
+            <PowerChart datos={datosPotenciaDia} cargando={cargandoHistorico} />
           </div>
         </div>
 
