@@ -71,6 +71,8 @@ export default function PredictionsPage() {
   const {
     data: todasPredicciones,
     isLoading: cargandoPredicciones,
+    isError: errorPredicciones,
+    error: detalleErrorPredicciones,
     refetch: recargarPredicciones,
   } = useQuery({
     queryKey: ["all-predictions"],
@@ -226,6 +228,29 @@ export default function PredictionsPage() {
           {Array.from({ length: 3 }).map((_, indice) => (
             <div key={indice} className="card h-52 animate-pulse bg-gray-100" />
           ))}
+        </div>
+      ) : errorPredicciones ? (
+        <div className="card mb-6 border-l-4 border-l-danger">
+          <p className="font-semibold text-dark text-sm">No se pudieron cargar las recomendaciones</p>
+          <p className="text-xs text-muted mt-1">
+            El frontend no recibio la respuesta de predicciones desde el backend.
+          </p>
+          <p className="text-xs text-danger mt-2">
+            {detalleErrorPredicciones?.message ?? "Error desconocido"}
+          </p>
+          <button onClick={() => recargarPredicciones()} className="btn-secondary mt-3 text-xs">
+            Reintentar
+          </button>
+        </div>
+      ) : !todasPredicciones?.length ? (
+        <div className="card mb-6">
+          <p className="font-semibold text-dark text-sm">Sin salones para mostrar</p>
+          <p className="text-xs text-muted mt-1">
+            El backend no devolvio salones o recomendaciones operativas para esta vista.
+          </p>
+          <button onClick={() => recargarPredicciones()} className="btn-secondary mt-3 text-xs">
+            Reintentar
+          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
