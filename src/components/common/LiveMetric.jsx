@@ -5,8 +5,9 @@ export default function LiveMetric({
   valor,
   unidad,
   icono,
-  color  = "secondary",
-  tamano = "md",
+  color     = "secondary",
+  tamano    = "md",
+  className = "",
 }) {
   const [destellando, setDestellando] = useState(false)
 
@@ -45,14 +46,14 @@ export default function LiveMetric({
     <div
       className={`card border-l-4 ${borderClass} p-2 lg:p-4 transition-colors duration-300 ${
         destellando ? bgDestello : "bg-surface"
-      }`}
+      } ${className}`}
     >
-      <div className="flex items-center gap-1.5 mb-1.5">
+      <div className="flex items-center justify-center lg:justify-start gap-1.5 mb-1.5">
         <span className={textoValor}>{icono}</span>
         <p className="text-[10px] lg:text-xs text-muted uppercase tracking-wide truncate">{etiqueta}</p>
       </div>
 
-      <div className="flex items-baseline gap-0.5">
+      <div className="flex items-baseline justify-center lg:justify-start gap-0.5">
         {valor != null ? (
           <>
             <span className={`font-bold text-dark leading-tight ${

@@ -7,6 +7,7 @@ import {
   MdBolt,
   MdPerson,
   MdPersonOff,
+  MdAir,
 } from "react-icons/md"
 
 import PageWrapper       from "../components/layout/PageWrapper"
@@ -206,24 +207,17 @@ export default function MonitoringPage() {
               {nombreSala}
             </h1>
             <div className="flex flex-wrap items-center gap-3 mt-1">
-              {/* Estado conexión — punto + texto, sin cápsula */}
-              <span className={`hidden sm:inline-flex items-center gap-1.5 text-xs ${badgeConexion.color}`}>
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${badgeConexion.dot}`} />
-                {badgeConexion.txt}
-              </span>
-              {/* Info del salón */}
-              {salonSeleccionado && (
-                <span className="hidden sm:inline text-xs text-muted">
-                  {salonSeleccionado.area_m2}m²
-                  {" · "}{salonSeleccionado.capacity} personas
-                  {salonSeleccionado.ac_brand && ` · ${salonSeleccionado.ac_brand}`}
+{/* Última actualización */}
+              {lecturaActual?.recorded_at && (
+                <span className="text-xs text-muted">
+                  Última actualización: {formatearHora(lecturaActual.recorded_at)}
                 </span>
               )}
             </div>
           </div>
 
           {/* Selectores */}
-          <div className="flex flex-col gap-2 sm:min-w-[200px]">
+          <div className="flex flex-row flex-wrap gap-3 items-center">
             {/* Selector de sala — solo si hay más de una */}
             {salones?.length > 1 && (
               <div className="flex items-center gap-2">
@@ -277,7 +271,7 @@ export default function MonitoringPage() {
       )}
 
       {/* ── 3. Métricas en vivo ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+      <div className="grid grid-cols-6 sm:grid-cols-5 gap-2 mb-4">
         <LiveMetric
           etiqueta="Temperatura"
           valor={lecturaActual?.temperature ?? null}
@@ -285,6 +279,7 @@ export default function MonitoringPage() {
           icono={<MdThermostat size={18} />}
           color={lecturaActual?.temperature > 26 ? "warning" : "secondary"}
           tamano="md"
+          className="col-span-3 sm:col-span-1"
         />
         <LiveMetric
           etiqueta="Salida aire"
@@ -293,6 +288,7 @@ export default function MonitoringPage() {
           icono={<MdThermostat size={18} />}
           color="primary"
           tamano="md"
+          className="col-span-3 sm:col-span-1"
         />
         <LiveMetric
           etiqueta="Humedad"
@@ -301,18 +297,19 @@ export default function MonitoringPage() {
           icono={<MdWaterDrop size={18} />}
           color="primary"
           tamano="md"
+          className="col-span-2 sm:col-span-1"
         />
 
         {/* Presencia — alineada con LiveMetric */}
-        <div className={`card border-l-4 p-2 lg:p-4 ${lecturaActual?.presence ? "border-l-secondary" : "border-l-gray-200"}`}>
-          <div className="flex items-center gap-1.5 mb-1.5">
+        <div className={`col-span-2 sm:col-span-1 card border-l-4 p-2 lg:p-4 ${lecturaActual?.presence ? "border-l-secondary" : "border-l-gray-200"}`}>
+          <div className="flex items-center justify-center lg:justify-start gap-1.5 mb-1.5">
             {lecturaActual?.presence
               ? <MdPerson size={16} className="text-secondary" />
               : <MdPersonOff size={16} className="text-muted" />
             }
             <p className="text-[10px] lg:text-xs text-muted uppercase tracking-wide truncate">Presencia</p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-center lg:justify-start gap-1.5">
             <span className={`text-sm lg:text-xl font-bold leading-tight ${lecturaActual?.presence ? "text-secondary" : "text-muted"}`}>
               {lecturaActual?.presence ? "Sí" : "No"}
             </span>
@@ -329,6 +326,7 @@ export default function MonitoringPage() {
           icono={<MdBolt size={18} />}
           color="secondary"
           tamano="md"
+          className="col-span-2 sm:col-span-1"
         />
       </div>
 
@@ -447,92 +445,44 @@ export default function MonitoringPage() {
       <div className="card">
         <p className="font-semibold text-dark text-sm mb-4">Últimas lecturas</p>
 
-        {/* Vista móvil — cards por lectura */}
-        <div className="flex flex-col gap-2 sm:hidden">
+        {/* Cards — todas las resoluciones */}
+        <div className="flex flex-col gap-3">
           {ultimasLecturas.length === 0 ? (
             <p className="text-xs text-muted text-center py-4">Sin lecturas disponibles</p>
           ) : ultimasLecturas.map((l, i) => (
-            <div key={l.recorded_at ?? i} className="rounded-xl border border-gray-100 p-3">
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-dark">{formatearHora(l.recorded_at)}</span>
+            <div key={l.recorded_at ?? i} className="rounded-xl border border-gray-100 p-3 sm:p-4">
+              {/* Fila superior: hora + badges */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-dark">{formatearHora(l.recorded_at)}</span>
                 <div className="flex gap-1.5">
-                  {l.presence
-                    ? <span className="badge-success">Presencia</span>
-                    : null
-                  }
+                  {l.presence && <span className="badge-success">Presencia</span>}
                   {l.ac_is_on
                     ? <span className="badge-success">AC ON</span>
                     : <span className="badge-muted">AC OFF</span>
                   }
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              {/* Grid de métricas con iconos */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-center">
                 <div>
-                  <p className="text-muted">Temp</p>
-                  <p className="font-medium text-dark">{l.temperature?.toFixed(1) ?? "—"}°C</p>
+                  <p className="text-muted mb-0.5">Temp</p>
+                  <p className="font-semibold text-dark text-sm">{l.temperature?.toFixed(1) ?? "—"}°C</p>
                 </div>
                 <div>
-                  <p className="text-muted">Salida aire</p>
-                  <p className="font-medium text-dark">{l.outlet_temperature?.toFixed(1) ?? "—"}°C</p>
+                  <p className="text-muted mb-0.5">Salida aire</p>
+                  <p className="font-semibold text-dark text-sm">{l.outlet_temperature?.toFixed(1) ?? "—"}°C</p>
                 </div>
                 <div>
-                  <p className="text-muted">Humedad</p>
-                  <p className="font-medium text-dark">{l.humidity?.toFixed(0) ?? "—"}%</p>
+                  <p className="text-muted mb-0.5">Humedad</p>
+                  <p className="font-semibold text-dark text-sm">{l.humidity?.toFixed(0) ?? "—"}%</p>
                 </div>
                 <div>
-                  <p className="text-muted">Potencia</p>
-                  <p className="font-medium text-dark">{l.power_w?.toFixed(0) ?? "—"} W</p>
+                  <p className="text-muted mb-0.5">Potencia</p>
+                  <p className="font-semibold text-dark text-sm">{l.power_w?.toFixed(0) ?? "—"} W</p>
                 </div>
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Vista desktop — tabla */}
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {[
-                  { label: "Hora",      cls: "" },
-                  { label: "Temp",      cls: "" },
-                  { label: "Salida",    cls: "hidden lg:table-cell" },
-                  { label: "Humedad",   cls: "hidden lg:table-cell" },
-                  { label: "Presencia", cls: "" },
-                  { label: "AC",        cls: "" },
-                  { label: "Potencia",  cls: "" },
-                  { label: "Energía",   cls: "hidden md:table-cell" },
-                ].map(col => (
-                  <th key={col.label} className={`text-left pb-2 pr-4 text-muted font-medium uppercase tracking-wide ${col.cls}`}>
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {ultimasLecturas.map((l, i) => (
-                <tr key={l.recorded_at ?? i} className={`border-b border-gray-50 ${i % 2 === 1 ? "bg-gray-50/50" : ""}`}>
-                  <td className="py-2 pr-4 text-muted">{formatearHora(l.recorded_at)}</td>
-                  <td className="py-2 pr-4 font-medium text-dark">{l.temperature?.toFixed(1) ?? "—"} °C</td>
-                  <td className="py-2 pr-4 font-medium text-dark hidden lg:table-cell">{l.outlet_temperature?.toFixed(1) ?? "—"} °C</td>
-                  <td className="py-2 pr-4 font-medium text-dark hidden lg:table-cell">{l.humidity?.toFixed(0) ?? "—"} %</td>
-                  <td className="py-2 pr-4">
-                    {l.presence ? <span className="badge-success">Sí</span> : <span className="badge-muted">No</span>}
-                  </td>
-                  <td className="py-2 pr-4">
-                    {l.ac_is_on ? <span className="badge-success">ON</span> : <span className="badge-muted">OFF</span>}
-                  </td>
-                  <td className="py-2 pr-4 font-medium text-dark">{l.power_w?.toFixed(0) ?? "—"} W</td>
-                  <td className="py-2 font-medium text-dark hidden md:table-cell">{l.energy_wh?.toFixed(2) ?? "—"} Wh</td>
-                </tr>
-              ))}
-              {!ultimasLecturas.length && (
-                <tr>
-                  <td colSpan={8} className="py-6 text-center text-muted">Sin lecturas disponibles</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
         </div>
       </div>
 

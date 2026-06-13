@@ -15,7 +15,7 @@ export default {
         success:   "#10B981",
         muted:     "#64748B",
         dark:      "#1E293B",
-        background:"#F8FAFC",
+        background:"#FFFFFF",
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],

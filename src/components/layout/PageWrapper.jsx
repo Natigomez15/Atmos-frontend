@@ -131,7 +131,7 @@ export default function PageWrapper({ children }) {
   }, [clienteQuery, agregarToast])
 
   return (
-    <div className="min-h-screen flex bg-white md:bg-background">
+    <div className="min-h-screen flex bg-white">
       <Sidebar
         cantidadAlertas={cantidadAlertas}
         estaAbierto={sidebarAbierto}
