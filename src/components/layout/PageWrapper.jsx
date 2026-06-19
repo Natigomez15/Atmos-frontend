@@ -131,7 +131,7 @@ export default function PageWrapper({ children }) {
   }, [clienteQuery, agregarToast])
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="h-screen overflow-hidden flex bg-white">
       <Sidebar
         cantidadAlertas={cantidadAlertas}
         estaAbierto={sidebarAbierto}
@@ -139,7 +139,7 @@ export default function PageWrapper({ children }) {
       />
 
       {/* Contenido principal — desplazado por el sidebar fijo */}
-      <div className="flex-1 flex flex-col md:ml-16 lg:ml-60 transition-all duration-300 min-w-0">
+      <div className="flex-1 flex flex-col md:ml-16 lg:ml-60 transition-all duration-300 min-w-0 min-h-0">
         <Topbar
           cantidadAlertas={cantidadAlertas}
           wsConectado={wsConectado}
@@ -147,7 +147,7 @@ export default function PageWrapper({ children }) {
         />
 
         {/* mt-14 compensa el topbar fijo de h-14 */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 mt-14">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 mt-14 min-h-0 bg-white">
           {children}
         </main>
       </div>

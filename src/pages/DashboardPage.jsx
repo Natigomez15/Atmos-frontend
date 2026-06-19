@@ -87,13 +87,14 @@ export default function DashboardPage() {
 
       <div className="mb-6">
         <PageHeader
+          eyebrow={etiquetaHoy()}
           title={estaLogueado && perfil?.nombre ? `Hola, ${perfil.nombre}` : "Panel general"}
-          description="Resumen general del sistema"
+          description="Resumen en tiempo real del sistema de control energético"
         />
       </div>
 
       {/* ── KPI Cards ──────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <KPICard titulo="Consumo hoy"      valor={resumen?.total_energy_kwh?.toFixed(2) ?? "—"} unidad="kWh"           icono={<MdBolt size={20} />}          color="secondary" cargando={cargandoResumen} />
         <KPICard titulo="Ahorro estimado"  valor={resumen?.total_savings_usd?.toFixed(2) ?? "—"} unidad="USD"          icono={<MdSavings size={20} />}        tendencia={resumen?.avg_savings_pct} color="success" cargando={cargandoResumen} />
         <KPICard titulo="Laboratorios activos" valor={salonesActivos} unidad={`/ ${totalSalones}`}                     icono={<MdMeetingRoom size={20} />}    color="primary"   cargando={cargandoSalones} />
@@ -104,7 +105,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
             <div className="lg:col-span-3 card">
               <div className="mb-4">
-                <p className="font-semibold text-dark text-sm">Consumo eléctrico — últimas 24h</p>
+                <p className="font-semibold text-dark">Consumo eléctrico — últimas 24h</p>
                 <p className="text-xs text-muted mt-0.5">Potencia promedio por hora del pabellón</p>
               </div>
               <ConsumptionLineChart datos={datosPorHora} cargando={cargandoSalones} />
@@ -145,10 +146,10 @@ export default function DashboardPage() {
           </div>
 
           {/* ── Estado de laboratorios ───────────────────────────────────── */}
-          <div className="mb-2 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-baseline gap-3">
-              <h3 className="text-lg font-semibold text-dark">Estado de laboratorios</h3>
-              <span className="text-xs text-muted">Actualización cada 30 segundos</span>
+          <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="text-base font-bold text-dark tracking-tight">Estado de laboratorios</h3>
+              <p className="text-xs text-muted mt-0.5">Se actualiza cada 30 segundos</p>
             </div>
           </div>
 

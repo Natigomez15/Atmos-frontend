@@ -8,7 +8,22 @@ function minutosAtras(iso) {
 function ColorTemperatura({ temperatura }) {
   if (temperatura == null) return <span className="text-muted">—</span>
   const clase = temperatura > 26 ? "text-warning" : temperatura <= 24 ? "text-success" : "text-dark"
-  return <span className={`font-medium ${clase}`}>{temperatura.toFixed(1)}</span>
+  return <span className={`font-semibold ${clase}`}>{temperatura.toFixed(1)}</span>
+}
+
+function Metrica({ icono: Icono, valor, unidad, render }) {
+  return (
+    <div className="flex flex-col items-center gap-1 px-2 py-2 rounded-xl bg-gray-50">
+      <Icono size={13} className="text-muted" />
+      <div className="text-xs text-center leading-none">
+        {render ? render() : (
+          valor != null
+            ? <><span className="font-semibold text-dark">{valor}</span><span className="text-muted"> {unidad}</span></>
+            : <span className="text-muted">—</span>
+        )}
+      </div>
+    </div>
+  )
 }
 
 export default function RoomStatusCard({
@@ -26,63 +41,53 @@ export default function RoomStatusCard({
 
   return (
     <div
-      className="card cursor-pointer hover:shadow-md transition-shadow duration-200"
+      className="card cursor-pointer hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 group"
       onClick={onClick}
     >
-      {/* Nombre del salón + presencia */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="font-medium text-dark text-sm">{room_name}</span>
-        {presence
-          ? <span className="badge-success">Ocupado</span>
-          : <span className="badge-muted">Vacío</span>
-        }
-      </div>
-
-      {/* Estado del AC */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <MdAir size={16} className={ac_is_on ? "text-secondary" : "text-muted"} />
-          <span className="text-xs text-muted">
-            {ac_is_on ? "AC Encendido" : "AC Apagado"}
-          </span>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="min-w-0">
+          <span className="font-semibold text-dark text-sm leading-tight block truncate">{room_name}</span>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+              sinSenal ? "bg-gray-300" : ac_is_on ? "bg-success animate-pulse" : "bg-gray-300"
+            }`} />
+            <span className="text-[11px] text-muted">
+              {ac_is_on ? "AC encendido" : "AC apagado"}
+            </span>
+          </div>
         </div>
-        {ac_is_on && (
-          <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-        )}
+        <span className={presence ? "badge-success" : "badge-muted"}>
+          {presence ? "Ocupado" : "Vacío"}
+        </span>
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="flex flex-col items-center gap-0.5">
-          <MdThermostat size={14} className="text-muted" />
-          <div className="text-xs">
-            <ColorTemperatura temperatura={temperature} />
-            {temperature != null && <span className="text-muted"> °C</span>}
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-0.5">
-          <MdWaterDrop size={14} className="text-muted" />
-          <div className="text-xs">
-            {humidity != null
-              ? <><span className="font-medium text-dark">{humidity.toFixed(0)}</span><span className="text-muted"> %</span></>
-              : <span className="text-muted">—</span>
-            }
-          </div>
-        </div>
-        <div className="flex flex-col items-center gap-0.5">
-          <MdBolt size={14} className="text-muted" />
-          <div className="text-xs">
-            {power_w != null
-              ? <><span className="font-medium text-dark">{power_w.toFixed(0)}</span><span className="text-muted"> W</span></>
-              : <span className="text-muted">—</span>
-            }
-          </div>
-        </div>
+      <div className="grid grid-cols-3 gap-1.5 mb-3">
+        <Metrica
+          icono={MdThermostat}
+          render={() => (
+            <><ColorTemperatura temperatura={temperature} />{temperature != null && <span className="text-muted"> °C</span>}</>
+          )}
+        />
+        <Metrica
+          icono={MdWaterDrop}
+          valor={humidity != null ? humidity.toFixed(0) : null}
+          unidad="%"
+        />
+        <Metrica
+          icono={MdBolt}
+          valor={power_w != null ? power_w.toFixed(0) : null}
+          unidad="W"
+        />
       </div>
 
-      {/* Marca de tiempo */}
-      <p className={`text-xs ${sinSenal ? "text-danger" : "text-muted"}`}>
-        {sinSenal ? "Sin señal" : `Actualizado hace ${minutos} min`}
+      {/* Timestamp */}
+      <p className={`text-[11px] font-medium ${sinSenal ? "text-danger" : "text-muted"}`}>
+        {sinSenal
+          ? "● Sin señal"
+          : minutos === 0 ? "Actualizado ahora" : `Actualizado hace ${minutos} min`
+        }
       </p>
     </div>
   )

@@ -152,20 +152,22 @@ export default function FormularioPerfil({ perfil, alGuardar, modo = "todo" }) {
         <CampoTexto etiqueta="Nombre completo" valor={nombre} alCambiar={setNombre} />
 
         {modo === "cuenta" && (
-          <>
-            {error && <p className="text-danger text-xs">{error}</p>}
-            {exito && <span className="badge-success w-fit">Perfil actualizado correctamente</span>}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+            <div className="flex flex-col gap-1">
+              {error && <p className="text-danger text-xs">{error}</p>}
+              {exito && <span className="badge-success w-fit">Perfil actualizado correctamente</span>}
+            </div>
             <button
               type="submit"
               disabled={guardando}
-              className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full sm:w-fit flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {guardando && (
                 <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
               )}
               Guardar cambios
             </button>
-          </>
+          </div>
         )}
       </section>
       )}
@@ -205,19 +207,22 @@ export default function FormularioPerfil({ perfil, alGuardar, modo = "todo" }) {
           alCambiar={setConfirmar}
         />
 
-        {error && <p className="text-danger text-xs">{error}</p>}
-        {exito && <span className="badge-success w-fit">Perfil actualizado correctamente</span>}
-
-        <button
-          type="submit"
-          disabled={guardando}
-          className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {guardando && (
-            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-          )}
-          Guardar cambios
-        </button>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+          <div className="flex flex-col gap-1">
+            {error && <p className="text-danger text-xs">{error}</p>}
+            {exito && <span className="badge-success w-fit">Perfil actualizado correctamente</span>}
+          </div>
+          <button
+            type="submit"
+            disabled={guardando}
+            className="btn-primary w-full sm:w-fit flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {guardando && (
+              <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+            )}
+            Guardar cambios
+          </button>
+        </div>
       </section>
       )}
     </form>

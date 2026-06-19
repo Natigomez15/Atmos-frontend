@@ -8,6 +8,9 @@ import {
   MdPerson,
   MdPersonOff,
   MdAir,
+  MdPower,
+  MdDeviceThermostat,
+  MdWarning,
 } from "react-icons/md"
 
 import PageWrapper       from "../components/layout/PageWrapper"
@@ -30,9 +33,7 @@ import { useRoomWebSocket } from "../hooks/useRoomWebSocket"
 function formatearHora(iso) {
   if (!iso) return ""
   return new Date(iso).toLocaleTimeString("es-PE", {
-    hour:   "2-digit",
-    minute: "2-digit",
-    hour12: false,
+    hour: "2-digit", minute: "2-digit", hour12: false,
   })
 }
 
@@ -74,12 +75,102 @@ function construirDatosPotenciaPorDia(lecturas) {
     porDia[dia].count += 1
   })
   return Object.entries(porDia).map(([dia, { suma }]) => ({
-    tiempo:     dia,
-    potencia_w: Math.round(suma),
+    tiempo: dia, potencia_w: Math.round(suma),
   }))
 }
 
-// ── Componente ─────────────────────────────────────────────────────────────
+// ── Sub-componentes ────────────────────────────────────────────────────────
+
+function BadgeConexion({ estaConectado, reconectando }) {
+  if (estaConectado) return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-success bg-success/10 px-2.5 py-1 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+      Tiempo real
+    </span>
+  )
+  if (reconectando) return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-warning bg-warning/10 px-2.5 py-1 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+      Reconectando…
+    </span>
+  )
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted bg-gray-100 px-2.5 py-1 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+      Sin conexión
+    </span>
+  )
+}
+
+function EstadoAC({ lecturaActual, onComandos }) {
+  const encendido = lecturaActual?.ac_is_on
+  const setpoint  = lecturaActual?.setpoint_c
+
+  return (
+    <div className="card flex flex-col gap-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold text-dark">Estado AC</p>
+          <p className="text-xs text-muted mt-0.5">Solo lectura</p>
+        </div>
+        <button onClick={onComandos} className="btn-secondary text-xs shrink-0">
+          Comandos →
+        </button>
+      </div>
+
+      {/* Estado principal */}
+      <div className={`rounded-xl p-4 flex items-center gap-3 border transition-colors ${
+        encendido
+          ? "bg-secondary/5 border-secondary/20"
+          : "bg-gray-50 border-gray-100"
+      }`}>
+        <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+          encendido ? "bg-secondary/15" : "bg-gray-100"
+        }`}>
+          <MdAir size={20} className={encendido ? "text-secondary" : "text-muted"} />
+        </span>
+        <div className="flex-1">
+          <p className={`text-lg font-bold leading-tight ${encendido ? "text-secondary" : "text-muted"}`}>
+            {encendido ? "Encendido" : "Apagado"}
+          </p>
+          <p className="text-xs text-muted mt-0.5">
+            {encendido ? "Aire acondicionado activo" : "Aire acondicionado inactivo"}
+          </p>
+        </div>
+        {encendido && (
+          <span className="w-2.5 h-2.5 rounded-full bg-success animate-pulse shrink-0" />
+        )}
+      </div>
+
+      {/* Setpoint */}
+      <div className="flex items-center gap-3 px-1">
+        <span className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+          <MdDeviceThermostat size={16} className="text-primary" />
+        </span>
+        <div>
+          <p className="text-[11px] text-muted uppercase tracking-wide font-medium">Temperatura objetivo</p>
+          <p className="text-base font-bold text-dark tabular-nums">
+            {setpoint != null ? `${setpoint} °C` : "—"}
+          </p>
+        </div>
+      </div>
+
+      {/* Error AC */}
+      {lecturaActual?.ac_error && (
+        <div className="flex items-start gap-2 rounded-xl bg-warning/8 border border-warning/20 p-3">
+          <MdWarning size={15} className="text-warning shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-warning">Atención</p>
+            <p className="text-xs text-muted mt-0.5">{lecturaActual.ac_error}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Componente principal ───────────────────────────────────────────────────
 
 export default function MonitoringPage() {
   const [parametrosBusqueda, setParametrosBusqueda] = useSearchParams()
@@ -89,10 +180,8 @@ export default function MonitoringPage() {
     parametrosBusqueda.get("room_id") ?? null
   )
   const [lecturasEnVivo, setLecturasEnVivo] = useState([])
-  const [horasHistorico,  setHorasHistorico]  = useState(6)
+  const [horasHistorico, setHorasHistorico] = useState(6)
   const [aireSeleccionado, setAireSeleccionado] = useState(null)
-
-  // ── Queries ────────────────────────────────────────────────────────────
 
   const { data: salones } = useQuery({
     queryKey: ["rooms"],
@@ -106,13 +195,7 @@ export default function MonitoringPage() {
     refetchInterval: 15000,
   })
 
-  // ── WebSocket ──────────────────────────────────────────────────────────
-
-  const {
-    ultimaLectura: nuevaLecturaWs,
-    estaConectado,
-    reconectando,
-  } = useRoomWebSocket(idSalonSeleccionado)
+  const { ultimaLectura: nuevaLecturaWs, estaConectado, reconectando } = useRoomWebSocket(idSalonSeleccionado)
 
   useEffect(() => {
     if (!nuevaLecturaWs) return
@@ -133,10 +216,7 @@ export default function MonitoringPage() {
     }
   }, [salones, idSalonSeleccionado, setParametrosBusqueda])
 
-  // ── Datos derivados ────────────────────────────────────────────────────
-
   const salonSeleccionado = salones?.find(s => String(s.id) === idSalonSeleccionado)
-
   const aireActivo = aireSeleccionado ?? salonSeleccionado?.aires?.[0] ?? null
 
   const { data: airesDisponibles } = useQuery({
@@ -173,13 +253,11 @@ export default function MonitoringPage() {
   }, [nuevaLecturaWs, lecturaMasReciente])
 
   const datosGrafico = useMemo(() => {
-    const todasLasLecturas = [...(historico ?? []), ...lecturasEnVivo]
-    return construirDatosGrafico(todasLasLecturas)
+    return construirDatosGrafico([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
 
   const datosPotenciaDia = useMemo(() => {
-    const todasLasLecturas = [...(historico ?? []), ...lecturasEnVivo]
-    return construirDatosPotenciaPorDia(todasLasLecturas)
+    return construirDatosPotenciaPorDia([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
 
   const valoresPotenciaDia = datosPotenciaDia.map(d => d.potencia_w).filter(Boolean)
@@ -191,13 +269,10 @@ export default function MonitoringPage() {
     : "—"
 
   const ultimasLecturas = useMemo(() => {
-    const combinadas = deduplicar([...(historico ?? []), ...lecturasEnVivo])
-    return combinadas
+    return deduplicar([...(historico ?? []), ...lecturasEnVivo])
       .sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
       .slice(0, 10)
   }, [historico, lecturasEnVivo])
-
-  // ── Handlers ───────────────────────────────────────────────────────────
 
   function cambiarSalon(e) {
     const nuevoId = e.target.value
@@ -205,170 +280,178 @@ export default function MonitoringPage() {
     setParametrosBusqueda({ room_id: nuevoId })
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────
-
-  // Evitar "Laboratorio Laboratorio" — usar nombre directo sin prefijo
   const nombreSala = salonSeleccionado?.name ?? salonSeleccionado?.nombre ?? "Laboratorio"
-
-  const badgeConexion = estaConectado
-    ? { color: "text-success", dot: "bg-success animate-pulse", txt: "Tiempo real" }
-    : reconectando
-      ? { color: "text-warning", dot: "bg-warning animate-pulse", txt: "Reconectando…" }
-      : { color: "text-muted",   dot: "bg-gray-400",              txt: "Sin conexión" }
 
   return (
     <PageWrapper>
 
-      {/* ── 1. Header ────────────────────────────────────────────────────── */}
-      <div className="mb-5">
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+      {/* ── 1. Header ──────────────────────────────────────────────────────── */}
+      <div className="mb-5 pb-4 border-b border-gray-100">
+
+        {/* Mobile: columna — Desktop: fila */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+
+          {/* Bloque de información */}
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-dark truncate">
+            <p className="text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5">
+              Monitoreo en tiempo real
+            </p>
+            <h1 className="text-2xl font-bold text-dark tracking-tight leading-none mb-2">
               {nombreSala}
             </h1>
-            <div className="flex flex-wrap items-center gap-3 mt-1">
-{/* Última actualización */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <BadgeConexion estaConectado={estaConectado} reconectando={reconectando} />
               {lecturaActual?.recorded_at && (
                 <span className="text-xs text-muted">
-                  Última actualización: {formatearHora(lecturaActual.recorded_at)}
+                  · {formatearHora(lecturaActual.recorded_at)}
                 </span>
               )}
             </div>
           </div>
 
           {/* Selectores */}
-          <div className="flex flex-row flex-wrap gap-3 items-center">
-            {/* Selector de sala — solo si hay más de una */}
-            {salones?.length > 1 && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted shrink-0">Ver sala:</span>
-                <select
-                  value={idSalonSeleccionado ?? ""}
-                  onChange={cambiarSalon}
-                  className="h-10 flex-1 border border-gray-200 rounded-xl px-3 bg-white text-dark text-sm
-                             focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
-                >
-                  {salones.map(salon => (
-                    <option key={salon.id} value={salon.id}>{salon.name ?? salon.nombre}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Selector de aire */}
-            {airesDisponibles?.length > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted shrink-0">Ver aire:</span>
-                <select
-                  value={aireActivo ?? ""}
-                  onChange={e => setAireSeleccionado(e.target.value)}
-                  className="h-10 flex-1 border border-gray-200 rounded-xl px-3 bg-white text-dark text-sm
-                             focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
-                >
-                  {airesDisponibles.map(a => (
-                    <option key={a} value={a}>{a}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
+          {(salones?.length > 1 || airesDisponibles?.length > 0) && (
+            <div className="flex gap-2 sm:shrink-0">
+              {salones?.length > 1 && (
+                <div className="flex-1 sm:flex-initial">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
+                    Sala
+                  </label>
+                  <select
+                    value={idSalonSeleccionado ?? ""}
+                    onChange={cambiarSalon}
+                    className="w-full sm:w-auto min-h-[40px] text-sm font-medium text-dark bg-gray-50
+                               border border-gray-200 rounded-xl px-3 outline-none
+                               focus:ring-2 focus:ring-secondary/30 focus:border-secondary
+                               transition-colors cursor-pointer"
+                  >
+                    {salones.map(salon => (
+                      <option key={salon.id} value={salon.id}>{salon.name ?? salon.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {airesDisponibles?.length > 0 && (
+                <div className="flex-1 sm:flex-initial">
+                  <label className="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
+                    Aire
+                  </label>
+                  <select
+                    value={aireActivo ?? ""}
+                    onChange={e => setAireSeleccionado(e.target.value)}
+                    className="w-full sm:w-auto min-h-[40px] text-sm font-medium text-dark bg-gray-50
+                               border border-gray-200 rounded-xl px-3 outline-none
+                               focus:ring-2 focus:ring-secondary/30 focus:border-secondary
+                               transition-colors cursor-pointer"
+                  >
+                    {airesDisponibles.map(a => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── 2. Banner diagnóstico ─────────────────────────────────────────── */}
+      {/* ── 2. Banner diagnóstico ──────────────────────────────────────────── */}
       {diagnosticoLecturas?.diagnostico?.posible_fallo_sensor && (
-        <div className="mb-4 rounded-xl border border-warning/30 bg-warning/10 px-4 py-3">
-          <p className="text-sm font-semibold text-dark">
-            Advertencia: lecturas inválidas recientes del ESP32 o sensor.
-          </p>
-          <p className="text-xs text-muted mt-1">
-            Usando última lectura válida disponible.
-            {" "}Inválidas: {diagnosticoLecturas.diagnostico.lecturas_invalidas}
-            /{diagnosticoLecturas.diagnostico.lecturas_revisadas}
-            {" "}({diagnosticoLecturas.diagnostico.porcentaje_invalidas}%).
-          </p>
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/8 px-4 py-3">
+          <MdWarning size={16} className="text-warning shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-dark">Lecturas inválidas detectadas</p>
+            <p className="text-xs text-muted mt-0.5">
+              Usando última lectura válida disponible. Inválidas:{" "}
+              {diagnosticoLecturas.diagnostico.lecturas_invalidas}/
+              {diagnosticoLecturas.diagnostico.lecturas_revisadas}{" "}
+              ({diagnosticoLecturas.diagnostico.porcentaje_invalidas}%)
+            </p>
+          </div>
         </div>
       )}
 
-      {/* ── 3. Métricas en vivo ───────────────────────────────────────────── */}
-      <div className="grid grid-cols-6 sm:grid-cols-5 gap-2 mb-4">
+      {/* ── 3. Métricas en vivo ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-5">
         <LiveMetric
           etiqueta="Temperatura"
           valor={lecturaActual?.temperature ?? null}
           unidad="°C"
-          icono={<MdThermostat size={18} />}
+          icono={<MdThermostat size={16} />}
           color={lecturaActual?.temperature > 26 ? "warning" : "secondary"}
           tamano="md"
-          className="col-span-3 sm:col-span-1"
         />
         <LiveMetric
           etiqueta="Salida aire"
           valor={lecturaActual?.outlet_temperature ?? null}
           unidad="°C"
-          icono={<MdThermostat size={18} />}
+          icono={<MdThermostat size={16} />}
           color="primary"
           tamano="md"
-          className="col-span-3 sm:col-span-1"
         />
         <LiveMetric
           etiqueta="Humedad"
           valor={lecturaActual?.humidity ?? null}
           unidad="%"
-          icono={<MdWaterDrop size={18} />}
+          icono={<MdWaterDrop size={16} />}
           color="primary"
           tamano="md"
-          className="col-span-2 sm:col-span-1"
         />
-
-        {/* Presencia — alineada con LiveMetric */}
-        <div className={`col-span-2 sm:col-span-1 card border-l-4 p-2 lg:p-4 ${lecturaActual?.presence ? "border-l-secondary" : "border-l-gray-200"}`}>
-          <div className="flex items-center justify-center lg:justify-start gap-1.5 mb-1.5">
-            {lecturaActual?.presence
-              ? <MdPerson size={16} className="text-secondary" />
-              : <MdPersonOff size={16} className="text-muted" />
-            }
-            <p className="text-[10px] lg:text-xs text-muted uppercase tracking-wide truncate">Presencia</p>
-          </div>
-          <div className="flex items-center justify-center lg:justify-start gap-1.5">
-            <span className={`text-sm lg:text-xl font-bold leading-tight ${lecturaActual?.presence ? "text-secondary" : "text-muted"}`}>
-              {lecturaActual?.presence ? "Sí" : "No"}
-            </span>
-            {lecturaActual?.presence && (
-              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            )}
-          </div>
-        </div>
-
         <LiveMetric
           etiqueta="Potencia"
           valor={lecturaActual?.power_w ?? null}
           unidad="W"
-          icono={<MdBolt size={18} />}
+          icono={<MdBolt size={16} />}
           color="secondary"
           tamano="md"
-          className="col-span-2 sm:col-span-1"
         />
+
+        {/* Presencia — mismo estilo que LiveMetric */}
+        <div className="card flex flex-col gap-2.5 col-span-2 sm:col-span-1">
+          <div className="flex items-center gap-2">
+            <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+              lecturaActual?.presence ? "bg-success/10" : "bg-gray-100"
+            }`}>
+              {lecturaActual?.presence
+                ? <MdPerson size={16} className="text-success" />
+                : <MdPersonOff size={16} className="text-muted" />
+              }
+            </span>
+            <p className="text-xs text-muted font-medium">Presencia</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={`text-xl font-bold leading-none ${
+              lecturaActual?.presence ? "text-success" : "text-gray-300"
+            }`}>
+              {lecturaActual?.presence ? "Sí" : "No"}
+            </span>
+            {lecturaActual?.presence && (
+              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── 4. Gráficos + columna derecha ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-5">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 mb-4">
 
-        {/* Columna izquierda — gráficos */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
+        {/* Gráficos */}
+        <div className="lg:col-span-3 flex flex-col gap-3">
           <div className="card">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <p className="font-semibold text-dark text-sm">
-                Temperatura y Humedad — últimas {horasHistorico}h
-              </p>
-              <div className="flex gap-1">
+              <div>
+                <p className="font-semibold text-dark">Temperatura y Humedad</p>
+                <p className="text-xs text-muted mt-0.5">Últimas {horasHistorico} horas</p>
+              </div>
+              <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
                 {[6, 12, 24].map(h => (
                   <button
                     key={h}
                     onClick={() => setHorasHistorico(h)}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-150 ${
                       horasHistorico === h
-                        ? "bg-secondary/10 text-secondary"
-                        : "text-muted hover:bg-gray-50"
+                        ? "bg-white text-secondary shadow-sm"
+                        : "text-muted hover:text-dark"
                     }`}
                   >
                     {h}h
@@ -381,77 +464,46 @@ export default function MonitoringPage() {
 
           <div className="card">
             <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
-              <p className="font-semibold text-dark text-sm">
-                Consumo eléctrico — por día
-              </p>
-              <p className="text-xs text-muted">
-                Promedio: {promedioPotencia} W · Pico: {picoPotencia} W
-              </p>
+              <div>
+                <p className="font-semibold text-dark">Consumo eléctrico</p>
+                <p className="text-xs text-muted mt-0.5">Por día</p>
+              </div>
+              <div className="flex gap-3 text-xs text-muted">
+                <span>Promedio: <strong className="text-dark">{promedioPotencia} W</strong></span>
+                <span>Pico: <strong className="text-dark">{picoPotencia} W</strong></span>
+              </div>
             </div>
             <PowerChart datos={datosPotenciaDia} cargando={cargandoHistorico} />
           </div>
         </div>
 
-        {/* Columna derecha — AC + comandos */}
-        <div className="lg:col-span-2 flex flex-col gap-4">
+        {/* Columna derecha */}
+        <div className="lg:col-span-2 flex flex-col gap-3 min-h-0">
 
-          {/* Estado AC */}
-          <div className="card">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div>
-                <p className="font-semibold text-dark text-sm">Estado AC</p>
-                <p className="text-xs text-muted mt-0.5">Solo lectura.</p>
-              </div>
-              <button
-                onClick={() => navegar("/commands")}
-                className="btn-secondary text-xs shrink-0"
-              >
-                Comandos
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-gray-50 p-3">
-                <p className="text-xs text-muted uppercase tracking-wide">Encendido</p>
-                <p className="text-lg font-semibold text-dark mt-1">
-                  {lecturaActual?.ac_is_on ? "Sí" : "No"}
-                </p>
-              </div>
-              <div className="rounded-xl bg-gray-50 p-3">
-                <p className="text-xs text-muted uppercase tracking-wide">Setpoint</p>
-                <p className="text-lg font-semibold text-dark mt-1">
-                  {lecturaActual?.setpoint_c != null ? `${lecturaActual.setpoint_c}°C` : "—"}
-                </p>
-              </div>
-            </div>
-
-            {lecturaActual?.ac_error && (
-              <div className="mt-3 rounded-xl bg-warning/10 border border-warning/20 p-3">
-                <p className="text-xs font-semibold text-warning">Atención</p>
-                <p className="text-xs text-muted mt-0.5">{lecturaActual.ac_error}</p>
-              </div>
-            )}
-          </div>
+          <EstadoAC lecturaActual={lecturaActual} onComandos={() => navegar("/commands")} />
 
           {/* Comandos pendientes */}
-          <div className="card">
-            <p className="font-semibold text-dark text-sm mb-3">Comandos pendientes</p>
+          <div className="card flex-1 flex flex-col">
+            <p className="font-semibold text-dark mb-3">Comandos pendientes</p>
             {!comandosPendientes?.length ? (
-              <p className="text-xs text-muted">Sin comandos pendientes</p>
+              <div className="flex items-center gap-2 py-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                <p className="text-xs text-muted">Sin comandos pendientes</p>
+              </div>
             ) : (
               <div className="flex flex-col gap-2">
                 {comandosPendientes.map((cmd, i) => (
                   <div
                     key={cmd.id ?? i}
-                    className="flex items-center gap-2 py-2 border-b border-gray-100 last:border-0"
+                    className="flex items-center gap-2.5 py-2 border-b border-gray-50 last:border-0"
                   >
-                    <span className="w-2 h-2 rounded-full bg-warning shrink-0" />
+                    <span className="w-2 h-2 rounded-full bg-warning shrink-0 animate-pulse" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-dark capitalize">
+                      <p className="text-xs font-semibold text-dark capitalize">
                         {cmd.command_type}
-                        {cmd.setpoint != null && ` → ${cmd.setpoint}°C`}
+                        {cmd.setpoint != null && <span className="text-secondary"> → {cmd.setpoint}°C</span>}
                       </p>
-                      <p className="text-xs text-muted">{minutosAtras(cmd.commanded_at)}</p>
+                      <p className="text-[11px] text-muted mt-0.5">{minutosAtras(cmd.commanded_at)}</p>
                     </div>
                   </div>
                 ))}
@@ -463,47 +515,44 @@ export default function MonitoringPage() {
 
       {/* ── 5. Últimas lecturas ───────────────────────────────────────────── */}
       <div className="card">
-        <p className="font-semibold text-dark text-sm mb-4">Últimas lecturas</p>
+        <p className="font-semibold text-dark mb-4">Últimas lecturas</p>
 
-        {/* Cards — todas las resoluciones */}
-        <div className="flex flex-col gap-3">
-          {ultimasLecturas.length === 0 ? (
-            <p className="text-xs text-muted text-center py-4">Sin lecturas disponibles</p>
-          ) : ultimasLecturas.map((l, i) => (
-            <div key={l.recorded_at ?? i} className="rounded-xl border border-gray-100 p-3 sm:p-4">
-              {/* Fila superior: hora + badges */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-dark">{formatearHora(l.recorded_at)}</span>
-                <div className="flex gap-1.5">
-                  {l.presence && <span className="badge-success">Presencia</span>}
-                  {l.ac_is_on
-                    ? <span className="badge-success">AC ON</span>
-                    : <span className="badge-muted">AC OFF</span>
-                  }
+        {ultimasLecturas.length === 0 ? (
+          <p className="text-xs text-muted text-center py-6">Sin lecturas disponibles</p>
+        ) : (
+          <div className="flex flex-col divide-y divide-gray-50">
+            {ultimasLecturas.map((l, i) => (
+              <div key={l.recorded_at ?? i} className="py-3 first:pt-0 last:pb-0">
+                {/* Hora + badges */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-dark tabular-nums">{formatearHora(l.recorded_at)}</span>
+                  <div className="flex gap-1.5">
+                    {l.presence && <span className="badge-success">Presencia</span>}
+                    <span className={l.ac_is_on ? "badge-success" : "badge-muted"}>
+                      AC {l.ac_is_on ? "ON" : "OFF"}
+                    </span>
+                  </div>
+                </div>
+                {/* Métricas en fila */}
+                <div className="grid grid-cols-4 gap-2 text-xs">
+                  {[
+                    { label: "Temp",        valor: l.temperature?.toFixed(1),       unidad: "°C" },
+                    { label: "Salida aire", valor: l.outlet_temperature?.toFixed(1), unidad: "°C" },
+                    { label: "Humedad",     valor: l.humidity?.toFixed(0),           unidad: "%" },
+                    { label: "Potencia",    valor: l.power_w?.toFixed(0),            unidad: "W" },
+                  ].map(({ label, valor, unidad }) => (
+                    <div key={label} className="bg-gray-50 rounded-lg px-2.5 py-2">
+                      <p className="text-[10px] text-muted mb-0.5">{label}</p>
+                      <p className="font-semibold text-dark tabular-nums">
+                        {valor ?? "—"}{valor ? <span className="font-normal text-muted"> {unidad}</span> : ""}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
-              {/* Grid de métricas con iconos */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-center">
-                <div>
-                  <p className="text-muted mb-0.5">Temp</p>
-                  <p className="font-semibold text-dark text-sm">{l.temperature?.toFixed(1) ?? "—"}°C</p>
-                </div>
-                <div>
-                  <p className="text-muted mb-0.5">Salida aire</p>
-                  <p className="font-semibold text-dark text-sm">{l.outlet_temperature?.toFixed(1) ?? "—"}°C</p>
-                </div>
-                <div>
-                  <p className="text-muted mb-0.5">Humedad</p>
-                  <p className="font-semibold text-dark text-sm">{l.humidity?.toFixed(0) ?? "—"}%</p>
-                </div>
-                <div>
-                  <p className="text-muted mb-0.5">Potencia</p>
-                  <p className="font-semibold text-dark text-sm">{l.power_w?.toFixed(0) ?? "—"} W</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
     </PageWrapper>

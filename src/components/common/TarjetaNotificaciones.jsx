@@ -83,7 +83,7 @@ export default function TarjetaNotificaciones() {
         <button
           onClick={suscribirse}
           disabled={cargando}
-          className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="btn-primary w-full sm:w-fit flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {cargando && (
             <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -135,37 +135,33 @@ export default function TarjetaNotificaciones() {
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 items-center">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <p className="text-xs text-muted uppercase tracking-wide">Desde</p>
-              <div className="mt-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
-                <input
-                  type="time"
-                  value={horarioDesde}
-                  onChange={e => setHorarioDesde(e.target.value)}
-                  disabled={!silenciosoActivo}
-                  className="w-full bg-transparent text-base sm:text-2xl font-bold text-dark focus:outline-none"
-                />
-              </div>
-            </div>
-            <div className="text-muted">
-              <MdBedtime size={20} />
+        <div className="mt-3 flex items-center gap-3">
+          <div className="flex-1">
+            <p className="text-xs text-muted uppercase tracking-wide mb-1">Desde</p>
+            <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 flex items-center gap-2">
+              <MdBedtime size={15} className="text-muted flex-shrink-0" />
+              <input
+                type="time"
+                value={horarioDesde}
+                onChange={e => setHorarioDesde(e.target.value)}
+                disabled={!silenciosoActivo}
+                className="w-full bg-transparent text-sm font-semibold text-dark focus:outline-none disabled:opacity-50"
+              />
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex-1 text-right">
-              <p className="text-xs text-muted uppercase tracking-wide">Hasta</p>
-              <div className="mt-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
-                <input
-                  type="time"
-                  value={horarioHasta}
-                  onChange={e => setHorarioHasta(e.target.value)}
-                  disabled={!silenciosoActivo}
-                  className="w-full bg-transparent text-base sm:text-2xl font-bold text-dark focus:outline-none text-right"
-                />
-              </div>
+          <span className="text-xs text-muted mt-5 flex-shrink-0">→</span>
+
+          <div className="flex-1">
+            <p className="text-xs text-muted uppercase tracking-wide mb-1">Hasta</p>
+            <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+              <input
+                type="time"
+                value={horarioHasta}
+                onChange={e => setHorarioHasta(e.target.value)}
+                disabled={!silenciosoActivo}
+                className="w-full bg-transparent text-sm font-semibold text-dark focus:outline-none disabled:opacity-50"
+              />
             </div>
           </div>
         </div>

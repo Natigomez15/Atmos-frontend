@@ -17,11 +17,11 @@ import {
 import { useAuth } from "../../context/AuthContext"
 
 const navPublico = [
-  { etiqueta: "Dashboard",  icono: MdDashboard,     ruta: "/dashboard" },
-  { etiqueta: "Laboratorios", icono: MdMeetingRoom, ruta: "/rooms" },
-  { etiqueta: "Monitoreo",  icono: MdMonitor,       ruta: "/monitoring" },
-  { etiqueta: "Predicciones ML", icono: MdAutoGraph, ruta: "/predictions" },
-  { etiqueta: "Alertas",    icono: MdNotifications, ruta: "/alerts" },
+  { etiqueta: "Dashboard",      icono: MdDashboard,     ruta: "/dashboard" },
+  { etiqueta: "Laboratorios",   icono: MdMeetingRoom,   ruta: "/rooms" },
+  { etiqueta: "Monitoreo",      icono: MdMonitor,       ruta: "/monitoring" },
+  { etiqueta: "Predicciones ML",icono: MdAutoGraph,     ruta: "/predictions" },
+  { etiqueta: "Alertas",        icono: MdNotifications, ruta: "/alerts" },
 ]
 
 const navAutenticado = [
@@ -31,14 +31,14 @@ const navAutenticado = [
 ]
 
 const navAdmin = [
-  { etiqueta: "Nodos ESP32",     icono: MdRouter,    ruta: "/nodes" },
-  { etiqueta: "Usuarios",        icono: MdPeople,    ruta: "/users" },
+  { etiqueta: "Nodos ESP32", icono: MdRouter,  ruta: "/nodes" },
+  { etiqueta: "Usuarios",    icono: MdPeople,  ruta: "/users" },
 ]
 
 const estiloBase =
-  "flex items-center gap-3 px-4 py-3 rounded-xl mx-2 text-sm text-muted " +
-  "hover:bg-gray-50 hover:text-dark transition-colors duration-200"
-const estiloActivo = "bg-secondary/10 text-secondary font-medium"
+  "relative flex items-center gap-3 px-3 py-2.5 rounded-xl mx-2 text-sm text-muted " +
+  "hover:bg-gray-50 hover:text-dark transition-all duration-150 group"
+const estiloActivo = "bg-secondary/10 text-secondary font-medium hover:bg-secondary/15"
 
 function ElementoNav({ elemento, cantidadAlertas }) {
   const Icono = elemento.icono
@@ -50,18 +50,25 @@ function ElementoNav({ elemento, cantidadAlertas }) {
         isActive ? `${estiloBase} ${estiloActivo}` : estiloBase
       }
     >
-      <Icono size={18} className="flex-shrink-0" />
-      <span className="block md:hidden lg:block flex-1">{elemento.etiqueta}</span>
-      {elemento.ruta === "/alerts" && cantidadAlertas > 0 && (
-        <span className="relative flex items-center justify-center w-5 h-5 flex md:hidden lg:flex">
-          <span className="absolute inline-flex w-full h-full rounded-full bg-danger opacity-40 animate-ping" />
-          <span className="relative flex items-center justify-center w-4 h-4 rounded-full bg-danger text-white text-[10px] font-bold leading-none">
-            {cantidadAlertas > 9 ? "9+" : cantidadAlertas}
-          </span>
-        </span>
-      )}
-      {elemento.ruta === "/alerts" && cantidadAlertas > 0 && (
-        <span className="lg:hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-danger" />
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-secondary rounded-full" />
+          )}
+          <Icono size={18} className="flex-shrink-0 transition-transform duration-150 group-hover:scale-105" />
+          <span className="block md:hidden lg:block flex-1 truncate">{elemento.etiqueta}</span>
+          {elemento.ruta === "/alerts" && cantidadAlertas > 0 && (
+            <span className="relative flex items-center justify-center w-5 h-5 block md:hidden lg:flex">
+              <span className="absolute inline-flex w-full h-full rounded-full bg-danger opacity-30 animate-ping" />
+              <span className="relative flex items-center justify-center w-4 h-4 rounded-full bg-danger text-white text-[10px] font-bold leading-none">
+                {cantidadAlertas > 9 ? "9+" : cantidadAlertas}
+              </span>
+            </span>
+          )}
+          {elemento.ruta === "/alerts" && cantidadAlertas > 0 && (
+            <span className="lg:hidden absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-danger" />
+          )}
+        </>
       )}
     </NavLink>
   )
@@ -71,6 +78,14 @@ const ETIQUETAS_ROL = {
   admin:         "Administrador",
   mantenimiento: "Mantenimiento",
   usuario:       "Usuario",
+}
+
+function Iniciales({ nombre }) {
+  const partes = (nombre ?? "U").trim().split(" ")
+  const ini = partes.length >= 2
+    ? partes[0][0] + partes[partes.length - 1][0]
+    : partes[0].slice(0, 2)
+  return ini.toUpperCase()
 }
 
 export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCerrar }) {
@@ -86,7 +101,7 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
     <>
       {estaAbierto && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
           onClick={alCerrar}
         />
       )}
@@ -95,32 +110,30 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
         className={`
           fixed left-0 top-0 h-screen bg-white border-r border-gray-100
           flex flex-col flex-shrink-0 z-50
-          transition-transform duration-300 ease-in-out
+          transition-transform duration-300 ease-out
           w-64 md:w-16 lg:w-60
           ${estaAbierto ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
         {/* Logo */}
-        <div className="px-4 pt-6 pb-4 flex flex-col items-center relative">
+        <div className="h-14 flex items-center justify-center px-4 border-b border-gray-100 shrink-0 relative">
           <button
             onClick={alCerrar}
-            className="md:hidden absolute right-3 top-4 text-muted hover:text-dark transition-colors"
+            className="md:hidden absolute right-3 p-1 rounded-lg text-muted hover:text-dark hover:bg-gray-100 transition-colors"
           >
-            <MdClose size={20} />
+            <MdClose size={18} />
           </button>
-
           <img
             src={logoAtmos}
             alt="ATMOS"
-            className="h-10 w-auto object-contain mx-auto"
+            className="h-7 w-auto object-contain"
           />
-          <hr className="mt-4 border-gray-100 w-full" />
         </div>
 
         {/* Navegación */}
         <nav className="flex-1 px-0 py-2 overflow-y-auto hide-scrollbar">
-          <p className="block md:hidden lg:block px-6 mb-2 text-xs font-semibold text-muted uppercase tracking-wider">
-            Menú Principal
+          <p className="block md:hidden lg:block px-5 mb-1.5 text-[10px] font-semibold text-muted/70 uppercase tracking-widest">
+            Menú principal
           </p>
           <div className="flex flex-col gap-0.5">
             {navPublico.map(elemento => (
@@ -138,10 +151,10 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
 
           {esAdmin && (
             <>
-              <p className="block md:hidden lg:block px-6 mt-6 mb-2 text-xs font-semibold text-muted uppercase tracking-wider">
+              <p className="block md:hidden lg:block px-5 mt-5 mb-1.5 text-[10px] font-semibold text-muted/70 uppercase tracking-widest">
                 Sistema
               </p>
-              <div className="flex flex-col gap-0.5 mt-4 lg:mt-0">
+              <div className="flex flex-col gap-0.5 mt-3 lg:mt-0">
                 {navAdmin.map(elemento => (
                   <div key={elemento.ruta} className="relative">
                     <ElementoNav elemento={elemento} cantidadAlertas={cantidadAlertas} />
@@ -152,22 +165,20 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
           )}
         </nav>
 
-        {/* Pie — perfil + cerrar sesión */}
+        {/* Pie */}
         {perfil && (
-          <div className="px-3 py-4 border-t border-gray-100 block md:hidden lg:block">
-            <div className="flex items-center justify-between gap-2">
+          <div className="px-3 py-3 border-t border-gray-100 block md:hidden lg:block">
+            <div className="flex items-center justify-between gap-2 px-1">
               <button
                 onClick={() => navegar("/settings")}
-                className="flex items-center gap-2.5 min-w-0 text-left hover:opacity-70 transition-opacity"
+                className="flex items-center gap-2.5 min-w-0 text-left rounded-xl px-2 py-1.5 -mx-2 hover:bg-gray-50 transition-colors group"
               >
-                <img
-                  src={logoAtmos}
-                  alt="perfil"
-                  className="w-8 h-8 rounded-full border border-gray-200 bg-gray-50 object-contain p-1 shrink-0"
-                />
+                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0 border border-primary/10">
+                  <Iniciales nombre={perfil.nombre} />
+                </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-dark truncate">{perfil.nombre}</p>
-                  <p className="text-[11px] text-muted truncate mt-0.5">
+                  <p className="text-xs font-semibold text-dark truncate leading-tight">{perfil.nombre}</p>
+                  <p className="text-[10px] text-muted truncate mt-0.5 font-medium">
                     {ETIQUETAS_ROL[perfil.rol] ?? perfil.rol ?? "Usuario"}
                   </p>
                 </div>
@@ -175,9 +186,9 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
               <button
                 onClick={manejarCerrarSesion}
                 title="Cerrar sesión"
-                className="shrink-0 p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-colors"
+                className="shrink-0 p-1.5 rounded-lg text-muted hover:text-danger hover:bg-danger/10 transition-all duration-150 active:scale-95"
               >
-                <MdLogout size={16} />
+                <MdLogout size={15} />
               </button>
             </div>
           </div>

@@ -165,19 +165,22 @@ export default function FormularioConfiguracion({ configuracion, alGuardar }) {
         />
       </div>
 
-      {exito && <span className="badge-success w-fit">Configuración guardada correctamente</span>}
-      {error && <p className="text-danger text-xs">{error}</p>}
-
-      <button
-        type="submit"
-        disabled={guardando}
-        className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {guardando && (
-          <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-        )}
-        Guardar configuración
-      </button>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-1">
+        <div className="flex flex-col gap-1">
+          {exito && <span className="badge-success w-fit">Configuración guardada correctamente</span>}
+          {error && <p className="text-danger text-xs">{error}</p>}
+        </div>
+        <button
+          type="submit"
+          disabled={guardando}
+          className="btn-primary w-full sm:w-fit flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {guardando && (
+            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          )}
+          Guardar configuración
+        </button>
+      </div>
     </form>
   )
 }

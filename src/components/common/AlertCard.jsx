@@ -1,6 +1,6 @@
 import { useState } from "react"
 import {
-  MdError, MdWarning, MdInfo, MdCheckCircle, MdAccessTime,
+  MdError, MdWarning, MdInfo, MdCheckCircle, MdAccessTime, MdExpandMore, MdExpandLess,
 } from "react-icons/md"
 import AccionProtegida from "./AccionProtegida"
 
@@ -26,22 +26,22 @@ function formatearFechaHora(iso) {
 }
 
 const CONFIG_SEVERIDAD = {
-  high:   { color: "danger",  etiqueta: "Alta",  Icono: MdError,   claseBorde: "border-l-danger",   claseInsignia: "badge-danger",   claseIcono: "text-danger" },
-  medium: { color: "warning", etiqueta: "Media", Icono: MdWarning, claseBorde: "border-l-warning",  claseInsignia: "badge-warning",  claseIcono: "text-warning" },
-  low:    { color: "success", etiqueta: "Baja",  Icono: MdInfo,    claseBorde: "border-l-success",  claseInsignia: "badge-success",  claseIcono: "text-success" },
+  high:   { color: "danger",  etiqueta: "Alta",  Icono: MdError,   claseBorde: "border-l-danger",   claseInsignia: "badge-danger",   claseIcono: "text-danger",   fondoIcono: "bg-danger/10" },
+  medium: { color: "warning", etiqueta: "Media", Icono: MdWarning, claseBorde: "border-l-warning",  claseInsignia: "badge-warning",  claseIcono: "text-warning",  fondoIcono: "bg-warning/10" },
+  low:    { color: "success", etiqueta: "Baja",  Icono: MdInfo,    claseBorde: "border-l-success",  claseInsignia: "badge-success",  claseIcono: "text-success",  fondoIcono: "bg-success/10" },
 }
 
 const ETIQUETAS_TIPO = {
-  node_offline:       "Nodo sin señal",
-  power_anomaly:      "Consumo anómalo",
-  temperature_stuck:  "Temperatura estancada",
+  node_offline:           "Nodo sin señal",
+  power_anomaly:          "Consumo anómalo",
+  temperature_stuck:      "Temperatura estancada",
   sensor_datos_invalidos: "Sensor con datos inválidos",
-  temperatura_alta: "Temperatura alta",
-  temperatura_fuera_rango: "Temperatura fuera de rango",
-  humedad_alta: "Humedad alta",
-  humedad_invalida: "Humedad inválida",
-  aire_sin_datos: "Aire sin datos",
-  control_ir_inactivo: "Señal IR detenida",
+  temperatura_alta:       "Temperatura alta",
+  temperatura_fuera_rango:"Temperatura fuera de rango",
+  humedad_alta:           "Humedad alta",
+  humedad_invalida:       "Humedad inválida",
+  aire_sin_datos:         "Aire sin datos",
+  control_ir_inactivo:    "Señal IR detenida",
 }
 
 const ETIQUETAS_DETALLE = {
@@ -61,13 +61,15 @@ export default function AlertCard({ alerta, nombreSalon, alResolver, resolviendo
   const tieneDetalle = alerta.detail && Object.keys(alerta.detail).length > 0
 
   return (
-    <div className={`card border-l-4 ${config.claseBorde} flex flex-col gap-3`}>
+    <div className={`card border-l-4 ${config.claseBorde} flex flex-col gap-3 hover:shadow-card-md transition-shadow duration-200`}>
 
       {/* Fila superior */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Icono size={18} className={config.claseIcono} />
-          <span className="font-medium text-dark text-sm">
+        <div className="flex items-center gap-2.5">
+          <span className={`w-7 h-7 rounded-lg ${config.fondoIcono} flex items-center justify-center shrink-0`}>
+            <Icono size={15} className={config.claseIcono} />
+          </span>
+          <span className="font-semibold text-dark text-sm leading-tight">
             {ETIQUETAS_TIPO[alerta.alert_type] ?? alerta.alert_type ?? "Alerta"}
           </span>
         </div>
@@ -79,9 +81,9 @@ export default function AlertCard({ alerta, nombreSalon, alResolver, resolviendo
 
       {/* Mensaje */}
       <div>
-        <p className="text-sm text-dark">{alerta.message ?? "Sin descripción"}</p>
-        <p className="text-xs text-muted mt-0.5">
-          {nombreSalon} • {etiquetaTiempoAtras(minutos)}
+        <p className="text-sm text-dark leading-relaxed">{alerta.message ?? "Sin descripción"}</p>
+        <p className="text-xs text-muted mt-1">
+          {nombreSalon} · {etiquetaTiempoAtras(minutos)}
         </p>
       </div>
 
@@ -90,18 +92,21 @@ export default function AlertCard({ alerta, nombreSalon, alResolver, resolviendo
         <div>
           <button
             onClick={() => setDetalleAbierto(p => !p)}
-            className="text-xs text-secondary hover:underline"
+            className="flex items-center gap-1 text-xs text-secondary hover:text-secondary/80 font-medium transition-colors"
           >
-            {detalleAbierto ? "Ocultar ▴" : "Ver detalles ▾"}
+            {detalleAbierto ? <MdExpandLess size={15} /> : <MdExpandMore size={15} />}
+            {detalleAbierto ? "Ocultar detalles" : "Ver detalles"}
           </button>
           {detalleAbierto && (
-            <div className="bg-gray-50 rounded-xl p-3 mt-2 flex flex-col gap-1">
+            <div className="bg-gray-50 rounded-xl p-3 mt-2 flex flex-col gap-2 border border-gray-100">
               {Object.entries(alerta.detail).map(([clave, valor]) => (
-                <div key={clave} className="flex justify-between gap-4">
+                <div key={clave} className="flex justify-between gap-4 items-center">
                   <span className="text-xs text-muted">
                     {ETIQUETAS_DETALLE[clave] ?? clave}
                   </span>
-                  <span className="text-xs font-mono text-dark">{String(valor)}</span>
+                  <span className="text-xs font-mono text-dark bg-white px-2 py-0.5 rounded-md border border-gray-100">
+                    {String(valor)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -110,10 +115,10 @@ export default function AlertCard({ alerta, nombreSalon, alResolver, resolviendo
       )}
 
       {/* Fila inferior */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-1 border-t border-gray-50">
-        <div className="flex items-center gap-1 text-xs text-muted">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-gray-50">
+        <div className="flex items-center gap-1.5 text-xs text-muted">
           <MdAccessTime size={13} />
-          {formatearFechaHora(alerta.created_at)}
+          <span>{formatearFechaHora(alerta.created_at)}</span>
         </div>
         {alerta.is_resolved
           ? <span className="text-xs text-muted">

@@ -1,4 +1,5 @@
-import { MdAutoGraph, MdCheckCircle, MdSend } from "react-icons/md"
+import { useState } from "react"
+import { MdAutoGraph, MdCheckCircle, MdSend, MdExpandMore } from "react-icons/md"
 
 function tiempoAtras(iso) {
   if (!iso) return "-"
@@ -44,7 +45,7 @@ function CirculoConfianza({ puntuacion }) {
         />
       </svg>
       <span
-        className="text-sm font-bold text-dark -mt-8 relative z-10 rotate-0"
+        className="text-sm font-bold text-dark -mt-8 relative z-10"
         style={{ position: "relative", top: -38 }}
       >
         {porcentaje}%
@@ -69,6 +70,8 @@ function etiquetaModelo(prediccion, esOperativa) {
 }
 
 export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
+  const [mostrarDetalles, setMostrarDetalles] = useState(false)
+
   const esPrediccionGuardada = prediccion.disponible === true || prediccion.fuente === "ml_predictions"
   const esOperativa = prediccion.fallback_disponible && !esPrediccionGuardada
   const sinDatos = !esPrediccionGuardada && !esOperativa
@@ -78,98 +81,136 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
   const accionFinal = modeloMl.accion_final ?? prediccion.snapshot_features?.accion_final
 
   return (
-    <div className="card flex flex-col gap-3">
+    <div className="card p-4 flex flex-col gap-2 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200">
+
+      {/* Header: nombre + badge */}
       <div className="flex items-center justify-between">
         <p className="font-semibold text-dark text-sm">{prediccion.room_name}</p>
-        <span className="badge-muted">
+        <span className="badge-muted text-[10px]">
           {etiquetaModelo(prediccion, esOperativa)}
         </span>
       </div>
 
-      {sinDatos ? (
-        <div className="flex flex-col items-center py-6 gap-2">
-          <MdAutoGraph size={32} className="text-muted" />
-          <p className="text-sm text-muted font-medium">Datos insuficientes</p>
-          <p className="text-xs text-muted text-center">
-            Aun no hay lecturas validas suficientes para generar una recomendacion.
-          </p>
+      {/* ── Sin datos ── */}
+      {sinDatos && (
+        <div className="flex items-center gap-3 py-2">
+          <MdAutoGraph size={20} className="text-muted shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-dark">Datos insuficientes</p>
+            <p className="text-xs text-muted">Aun no hay lecturas validas suficientes.</p>
+          </div>
         </div>
-      ) : esOperativa ? (
+      )}
+
+      {/* ── Operativa (fallback) ── */}
+      {esOperativa && (
         <>
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-muted">Recomendacion operativa actual</p>
-            <p className="text-lg font-bold text-primary mt-1">
+          <div className="bg-gray-50 rounded-xl p-2.5">
+            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
+              Recomendacion operativa
+            </p>
+            <p className="text-[15px] font-semibold text-dark leading-snug">
               {prediccion.recommendation_text ?? "Mantener estado actual"}
             </p>
-            <p className="text-xs text-muted mt-2">
-              Fuente: ultima accion guardada en registros. No es una prediccion entrenada.
-            </p>
+            <p className="text-xs text-muted mt-1">Basado en registros recientes</p>
+
             {modeloMl.modelo_disponible && !modeloMl.modelo_usado && (
-              <p className="text-xs text-amber-700 mt-2">
-                Modelo disponible, no ejecutado: {modeloMl.motivo_no_usado ?? "datos invalidos o incompletos"}.
+              <button
+                onClick={() => setMostrarDetalles(v => !v)}
+                className="flex items-center gap-1 text-[10px] text-muted mt-2 hover:text-dark transition-colors"
+              >
+                <MdExpandMore
+                  size={13}
+                  className={`transition-transform duration-150 ${mostrarDetalles ? "rotate-180" : ""}`}
+                />
+                Ver estado del modelo
+              </button>
+            )}
+            {mostrarDetalles && modeloMl.motivo_no_usado && (
+              <p className="text-[10px] text-muted mt-1 leading-relaxed">
+                {modeloMl.motivo_no_usado}
               </p>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 py-1">
+          <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-0.5">
-              <span className="text-xl font-bold text-dark">
+              <span className="text-[15px] font-semibold text-dark tabular-nums">
                 {prediccion.recommended_setpoint != null ? `${prediccion.recommended_setpoint} C` : "Sin cambio"}
               </span>
               <p className="text-xs text-muted">Setpoint sugerido</p>
             </div>
             <div className="flex flex-col gap-0.5">
-              <span className="text-xl font-bold text-success">
+              <span className="text-[15px] font-semibold text-dark tabular-nums">
                 {prediccion.predicted_savings_pct != null
                   ? `${prediccion.predicted_savings_pct.toFixed(1)}%`
                   : "Pendiente"}
               </span>
-              <p className="text-xs text-muted">Ahorro entrenado</p>
+              <p className="text-xs text-muted">Ahorro estimado</p>
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {/* ── Prediccion ML guardada ── */}
+      {esPrediccionGuardada && (
         <>
           {(prediccionModelo || accionFinal) && (
-            <div className="bg-secondary/5 rounded-xl p-3">
-              <p className="text-xs text-muted">Prediccion del modelo</p>
-              <p className="text-lg font-bold text-primary mt-1">
+            <div className="bg-secondary/5 rounded-xl p-2.5">
+              <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
+                Prediccion del modelo
+              </p>
+              <p className="text-[15px] font-semibold text-dark leading-snug">
                 {prediccionModelo ?? "No disponible"}
               </p>
-              <p className="text-xs text-muted mt-1">
-                Accion final: {accionFinal ?? prediccion.operational_recommendation ?? "pendiente"}
-              </p>
+              {accionFinal && (
+                <p className="text-xs text-muted mt-0.5">{accionFinal}</p>
+              )}
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-2 py-2">
+          <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-2xl lg:text-3xl font-bold text-primary">
+              <span className="text-[15px] font-semibold text-dark tabular-nums">
                 {prediccion.recommended_setpoint} C
               </span>
-              <p className="text-xs text-muted text-center">Setpoint optimo</p>
+              <p className="text-xs text-muted text-center">Setpoint</p>
             </div>
             <div className="flex flex-col items-center gap-0.5">
-              <span className="text-2xl lg:text-3xl font-bold text-success">
+              <span className="text-[15px] font-semibold text-dark tabular-nums">
                 {prediccion.predicted_savings_pct?.toFixed(1)}%
               </span>
-              <p className="text-xs text-muted text-center">Ahorro estimado</p>
+              <p className="text-xs text-muted text-center">Ahorro</p>
             </div>
             <CirculoConfianza puntuacion={prediccion.confidence_score} />
           </div>
 
-          <hr className="border-gray-100" />
-
           {featuresUsadas && (
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {Object.entries(featuresUsadas).map(([clave, valor]) => (
-                <div key={clave} className="bg-gray-50 rounded-lg px-2 py-1">
-                  <p className="text-muted">{clave}</p>
-                  <p className="font-semibold text-dark">{formatearValor(valor)}</p>
+            <>
+              <button
+                onClick={() => setMostrarDetalles(v => !v)}
+                className="flex items-center gap-1 text-[10px] text-muted hover:text-dark transition-colors w-fit"
+              >
+                <MdExpandMore
+                  size={13}
+                  className={`transition-transform duration-150 ${mostrarDetalles ? "rotate-180" : ""}`}
+                />
+                {mostrarDetalles ? "Ocultar caracteristicas" : "Ver caracteristicas"}
+              </button>
+              {mostrarDetalles && (
+                <div className="grid grid-cols-2 gap-1.5 text-xs">
+                  {Object.entries(featuresUsadas).map(([clave, valor]) => (
+                    <div key={clave} className="bg-gray-50 rounded-lg px-2 py-1">
+                      <p className="text-muted">{clave}</p>
+                      <p className="font-semibold text-dark">{formatearValor(valor)}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
+
+          <hr className="border-gray-100" />
 
           <div className="flex items-center justify-between gap-2">
             <div>
@@ -179,9 +220,7 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
                     <MdCheckCircle size={12} /> Aplicada
                   </span>
                   {prediccion.applied_at && (
-                    <p className="text-xs text-muted mt-0.5">
-                      {formatearFecha(prediccion.applied_at)}
-                    </p>
+                    <p className="text-xs text-muted mt-0.5">{formatearFecha(prediccion.applied_at)}</p>
                   )}
                 </>
               ) : (
@@ -213,6 +252,7 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
         </>
       )}
 
+      {/* Pie */}
       <div className="flex items-center justify-between pt-1 border-t border-gray-50">
         <p className="text-xs text-muted">{tiempoAtras(prediccion.predicted_at)}</p>
         {prediccion.model_version && (

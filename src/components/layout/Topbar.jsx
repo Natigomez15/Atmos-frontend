@@ -7,32 +7,32 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
   const { estaLogueado } = useAuth()
 
   return (
-    <header className="fixed top-0 right-0 left-0 md:left-16 lg:left-60 h-14 bg-white border-b border-gray-100
+    <header className="fixed top-0 right-0 left-0 md:left-16 lg:left-60 h-14
+                       bg-white/80 backdrop-blur-md border-b border-gray-100/80
                        flex items-center justify-between px-4 lg:px-6 z-30 transition-all duration-300">
-      {/* Izquierda — hamburguesa solo en móvil */}
+      {/* Izquierda */}
       <button
         onClick={alAbrirMenu}
-        className="md:hidden text-dark"
+        className="md:hidden p-1.5 rounded-lg text-muted hover:text-dark hover:bg-gray-100 transition-colors active:scale-95"
         aria-label="Abrir menú"
       >
-        <MdMenu size={24} />
+        <MdMenu size={22} />
       </button>
 
-      {/* Espacio vacío en desktop para empujar derecha */}
       <div className="hidden md:block" />
 
-      {/* Derecha — campana + logout */}
-      <div className="flex items-center gap-3">
+      {/* Derecha */}
+      <div className="flex items-center gap-2">
         <button
           onClick={() => navegar("/alerts")}
-          className="relative text-muted hover:text-dark transition-colors"
+          className="relative p-2 rounded-xl text-muted hover:text-dark hover:bg-gray-100 transition-all duration-150 active:scale-95"
           aria-label="Ver alertas"
         >
-          <MdNotifications size={20} />
+          <MdNotifications size={19} />
           {cantidadAlertas > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5
-                             bg-danger text-white text-[10px] font-medium rounded-full
-                             flex items-center justify-center">
+            <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5
+                             bg-danger text-white text-[10px] font-bold rounded-full
+                             flex items-center justify-center leading-none">
               {cantidadAlertas > 99 ? "99+" : cantidadAlertas}
             </span>
           )}
@@ -41,8 +41,9 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
         {!estaLogueado && (
           <button
             onClick={() => navegar("/login")}
-            className="text-xs text-secondary font-medium px-3 py-1.5 rounded-lg border border-secondary/30 hover:border-secondary hover:bg-secondary hover:text-white transition-all duration-200"
+            className="flex items-center gap-1.5 text-xs text-secondary font-semibold px-3 py-1.5 rounded-xl border border-secondary/25 hover:border-secondary/60 hover:bg-secondary hover:text-white transition-all duration-200 active:scale-95"
           >
+            <MdLogin size={14} />
             Iniciar sesión
           </button>
         )}

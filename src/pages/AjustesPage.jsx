@@ -41,24 +41,45 @@ function NavegacionAjustes({ esAdmin, seccionActiva, alCambiarSeccion }) {
     { id: "sistema",       etiqueta: "Sistema",   Icono: MdSettings },
   ]
 
+  const claseActiva   = "bg-gray-100 text-dark font-semibold"
+  const claseInactiva = "text-muted hover:bg-gray-50 hover:text-dark"
+
   return (
-    <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
-      {secciones.map(({ id, etiqueta, Icono }) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => alCambiarSeccion(id)}
-          className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
-            seccionActiva === id
-              ? "bg-white text-dark shadow-sm"
-              : "text-muted hover:text-dark"
-          }`}
-        >
-          <Icono size={14} />
-          {etiqueta}
-        </button>
-      ))}
-    </div>
+    <>
+      {/* Mobile: tabs horizontales */}
+      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl lg:hidden">
+        {secciones.map(({ id, etiqueta, Icono }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => alCambiarSeccion(id)}
+            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+              seccionActiva === id ? "bg-white text-dark shadow-sm" : "text-muted hover:text-dark"
+            }`}
+          >
+            <Icono size={14} />
+            {etiqueta}
+          </button>
+        ))}
+      </div>
+
+      {/* Desktop: nav vertical */}
+      <nav className="hidden lg:flex lg:flex-col lg:gap-0.5 lg:w-48 lg:flex-shrink-0 lg:pt-1">
+        {secciones.map(({ id, etiqueta, Icono }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => alCambiarSeccion(id)}
+            className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left ${
+              seccionActiva === id ? claseActiva : claseInactiva
+            }`}
+          >
+            <Icono size={17} className="flex-shrink-0" />
+            {etiqueta}
+          </button>
+        ))}
+      </nav>
+    </>
   )
 }
 
@@ -149,13 +170,18 @@ export default function AjustesPage() {
           description="Gestiona tu cuenta, seguridad, notificaciones y parámetros del sistema."
         />
 
-        <NavegacionAjustes
-          esAdmin={esAdmin}
-          seccionActiva={seccionActiva}
-          alCambiarSeccion={setSeccionActiva}
-        />
+        {/* Layout: mobile = apilado, desktop = nav lateral + contenido */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:gap-0 lg:items-start lg:max-w-[900px]">
+          <NavegacionAjustes
+            esAdmin={esAdmin}
+            seccionActiva={seccionActiva}
+            alCambiarSeccion={setSeccionActiva}
+          />
 
-        <div className="min-h-[520px] max-w-3xl mx-auto w-full">
+          {/* Separador vertical solo en desktop */}
+          <div className="hidden lg:block w-px bg-gray-100 self-stretch flex-shrink-0 mx-5" />
+
+          <div className="flex-1 min-w-0 flex flex-col gap-4">
             {seccionActiva === "cuenta" && (
               cargandoPerfil
                 ? <div className="card h-72 animate-pulse bg-gray-50" />
@@ -206,6 +232,7 @@ export default function AjustesPage() {
                     </div>
                 : <TarjetaSoloAdministrador />
             )}
+          </div>
         </div>
       </div>
     </PageWrapper>

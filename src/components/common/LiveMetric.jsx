@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react"
 
+const MAPA_DOT = {
+  primary:   "bg-primary",
+  secondary: "bg-secondary",
+  success:   "bg-success",
+  warning:   "bg-warning",
+  danger:    "bg-danger",
+}
+
 export default function LiveMetric({
   etiqueta,
   valor,
@@ -14,63 +22,43 @@ export default function LiveMetric({
   useEffect(() => {
     if (valor == null) return
     setDestellando(true)
-    const temporizador = setTimeout(() => setDestellando(false), 800)
-    return () => clearTimeout(temporizador)
+    const t = setTimeout(() => setDestellando(false), 600)
+    return () => clearTimeout(t)
   }, [valor])
 
-  const borderClass = {
-    primary:   "border-l-primary",
-    secondary: "border-l-secondary",
-    success:   "border-l-success",
-    warning:   "border-l-warning",
-    danger:    "border-l-danger",
-  }[color] ?? "border-l-secondary"
-
-  const bgDestello = {
-    primary:   "bg-primary/5",
-    secondary: "bg-secondary/5",
-    success:   "bg-success/5",
-    warning:   "bg-warning/5",
-    danger:    "bg-danger/5",
-  }[color] ?? "bg-secondary/5"
-
-  const textoValor = {
-    primary:   "text-primary",
-    secondary: "text-secondary",
-    success:   "text-success",
-    warning:   "text-warning",
-    danger:    "text-danger",
-  }[color] ?? "text-secondary"
+  const dot = MAPA_DOT[color] ?? MAPA_DOT.secondary
 
   return (
     <div
-      className={`card border-l-4 ${borderClass} p-2 lg:p-4 transition-colors duration-300 ${
-        destellando ? bgDestello : "bg-surface"
+      className={`card p-4 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 cursor-default ${
+        destellando ? "bg-secondary/[0.03]" : "bg-white"
       } ${className}`}
     >
-      <div className="flex items-center justify-center lg:justify-start gap-1.5 mb-1.5">
-        <span className={textoValor}>{icono}</span>
-        <p className="text-[10px] lg:text-xs text-muted uppercase tracking-wide truncate">{etiqueta}</p>
+      {/* Dot pulsante + label | icono ghost */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full ${dot} ${destellando ? "animate-ping" : ""}`} />
+          <p className="text-[10px] font-semibold text-muted uppercase tracking-widest">En vivo</p>
+        </div>
+        <span className="text-muted/40 [&>svg]:w-[15px] [&>svg]:h-[15px]">{icono}</span>
       </div>
 
-      <div className="flex items-baseline justify-center lg:justify-start gap-0.5">
+      {/* Valor */}
+      <div className="flex items-baseline gap-1">
         {valor != null ? (
           <>
-            <span className={`font-bold text-dark leading-tight ${
-              tamano === "lg" ? "text-base lg:text-2xl" : "text-sm lg:text-xl"
-            }`}>
+            <span className="text-2xl font-bold text-dark tracking-tight leading-none tabular-nums">
               {typeof valor === "number" ? valor.toFixed(1) : valor}
             </span>
-            {unidad && <span className="text-[10px] lg:text-xs text-muted">{unidad}</span>}
+            {unidad && <span className="text-xs text-muted font-medium">{unidad}</span>}
           </>
         ) : (
-          <span className={`font-bold text-muted leading-tight ${
-            tamano === "lg" ? "text-base lg:text-2xl" : "text-sm lg:text-xl"
-          }`}>
-            —
-          </span>
+          <span className="text-2xl font-bold text-gray-300 tracking-tight leading-none">—</span>
         )}
       </div>
+
+      {/* Etiqueta */}
+      <p className="text-xs text-muted mt-1 truncate">{etiqueta}</p>
     </div>
   )
 }

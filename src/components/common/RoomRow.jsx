@@ -6,10 +6,25 @@ function minutosDesde(iso) {
 }
 
 function InsigniaEstado({ lectura }) {
-  if (!lectura) return <span className="badge-muted">Sin datos</span>
+  if (!lectura) return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+      <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+      Sin datos
+    </span>
+  )
   const minutos = minutosDesde(lectura.registrado_en)
-  if (minutos > 10) return <span className="badge-danger">Sin señal</span>
-  return <span className="badge-success">En línea</span>
+  if (minutos > 10) return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-muted">
+      <span className="w-1.5 h-1.5 rounded-full bg-danger shrink-0" />
+      Sin señal
+    </span>
+  )
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs text-dark">
+      <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
+      En línea
+    </span>
+  )
 }
 
 function ColorTemperatura({ temperatura }) {
@@ -53,8 +68,11 @@ export default function RoomRow({ salon, lectura, alEditar, alMonitorear, puedeE
       {/* AC */}
       <td className="px-2 py-2 lg:px-4 lg:py-3">
         {lectura?.ac_encendido
-          ? <span className="badge-success">Encendido</span>
-          : <span className="badge-muted">Apagado</span>
+          ? <span className="inline-flex items-center gap-1.5 text-xs text-dark">
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary shrink-0" />
+              Encendido
+            </span>
+          : <span className="text-xs text-muted">Apagado</span>
         }
       </td>
 

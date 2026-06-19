@@ -1,12 +1,18 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html {
+    background-color: #ffffff;
+  }
   body {
-    @apply bg-background text-dark font-sans antialiased;
+    @apply bg-white text-dark font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    background-color: #ffffff;
   }
   * {
     @apply border-gray-100;
@@ -19,14 +25,14 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-gray-200 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    @apply bg-gray-300;
   }
   * {
     scrollbar-width: thin;
-    scrollbar-color: #d1d5db transparent;
+    scrollbar-color: #e2e8f0 transparent;
   }
 }
 
@@ -45,37 +51,94 @@
   to   { transform: translateX(0);    opacity: 1; }
 }
 
+@keyframes slideUp {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
 @keyframes entrarPagina {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .pagina-entrada {
-  animation: entrarPagina 0.2s ease forwards;
+  animation: entrarPagina 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @layer components {
   .card {
-    @apply bg-surface rounded-2xl shadow-sm border border-gray-100 p-6;
+    @apply bg-white rounded-2xl shadow-card border border-gray-100 p-5
+           transition-shadow duration-200;
+  }
+  .card-hover {
+    @apply card hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 cursor-default;
   }
   .btn-primary {
     @apply bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium
-           hover:bg-primary/90 transition-colors duration-200;
+           hover:bg-primary/90 active:scale-[0.97] transition-all duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2;
   }
   .btn-secondary {
     @apply bg-secondary/10 text-secondary px-4 py-2 rounded-xl text-sm font-medium
-           hover:bg-secondary/20 transition-colors duration-200;
+           hover:bg-secondary/20 active:scale-[0.97] transition-all duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30 focus-visible:ring-offset-2;
+  }
+  .btn-ghost {
+    @apply text-muted px-3 py-1.5 rounded-lg text-sm font-medium
+           hover:bg-gray-100 hover:text-dark active:scale-[0.97] transition-all duration-150;
   }
   .badge-success {
-    @apply bg-success/10 text-success text-xs font-medium px-2 py-1 rounded-full;
+    @apply bg-success/10 text-success text-xs font-medium px-2 py-0.5 rounded-full;
   }
   .badge-danger {
-    @apply bg-danger/10 text-danger text-xs font-medium px-2 py-1 rounded-full;
+    @apply bg-danger/10 text-danger text-xs font-medium px-2 py-0.5 rounded-full;
   }
   .badge-warning {
-    @apply bg-warning/10 text-warning text-xs font-medium px-2 py-1 rounded-full;
+    @apply bg-warning/10 text-warning text-xs font-medium px-2 py-0.5 rounded-full;
   }
   .badge-muted {
-    @apply bg-gray-100 text-muted text-xs font-medium px-2 py-1 rounded-full;
+    @apply bg-gray-100 text-muted text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .input-base {
+    @apply w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white
+           placeholder:text-gray-300
+           focus:outline-none focus:ring-2 focus:ring-secondary/25 focus:border-secondary/60
+           transition-all duration-150;
+  }
+  .label-base {
+    @apply block text-[11px] font-semibold text-muted uppercase tracking-widest mb-1.5;
+  }
+  /* ── Escala tipográfica global ─────────────────────────────────────
+     page-title   → h1 de cada página          24px bold
+     section-title → h2 dentro de cards/secciones  16px semibold
+     card-label   → etiqueta de card           14px semibold
+     meta-label   → eyebrow / micro uppercase  11px semibold caps
+     body-text    → texto general              14px regular
+     body-muted   → texto secundario           14px muted
+     caption      → anotaciones                12px muted
+  ─────────────────────────────────────────────────────────────────── */
+  .page-title {
+    @apply text-2xl font-bold text-dark tracking-tight leading-tight;
+    font-family: "Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  }
+  .section-title {
+    @apply text-base font-semibold text-dark;
+  }
+  .card-label {
+    @apply text-sm font-semibold text-dark;
+  }
+  .meta-label {
+    @apply text-[11px] font-semibold text-muted uppercase tracking-widest;
+  }
+  .body-muted {
+    @apply text-sm text-muted leading-relaxed;
+  }
+  .caption {
+    @apply text-xs text-muted;
   }
 }

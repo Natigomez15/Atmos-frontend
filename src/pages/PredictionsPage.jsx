@@ -9,6 +9,7 @@ import {
 } from "react-icons/md"
 
 import PageWrapper from "../components/layout/PageWrapper"
+import PageHeader  from "../components/common/PageHeader"
 import KPICard from "../components/common/KPICard"
 import PredictionCard from "../components/common/PredictionCard"
 import FeaturesChart from "../components/charts/FeaturesChart"
@@ -161,35 +162,34 @@ export default function PredictionsPage() {
 
   return (
     <PageWrapper>
-      <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-dark">Predicciones ATMOS</h2>
-          <p className="text-xs text-muted mt-0.5">
-            Recomendaciones y predicciones en tiempo real.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 flex-wrap">
-          <span
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-            style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}
-          >
-            <MdAutoGraph size={14} /> Motor ATMOS v1
-          </span>
-
-          <button
-            onClick={manejarEvaluar}
-            disabled={evaluando}
-            title="Compara predicciones guardadas con datos reales cuando existan"
-            className="btn-secondary flex items-center gap-1.5 disabled:opacity-50"
-          >
-            {evaluando
-              ? <span className="w-4 h-4 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
-              : <MdAssessment size={16} />
-            }
-            Evaluar precision
-          </button>
-        </div>
+      <div className="mb-6">
+        <PageHeader
+          eyebrow="Motor de inteligencia"
+          title="Predicciones ATMOS"
+          description="Recomendaciones y predicciones en tiempo real."
+          actions={
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}
+              >
+                <MdAutoGraph size={14} /> Motor ATMOS v1
+              </span>
+              <button
+                onClick={manejarEvaluar}
+                disabled={evaluando}
+                title="Compara predicciones guardadas con datos reales cuando existan"
+                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {evaluando
+                  ? <span className="w-4 h-4 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
+                  : <MdAssessment size={16} />
+                }
+                Evaluar precisión
+              </button>
+            </div>
+          }
+        />
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-6">
@@ -224,7 +224,7 @@ export default function PredictionsPage() {
       </div>
 
       {cargandoPredicciones ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           {Array.from({ length: 3 }).map((_, indice) => (
             <div key={indice} className="card h-52 animate-pulse bg-gray-100" />
           ))}
@@ -253,7 +253,7 @@ export default function PredictionsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
           {todasPredicciones?.map((prediccion, indice) => (
             <PredictionCard
               key={prediccion.room_id ?? indice}
