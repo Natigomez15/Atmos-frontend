@@ -69,6 +69,17 @@ export default function PredictionsPage() {
     },
   })
 
+  const salonSeleccionado = useMemo(
+    () => salones?.find(salon => String(salon.id) === String(idSalonSeleccionado)),
+    [salones, idSalonSeleccionado]
+  )
+
+  const idFuenteCaracteristicas = (
+    salonSeleccionado?.prediction_source_room_id
+    ?? salonSeleccionado?.source_room_id
+    ?? idSalonSeleccionado
+  )
+
   const {
     data: todasPredicciones,
     isLoading: cargandoPredicciones,
@@ -81,7 +92,7 @@ export default function PredictionsPage() {
     refetchInterval: 60000,
   })
 
-  const { data: impactoDecisiones, isLoading: cargandoImpacto } = useQuery({
+  const { isLoading: cargandoImpacto } = useQuery({
     queryKey: ["ml-impacto-decisiones"],
     queryFn: obtenerImpactoDecisiones,
     refetchInterval: 60000,
@@ -94,9 +105,9 @@ export default function PredictionsPage() {
   })
 
   const { data: caracteristicas, isLoading: cargandoCaracteristicas } = useQuery({
-    queryKey: ["ml-features", idSalonSeleccionado],
-    queryFn: () => obtenerCaracteristicasML(idSalonSeleccionado, 7),
-    enabled: !!idSalonSeleccionado,
+    queryKey: ["ml-features", idFuenteCaracteristicas],
+    queryFn: () => obtenerCaracteristicasML(idFuenteCaracteristicas, 7),
+    enabled: !!idFuenteCaracteristicas,
   })
 
   const promedioAhorro = useMemo(() => {
@@ -107,9 +118,8 @@ export default function PredictionsPage() {
         conPrediccion.length
       ).toFixed(1)
     }
-    if (impactoDecisiones?.total_lecturas) return impactoDecisiones.ahorro_predicho_pct
     return impactoReal?.ahorro_promedio_pct ?? null
-  }, [todasPredicciones, impactoDecisiones, impactoReal])
+  }, [todasPredicciones, impactoReal])
 
   const conteoPrediccionesGuardadas = useMemo(
     () => todasPredicciones?.filter(p => p.disponible === true || p.fuente === "ml_predictions").length ?? 0,
@@ -195,14 +205,14 @@ export default function PredictionsPage() {
       <div className="grid grid-cols-3 gap-2 mb-6">
         <KPICard
           titulo="Ahorro proyectado"
-          valor={promedioAhorro ?? "-"}
+          valor={promedioAhorro ?? "Pendiente"}
           unidad={promedioAhorro != null ? "%" : undefined}
           icono={<MdSavings size={20} />}
           color="success"
           cargando={cargandoPredicciones || cargandoImpacto}
         />
         <KPICard
-          titulo="Predicciones guardadas"
+          titulo="Predicciones entrenadas"
           valor={conteoPrediccionesGuardadas}
           unidad={`/ ${todasPredicciones?.length ?? 0}`}
           icono={<MdBolt size={20} />}

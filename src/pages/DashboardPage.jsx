@@ -1,4 +1,4 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -12,7 +12,6 @@ import PageHeader           from "../components/common/PageHeader"
 import KPICard              from "../components/common/KPICard"
 import RoomStatusCard       from "../components/common/RoomStatusCard"
 import AlertItem            from "../components/common/AlertItem"
-import ConsumptionLineChart from "../components/charts/ConsumptionLineChart"
 
 import {
   obtenerResumenTablero,
@@ -23,30 +22,68 @@ import {
 import { useAuth }           from "../context/AuthContext"
 import { REFRESH_INTERVAL_MS } from "../constants/config"
 
-function construirDatosPorHora(salones) {
-  if (!salones?.length) return []
-  const cubetas = {}
-  salones.forEach(salon => {
-    if (salon.recorded_at && salon.power_w != null) {
-      const hora     = new Date(salon.recorded_at).getHours()
-      const etiqueta = `${String(hora).padStart(2, "0")}:00`
-      if (!cubetas[etiqueta]) cubetas[etiqueta] = { suma: 0, conteo: 0 }
-      cubetas[etiqueta].suma   += salon.power_w
-      cubetas[etiqueta].conteo += 1
-    }
-  })
-  return Object.entries(cubetas)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([hora, { suma, conteo }]) => ({ hora, potencia_w: suma / conteo }))
-}
-
 function etiquetaHoy() {
   return new Date().toLocaleDateString("es-PE", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   })
 }
 
+function PanelConsumoActual({ salones = [], cargando = false }) {
+  if (cargando) return <div className="h-[220px] bg-gray-100 rounded-xl animate-pulse" />
 
+  if (!salones.length) {
+    return (
+      <div className="h-[220px] flex flex-col items-center justify-center rounded-2xl bg-gray-50 text-center px-6">
+        <MdBolt size={34} className="text-gray-300 mb-2" />
+        <p className="text-sm font-semibold text-dark">Sin lecturas de consumo</p>
+        <p className="text-xs text-muted mt-1">Cuando lleguen lecturas del ESP32 aparecera el consumo por laboratorio.</p>
+      </div>
+    )
+  }
+
+  const potenciaTotal = salones.reduce((total, salon) => total + Number(salon.power_w ?? 0), 0)
+  const energiaTotal = salones.reduce((total, salon) => total + Number(salon.energy_kwh ?? 0), 0)
+  const maxPotencia = Math.max(1500, ...salones.map(salon => Number(salon.power_w ?? 0)))
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-secondary/8 px-4 py-3">
+          <p className="text-xs text-muted">Potencia actual</p>
+          <p className="text-2xl font-bold text-dark mt-1">{potenciaTotal.toFixed(0)} W</p>
+        </div>
+        <div className="rounded-2xl bg-success/8 px-4 py-3">
+          <p className="text-xs text-muted">Energia acumulada</p>
+          <p className="text-2xl font-bold text-dark mt-1">{energiaTotal.toFixed(2)} kWh</p>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {salones.map((salon) => {
+          const potencia = Number(salon.power_w ?? 0)
+          const porcentaje = Math.min(100, (potencia / maxPotencia) * 100)
+          return (
+            <div key={salon.room_id} className="rounded-2xl border border-gray-100 px-4 py-3">
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-dark truncate">{salon.room_name}</p>
+                  <p className="text-xs text-muted">{salon.ac_is_on ? "AC encendido" : "AC apagado"}</p>
+                </div>
+                <p className="text-sm font-bold text-dark tabular-nums">{potencia.toFixed(0)} W</p>
+              </div>
+              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${salon.ac_is_on ? "bg-secondary" : "bg-gray-300"}`}
+                  style={{ width: `${porcentaje}%` }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 export default function DashboardPage() {
   const navegar = useNavigate()
   const { estaLogueado, esAdmin, perfil } = useAuth()
@@ -77,8 +114,7 @@ export default function DashboardPage() {
 
   function recargarTodo() { recargarResumen(); recargarSalones() }
 
-  const datosPorHora   = construirDatosPorHora(datosSalones)
-  const salonesActivos = datosSalones?.filter(s => s.ac_is_on).length ?? "—"
+  const salonesActivos = datosSalones?.filter(s => s.ac_is_on).length ?? "-"
   const totalSalones   = datosSalones?.length ?? 0
   const totalAlertas   = resumenAlertas?.total_unresolved ?? 0
 
@@ -89,33 +125,27 @@ export default function DashboardPage() {
         <PageHeader
           eyebrow={etiquetaHoy()}
           title={estaLogueado && perfil?.nombre ? `Hola, ${perfil.nombre}` : "Panel general"}
-          description="Resumen en tiempo real del sistema de control energético"
+          description="Resumen en tiempo real del sistema de control energetico"
         />
       </div>
 
-      {/* ── KPI Cards ──────────────────────────────────────────────────── */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <KPICard titulo="Consumo hoy"      valor={resumen?.total_energy_kwh?.toFixed(2) ?? "—"} unidad="kWh"           icono={<MdBolt size={20} />}          color="secondary" cargando={cargandoResumen} />
-        <KPICard titulo="Ahorro estimado"  valor={resumen?.total_savings_usd?.toFixed(2) ?? "—"} unidad="USD"          icono={<MdSavings size={20} />}        tendencia={resumen?.avg_savings_pct} color="success" cargando={cargandoResumen} />
+        <KPICard titulo="Consumo hoy"      valor={resumen?.total_energy_kwh?.toFixed(2) ?? "-"} unidad="kWh"           icono={<MdBolt size={20} />}          color="secondary" cargando={cargandoResumen} />
+        <KPICard titulo="Ahorro estimado"  valor={resumen?.total_savings_usd?.toFixed(2) ?? "-"} unidad="USD"          icono={<MdSavings size={20} />}        tendencia={resumen?.avg_savings_pct} color="success" cargando={cargandoResumen} />
         <KPICard titulo="Laboratorios activos" valor={salonesActivos} unidad={`/ ${totalSalones}`}                     icono={<MdMeetingRoom size={20} />}    color="primary"   cargando={cargandoSalones} />
         <KPICard titulo="Alertas activas"  valor={totalAlertas}                                                        icono={<MdNotifications size={20} />}  color={totalAlertas > 0 ? "danger" : "success"} cargando={false} />
       </div>
 
-      {/* ── Gráfico + Alertas recientes ─────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-            <div className="lg:col-span-3 card">
-              <div className="mb-4">
-                <p className="font-semibold text-dark">Consumo eléctrico — últimas 24h</p>
-                <p className="text-xs text-muted mt-0.5">Potencia promedio por hora del pabellón</p>
-              </div>
-              <ConsumptionLineChart datos={datosPorHora} cargando={cargandoSalones} />
-            </div>
+      {/* Alertas recientes */}
+          <div className="grid grid-cols-1 gap-4 mb-6">
+            {/* PanelConsumoActual oculto temporalmente hasta depurar el cálculo de consumo por aire/laboratorio. */}
 
-            <div className="lg:col-span-2 card flex flex-col">
+            <div className="card flex flex-col">
               <div className="flex items-center justify-between mb-2">
                 <p className="font-semibold text-dark text-sm">Alertas recientes</p>
                 <button onClick={() => navegar("/alerts")} className="text-xs text-secondary hover:underline">
-                  Ver todas →
+                  Ver todas
                 </button>
               </div>
 
@@ -145,7 +175,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── Estado de laboratorios ───────────────────────────────────── */}
+          {/* Estado de laboratorios */}
           <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
             <div>
               <h3 className="text-base font-bold text-dark tracking-tight">Estado de laboratorios</h3>

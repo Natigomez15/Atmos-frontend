@@ -11,6 +11,25 @@ function parametrosRegistro(salon) {
   }
 }
 
+function esRoomAire(salon) {
+  return /^aire[_\s-]*\d+$/i.test(String(salon.nombre ?? salon.name ?? "").trim())
+}
+
+function filtrarSalonesPrincipales(salones) {
+  return salones.filter((salon) => {
+    if (!esRoomAire(salon)) return true
+
+    const nombreAire = String(salon.nombre ?? salon.name ?? "").trim().toLowerCase()
+    const pabellon = salon.pabellon ?? salon.pavilion
+    return !salones.some((otro) =>
+      otro !== salon
+      && (otro.pabellon ?? otro.pavilion) === pabellon
+      && Array.isArray(otro.aires)
+      && otro.aires.some(aire => String(aire).trim().toLowerCase() === nombreAire)
+    )
+  })
+}
+
 function datoSensorValido(valor) {
   return valor != null && Number(valor) !== 0 ? valor : null
 }
@@ -31,7 +50,7 @@ function mapearRegistro(registro, salon) {
 }
 
 export const obtenerUltimasLecturasSalones = async () => {
-  const salones = await cliente.get("/rooms").then(res => res.data)
+  const salones = await cliente.get("/rooms").then(res => filtrarSalonesPrincipales(res.data))
   const ultimasLecturas = await Promise.all(
     salones.map(salon =>
       cliente.get("/lecturas/registros/reciente", {

@@ -81,27 +81,6 @@ function construirDatosPotenciaPorDia(lecturas) {
 
 // ── Sub-componentes ────────────────────────────────────────────────────────
 
-function BadgeConexion({ estaConectado, reconectando }) {
-  if (estaConectado) return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-success bg-success/10 px-2.5 py-1 rounded-full">
-      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-      Tiempo real
-    </span>
-  )
-  if (reconectando) return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-warning bg-warning/10 px-2.5 py-1 rounded-full">
-      <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
-      Reconectando…
-    </span>
-  )
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted bg-gray-100 px-2.5 py-1 rounded-full">
-      <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-      Sin conexión
-    </span>
-  )
-}
-
 function EstadoAC({ lecturaActual, onComandos }) {
   const encendido = lecturaActual?.ac_is_on
   const setpoint  = lecturaActual?.setpoint_c
@@ -195,7 +174,7 @@ export default function MonitoringPage() {
     refetchInterval: 15000,
   })
 
-  const { ultimaLectura: nuevaLecturaWs, estaConectado, reconectando } = useRoomWebSocket(idSalonSeleccionado)
+  const { ultimaLectura: nuevaLecturaWs } = useRoomWebSocket(idSalonSeleccionado)
 
   useEffect(() => {
     if (!nuevaLecturaWs) return
@@ -300,10 +279,9 @@ export default function MonitoringPage() {
               {nombreSala}
             </h1>
             <div className="flex items-center gap-2 flex-wrap">
-              <BadgeConexion estaConectado={estaConectado} reconectando={reconectando} />
               {lecturaActual?.recorded_at && (
                 <span className="text-xs text-muted">
-                  · {formatearHora(lecturaActual.recorded_at)}
+                  Actualizado {formatearHora(lecturaActual.recorded_at)}
                 </span>
               )}
             </div>
