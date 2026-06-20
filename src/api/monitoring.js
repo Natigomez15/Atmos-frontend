@@ -20,6 +20,32 @@ function datoSensorValido(valor) {
   return valor != null && Number(valor) !== 0 ? valor : null
 }
 
+function extraerAccionAtmos(registro) {
+  return String(
+    registro?.ultima_accion_ejecutada
+    ?? registro?.recomendacion_local
+    ?? registro?.recomendacion
+    ?? registro?.accion_final
+    ?? registro?.accion
+    ?? ""
+  ).trim().toLowerCase()
+}
+
+function setpointDesdeAccion(registro) {
+  const setpointExplicito = registro?.setpoint_c ?? registro?.setpoint_ac ?? registro?.setpoint
+  if (setpointExplicito != null) return setpointExplicito
+
+  const accion = extraerAccionAtmos(registro)
+  const setpoints = {
+    encender_22: 22,
+    ahorro_24: 24,
+    posible_ahorro: 24,
+    enfriar_fuerte: 20,
+  }
+
+  return setpoints[accion] ?? null
+}
+
 function mapearRegistro(registro) {
   if (!registro) return null
   return {
@@ -40,6 +66,8 @@ function mapearRegistro(registro) {
     energy_wh: registro.energy_wh ?? (
       registro.energia_kwh != null ? registro.energia_kwh * 1000 : null
     ),
+    setpoint_c: setpointDesdeAccion(registro),
+    action: extraerAccionAtmos(registro) || null,
     recorded_at: registro.recorded_at ?? registro.fecha_sync ?? null,
   }
 }

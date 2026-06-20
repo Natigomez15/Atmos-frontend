@@ -16,7 +16,6 @@ import {
 import PageWrapper       from "../components/layout/PageWrapper"
 import LiveMetric        from "../components/common/LiveMetric"
 import TempHumidityChart from "../components/charts/TempHumidityChart"
-import PowerChart        from "../components/charts/PowerChart"
 
 import {
   obtenerSalones,
@@ -65,25 +64,21 @@ function construirDatosGrafico(lecturas) {
     }))
 }
 
-function construirDatosPotenciaPorDia(lecturas) {
-  const porDia = {}
-  deduplicar(lecturas).forEach(l => {
-    if (!l.recorded_at || l.power_w == null) return
-    const dia = new Date(l.recorded_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })
-    if (!porDia[dia]) porDia[dia] = { suma: 0, count: 0 }
-    porDia[dia].suma  += l.power_w
-    porDia[dia].count += 1
-  })
-  return Object.entries(porDia).map(([dia, { suma }]) => ({
-    tiempo: dia, potencia_w: Math.round(suma),
-  }))
-}
-
 // ── Sub-componentes ────────────────────────────────────────────────────────
 
 function EstadoAC({ lecturaActual, onComandos }) {
   const encendido = lecturaActual?.ac_is_on
   const setpoint  = lecturaActual?.setpoint_c
+  const accion    = lecturaActual?.action
+  const temperaturaObjetivo = setpoint != null
+    ? `${setpoint} °C`
+    : accion === "apagar"
+      ? "Apagado"
+      : accion === "mantener" || accion === "mantener_monitoreo"
+        ? "Sin cambio"
+        : encendido
+          ? "Sin setpoint"
+          : "—"
 
   return (
     <div className="card flex flex-col gap-4">
@@ -130,7 +125,7 @@ function EstadoAC({ lecturaActual, onComandos }) {
         <div>
           <p className="text-[11px] text-muted uppercase tracking-wide font-medium">Temperatura objetivo</p>
           <p className="text-base font-bold text-dark tabular-nums">
-            {setpoint != null ? `${setpoint} °C` : "—"}
+            {temperaturaObjetivo}
           </p>
         </div>
       </div>
@@ -234,18 +229,6 @@ export default function MonitoringPage() {
   const datosGrafico = useMemo(() => {
     return construirDatosGrafico([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
-
-  const datosPotenciaDia = useMemo(() => {
-    return construirDatosPotenciaPorDia([...(historico ?? []), ...lecturasEnVivo])
-  }, [historico, lecturasEnVivo])
-
-  const valoresPotenciaDia = datosPotenciaDia.map(d => d.potencia_w).filter(Boolean)
-  const promedioPotencia   = valoresPotenciaDia.length
-    ? (valoresPotenciaDia.reduce((a, b) => a + b, 0) / valoresPotenciaDia.length).toFixed(0)
-    : "—"
-  const picoPotencia = valoresPotenciaDia.length
-    ? Math.max(...valoresPotenciaDia).toFixed(0)
-    : "—"
 
   const ultimasLecturas = useMemo(() => {
     return deduplicar([...(historico ?? []), ...lecturasEnVivo])
@@ -440,19 +423,6 @@ export default function MonitoringPage() {
             <TempHumidityChart datos={datosGrafico} cargando={cargandoHistorico} />
           </div>
 
-          <div className="card">
-            <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
-              <div>
-                <p className="font-semibold text-dark">Consumo eléctrico</p>
-                <p className="text-xs text-muted mt-0.5">Por día</p>
-              </div>
-              <div className="flex gap-3 text-xs text-muted">
-                <span>Promedio: <strong className="text-dark">{promedioPotencia} W</strong></span>
-                <span>Pico: <strong className="text-dark">{picoPotencia} W</strong></span>
-              </div>
-            </div>
-            <PowerChart datos={datosPotenciaDia} cargando={cargandoHistorico} />
-          </div>
         </div>
 
         {/* Columna derecha */}
