@@ -1,7 +1,8 @@
 import cliente from "./client"
+import { filtrarSalonesAtmos } from "./salonesAtmos"
 
 export const obtenerSalonesReportes = () =>
-  cliente.get("/rooms").then(res => res.data)
+  cliente.get("/rooms").then(res => filtrarSalonesAtmos(res.data))
 
 export const generarReporteEnergia = (carga) =>
   cliente.post("/reports/energy", carga).then(res => res.data)

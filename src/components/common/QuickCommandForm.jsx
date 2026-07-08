@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react"
-import { MdAdd, MdRemove } from "react-icons/md"
+import { useQuery } from "@tanstack/react-query"
+import { MdAdd, MdRemove, MdLockOutline } from "react-icons/md"
 import { enviarComando } from "../../api/commands"
-import AccionProtegida from "./AccionProtegida"
+import { obtenerAiresDeSalon } from "../../api/monitoring"
+import { useAuth } from "../../context/AuthContext"
 
 const estiloInput =
   "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white " +
@@ -9,18 +11,48 @@ const estiloInput =
   "focus:border-secondary transition-colors text-dark"
 
 const TIPOS_COMANDO = [
-  { valor: "on",       etiqueta: "Encender" },
-  { valor: "off",      etiqueta: "Apagar" },
+  { valor: "on", etiqueta: "Encender" },
+  { valor: "off", etiqueta: "Apagar" },
   { valor: "setpoint", etiqueta: "Setpoint" },
 ]
 
+const ETIQUETAS_COMANDO = Object.fromEntries(
+  TIPOS_COMANDO.map(tipo => [tipo.valor, tipo.etiqueta])
+)
+
+function detalleComando(tipoComando, setpoint) {
+  if (tipoComando === "setpoint") return `Setpoint ${setpoint} C`
+  return ETIQUETAS_COMANDO[tipoComando] ?? tipoComando
+}
+
 export default function QuickCommandForm({ salones = [], alExito }) {
+  const { estaLogueado } = useAuth()
+  const puedeEnviar = estaLogueado
+
   const [idSalonSeleccionado, setIdSalonSeleccionado] = useState("")
-  const [tipoComando,         setTipoComando]         = useState("setpoint")
-  const [setpoint,            setSetpoint]            = useState(24)
-  const [enviando,            setEnviando]            = useState(false)
-  const [resultado,           setResultado]           = useState(null)
-  const [erroresFormulario,   setErroresFormulario]   = useState({})
+  const [aireElegido, setAireElegido] = useState(null)
+  const [tipoComando, setTipoComando] = useState("setpoint")
+  const [setpoint, setSetpoint] = useState(24)
+  const [enviando, setEnviando] = useState(false)
+  const [resultado, setResultado] = useState(null)
+  const [erroresFormulario, setErroresFormulario] = useState({})
+
+  const salonSeleccionado =
+    salones.find(s => String(s.sala_id) === String(idSalonSeleccionado)) ?? null
+
+  const { data: airesDisponibles = [], isFetching: cargandoAires } = useQuery({
+    queryKey: ["aires-comando", idSalonSeleccionado],
+    queryFn: () => obtenerAiresDeSalon(salonSeleccionado),
+    enabled: !!salonSeleccionado,
+  })
+
+  const aireActivo = aireElegido ?? airesDisponibles[0] ?? ""
+
+  function seleccionarSalon(idSalon) {
+    setIdSalonSeleccionado(idSalon)
+    setAireElegido(null)
+    setErroresFormulario(prev => ({ ...prev, salon: undefined, aire: undefined }))
+  }
 
   useEffect(() => {
     if (!resultado) return
@@ -28,6 +60,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
       setResultado(null)
       if (resultado === "exito") {
         setIdSalonSeleccionado("")
+        setAireElegido(null)
         setTipoComando("setpoint")
         setSetpoint(24)
       }
@@ -37,9 +70,12 @@ export default function QuickCommandForm({ salones = [], alExito }) {
 
   function validarFormulario() {
     const errores = {}
-    if (!idSalonSeleccionado) errores.salon = "Selecciona un salón"
+    if (!idSalonSeleccionado) errores.salon = "Selecciona un salon"
+    if (idSalonSeleccionado && airesDisponibles.length && !aireActivo) {
+      errores.aire = "Selecciona un aire"
+    }
     if (tipoComando === "setpoint" && (setpoint < 16 || setpoint > 30)) {
-      errores.setpoint = "El setpoint debe estar entre 16°C y 30°C"
+      errores.setpoint = "El setpoint debe estar entre 16 C y 30 C"
     }
     return errores
   }
@@ -51,14 +87,16 @@ export default function QuickCommandForm({ salones = [], alExito }) {
       setErroresFormulario(errores)
       return
     }
+
     setErroresFormulario({})
     setEnviando(true)
     try {
       await enviarComando({
-        room_id:      idSalonSeleccionado,
+        room_id: idSalonSeleccionado,
+        aire: aireActivo || undefined,
         command_type: tipoComando,
-        setpoint:     tipoComando === "setpoint" ? setpoint : null,
-        source:       "manual",
+        setpoint: tipoComando === "setpoint" ? setpoint : null,
+        source: "manual",
       })
       setResultado("exito")
       alExito?.()
@@ -74,35 +112,62 @@ export default function QuickCommandForm({ salones = [], alExito }) {
       <div>
         <p className="font-semibold text-dark text-sm">Enviar comando</p>
         <p className="text-xs text-muted mt-0.5">
-          El ESP32 lo ejecutará en su próximo ciclo
+          El ESP32 lo ejecutara en su proximo ciclo
         </p>
       </div>
       <hr className="border-gray-100" />
 
-      {/* Salón */}
-      <div>
-        <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1">
-          Salón
-        </label>
-        <select
-          value={idSalonSeleccionado}
-          onChange={e => {
-            setIdSalonSeleccionado(e.target.value)
-            setErroresFormulario(prev => ({ ...prev, salon: undefined }))
-          }}
-          className={estiloInput}
-        >
-          <option value="">Seleccionar salón...</option>
-          {salones.map(salon => (
-            <option key={salon.sala_id} value={salon.sala_id}>{salon.nombre}</option>
-          ))}
-        </select>
-        {erroresFormulario.salon && (
-          <p className="text-xs text-danger mt-1">{erroresFormulario.salon}</p>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1">
+            Salon
+          </label>
+          <select
+            value={idSalonSeleccionado}
+            onChange={e => seleccionarSalon(e.target.value)}
+            className={estiloInput}
+          >
+            <option value="">Seleccionar salon...</option>
+            {salones.map(salon => (
+              <option key={salon.sala_id} value={salon.sala_id}>{salon.nombre}</option>
+            ))}
+          </select>
+          {erroresFormulario.salon && (
+            <p className="text-xs text-danger mt-1">{erroresFormulario.salon}</p>
+          )}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-1">
+            Aire
+          </label>
+          <select
+            value={aireActivo}
+            onChange={e => {
+              setAireElegido(e.target.value)
+              setErroresFormulario(prev => ({ ...prev, aire: undefined }))
+            }}
+            disabled={!idSalonSeleccionado || cargandoAires || !airesDisponibles.length}
+            className={`${estiloInput} disabled:bg-gray-50 disabled:text-muted disabled:cursor-not-allowed`}
+          >
+            {!idSalonSeleccionado ? (
+              <option value="">Elige un salon primero</option>
+            ) : cargandoAires ? (
+              <option value="">Cargando aires...</option>
+            ) : !airesDisponibles.length ? (
+              <option value="">Sin aires registrados</option>
+            ) : (
+              airesDisponibles.map(aire => (
+                <option key={aire} value={aire}>{aire}</option>
+              ))
+            )}
+          </select>
+          {erroresFormulario.aire && (
+            <p className="text-xs text-danger mt-1">{erroresFormulario.aire}</p>
+          )}
+        </div>
       </div>
 
-      {/* Tipo de comando */}
       <div>
         <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-2">
           Tipo de comando
@@ -125,7 +190,6 @@ export default function QuickCommandForm({ salones = [], alExito }) {
         </div>
       </div>
 
-      {/* Setpoint (solo visible si aplica) */}
       {tipoComando === "setpoint" && (
         <div>
           <label className="block text-xs font-medium text-muted uppercase tracking-wide mb-2">
@@ -141,7 +205,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
             </button>
             <div className="text-center">
               <span className="text-2xl font-bold text-primary">{setpoint}</span>
-              <span className="text-sm text-muted"> °C</span>
+              <span className="text-sm text-muted"> C</span>
             </div>
             <button
               type="button"
@@ -157,26 +221,41 @@ export default function QuickCommandForm({ salones = [], alExito }) {
         </div>
       )}
 
-      {/* Botón enviar */}
-      <AccionProtegida requiereRol="mantenimiento">
-        <button
-          type="submit"
-          disabled={enviando}
-          className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {enviando && (
-            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-          )}
-          Mandar comando
-        </button>
-      </AccionProtegida>
+      {idSalonSeleccionado && (
+        <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-xs text-muted">
+          Se enviara <span className="font-semibold text-dark">{detalleComando(tipoComando, setpoint)}</span>
+          {" "}a <span className="font-semibold text-dark">{salonSeleccionado?.nombre}</span>
+          {aireActivo && <> · <span className="font-semibold text-dark">{aireActivo}</span></>}
+        </div>
+      )}
 
-      {/* Resultado */}
+      <button
+        type="submit"
+        disabled={enviando || !puedeEnviar}
+        className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {enviando && (
+          <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+        )}
+        {enviando ? "Enviando..." : `Enviar ${detalleComando(tipoComando, setpoint)}`}
+      </button>
+
+      {!puedeEnviar && (
+        <p className="flex items-start gap-1.5 text-xs text-muted">
+          <MdLockOutline size={14} className="mt-0.5 shrink-0" />
+          Inicia sesion para enviar comandos.
+        </p>
+      )}
+
       {resultado === "exito" && (
-        <p className="text-xs text-success font-medium text-center">✓ Comando enviado correctamente</p>
+        <p className="text-xs text-success font-medium text-center">
+          Comando enviado correctamente. Aparecera en la tabla como pendiente.
+        </p>
       )}
       {resultado === "error" && (
-        <p className="text-xs text-danger font-medium text-center">✗ Error al enviar el comando</p>
+        <p className="text-xs text-danger font-medium text-center">
+          Error al enviar el comando. Revisa la conexion con backend/Firebase.
+        </p>
       )}
     </form>
   )

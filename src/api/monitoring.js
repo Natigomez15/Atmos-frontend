@@ -1,18 +1,22 @@
 import cliente from "./client"
+import { airePrincipalSalon, esAireIgnorado, filtrarSalonesAtmos, limpiarAiresSalon } from "./salonesAtmos"
 
 export const obtenerSalones = () =>
-  cliente.get("/rooms").then(res => res.data)
+  cliente.get("/rooms").then(res => filtrarSalonesAtmos(res.data))
 
 export const obtenerAiresDeSalon = (salon) => {
+  const airesSalon = limpiarAiresSalon(salon)
+  if (airesSalon.length) return Promise.resolve(airesSalon)
+
   const pabellon = salon?.pabellon ?? salon?.pavilion ?? salon?.edificio
   if (!pabellon) return Promise.resolve([])
-  return cliente.get("/lecturas/registros/aires", { params: { pabellon } }).then(r => r.data)
+  return cliente.get("/lecturas/registros/aires", { params: { pabellon } })
+    .then(r => r.data.filter(aire => !esAireIgnorado(aire)))
 }
 
 function parametrosRegistro(salon, aireSeleccionado) {
   const pabellon = salon?.pabellon ?? salon?.pavilion ?? salon?.edificio
-  const aires = salon?.aires ?? []
-  const aire = aireSeleccionado ?? aires[0] ?? salon?.nombre ?? salon?.name
+  const aire = airePrincipalSalon(salon, aireSeleccionado)
   return { pabellon, aire }
 }
 

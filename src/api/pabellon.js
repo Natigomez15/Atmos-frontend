@@ -1,4 +1,5 @@
 import clienteAPI from "./cliente"
+import { airePrincipalSalon, filtrarSalonesAtmos } from "./salonesAtmos"
 
 function datoSensorValido(valor) {
   return valor != null && Number(valor) !== 0 ? valor : null
@@ -21,13 +22,13 @@ function mapearRegistroComoLectura(registro, sala) {
 }
 
 export const obtenerSalonesConLecturas = async () => {
-  const salas = await clienteAPI.get("/salas").then(r => r.data)
+  const salas = await clienteAPI.get("/salas").then(r => filtrarSalonesAtmos(r.data))
   const lecturas = await Promise.all(
     salas.map(sala =>
       clienteAPI.get("/lecturas/registros/reciente", {
         params: {
           pabellon: sala.pabellon ?? sala.edificio ?? "robotica",
-          aire:     sala.nombre,
+          aire:     airePrincipalSalon(sala),
         },
       })
         .then(r => mapearRegistroComoLectura(r.data, sala))

@@ -16,6 +16,7 @@ import {
 import PageWrapper       from "../components/layout/PageWrapper"
 import LiveMetric        from "../components/common/LiveMetric"
 import TempHumidityChart from "../components/charts/TempHumidityChart"
+import PowerChart        from "../components/charts/PowerChart"
 
 import {
   obtenerSalones,
@@ -64,21 +65,46 @@ function construirDatosGrafico(lecturas) {
     }))
 }
 
+function construirDatosPotenciaPorDia(lecturas) {
+  const porDia = {}
+  deduplicar(lecturas).forEach(l => {
+    if (!l.recorded_at || l.power_w == null) return
+    const dia = new Date(l.recorded_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })
+    if (!porDia[dia]) porDia[dia] = { suma: 0, count: 0 }
+    porDia[dia].suma  += l.power_w
+    porDia[dia].count += 1
+  })
+  return Object.entries(porDia).map(([dia, { suma }]) => ({
+    tiempo: dia, potencia_w: Math.round(suma),
+  }))
+}
+
 // ── Sub-componentes ────────────────────────────────────────────────────────
+
+function BadgeConexion({ estaConectado, reconectando }) {
+  if (estaConectado) return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-success bg-success/10 px-2.5 py-1 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+      Tiempo real
+    </span>
+  )
+  if (reconectando) return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-warning bg-warning/10 px-2.5 py-1 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+      Reconectando…
+    </span>
+  )
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted bg-gray-100 px-2.5 py-1 rounded-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+      Sin conexión
+    </span>
+  )
+}
 
 function EstadoAC({ lecturaActual, onComandos }) {
   const encendido = lecturaActual?.ac_is_on
   const setpoint  = lecturaActual?.setpoint_c
-  const accion    = lecturaActual?.action
-  const temperaturaObjetivo = setpoint != null
-    ? `${setpoint} °C`
-    : accion === "apagar"
-      ? "Apagado"
-      : accion === "mantener" || accion === "mantener_monitoreo"
-        ? "Sin cambio"
-        : encendido
-          ? "Sin setpoint"
-          : "—"
 
   return (
     <div className="card flex flex-col gap-4">
@@ -125,7 +151,7 @@ function EstadoAC({ lecturaActual, onComandos }) {
         <div>
           <p className="text-[11px] text-muted uppercase tracking-wide font-medium">Temperatura objetivo</p>
           <p className="text-base font-bold text-dark tabular-nums">
-            {temperaturaObjetivo}
+            {setpoint != null ? `${setpoint} °C` : "—"}
           </p>
         </div>
       </div>
@@ -169,7 +195,7 @@ export default function MonitoringPage() {
     refetchInterval: 15000,
   })
 
-  const { ultimaLectura: nuevaLecturaWs } = useRoomWebSocket(idSalonSeleccionado)
+  const { ultimaLectura: nuevaLecturaWs, estaConectado, reconectando } = useRoomWebSocket(idSalonSeleccionado)
 
   useEffect(() => {
     if (!nuevaLecturaWs) return
@@ -230,6 +256,18 @@ export default function MonitoringPage() {
     return construirDatosGrafico([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
 
+  const datosPotenciaDia = useMemo(() => {
+    return construirDatosPotenciaPorDia([...(historico ?? []), ...lecturasEnVivo])
+  }, [historico, lecturasEnVivo])
+
+  const valoresPotenciaDia = datosPotenciaDia.map(d => d.potencia_w).filter(Boolean)
+  const promedioPotencia   = valoresPotenciaDia.length
+    ? (valoresPotenciaDia.reduce((a, b) => a + b, 0) / valoresPotenciaDia.length).toFixed(0)
+    : "—"
+  const picoPotencia = valoresPotenciaDia.length
+    ? Math.max(...valoresPotenciaDia).toFixed(0)
+    : "—"
+
   const ultimasLecturas = useMemo(() => {
     return deduplicar([...(historico ?? []), ...lecturasEnVivo])
       .sort((a, b) => new Date(b.recorded_at) - new Date(a.recorded_at))
@@ -262,16 +300,17 @@ export default function MonitoringPage() {
               {nombreSala}
             </h1>
             <div className="flex items-center gap-2 flex-wrap">
+              <BadgeConexion estaConectado={estaConectado} reconectando={reconectando} />
               {lecturaActual?.recorded_at && (
                 <span className="text-xs text-muted">
-                  Actualizado {formatearHora(lecturaActual.recorded_at)}
+                  · {formatearHora(lecturaActual.recorded_at)}
                 </span>
               )}
             </div>
           </div>
 
           {/* Selectores */}
-          {(salones?.length > 1 || airesDisponibles?.length > 0) && (
+          {(salones?.length > 1 || airesDisponibles?.length > 1) && (
             <div className="flex gap-2 sm:shrink-0">
               {salones?.length > 1 && (
                 <div className="flex-1 sm:flex-initial">
@@ -292,7 +331,7 @@ export default function MonitoringPage() {
                   </select>
                 </div>
               )}
-              {airesDisponibles?.length > 0 && (
+              {airesDisponibles?.length > 1 && (
                 <div className="flex-1 sm:flex-initial">
                   <label className="block text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
                     Aire
@@ -423,6 +462,19 @@ export default function MonitoringPage() {
             <TempHumidityChart datos={datosGrafico} cargando={cargandoHistorico} />
           </div>
 
+          <div className="card">
+            <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
+              <div>
+                <p className="font-semibold text-dark">Consumo eléctrico</p>
+                <p className="text-xs text-muted mt-0.5">Por día</p>
+              </div>
+              <div className="flex gap-3 text-xs text-muted">
+                <span>Promedio: <strong className="text-dark">{promedioPotencia} W</strong></span>
+                <span>Pico: <strong className="text-dark">{picoPotencia} W</strong></span>
+              </div>
+            </div>
+            <PowerChart datos={datosPotenciaDia} cargando={cargandoHistorico} />
+          </div>
         </div>
 
         {/* Columna derecha */}

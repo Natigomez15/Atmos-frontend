@@ -1,33 +1,14 @@
 import cliente from "./client"
+import { airePrincipalSalon, filtrarSalonesAtmos } from "./salonesAtmos"
 
 export const obtenerResumenTablero = () =>
   cliente.get("/reports/summary/pavilion?period_days=1").then(res => res.data)
 
 function parametrosRegistro(salon) {
-  const aires = salon?.aires ?? []
   return {
     pabellon: salon?.pabellon ?? salon?.pavilion ?? salon?.edificio,
-    aire: aires[0] ?? salon?.nombre ?? salon?.name,
+    aire: airePrincipalSalon(salon),
   }
-}
-
-function esRoomAire(salon) {
-  return /^aire[_\s-]*\d+$/i.test(String(salon.nombre ?? salon.name ?? "").trim())
-}
-
-function filtrarSalonesPrincipales(salones) {
-  return salones.filter((salon) => {
-    if (!esRoomAire(salon)) return true
-
-    const nombreAire = String(salon.nombre ?? salon.name ?? "").trim().toLowerCase()
-    const pabellon = salon.pabellon ?? salon.pavilion
-    return !salones.some((otro) =>
-      otro !== salon
-      && (otro.pabellon ?? otro.pavilion) === pabellon
-      && Array.isArray(otro.aires)
-      && otro.aires.some(aire => String(aire).trim().toLowerCase() === nombreAire)
-    )
-  })
 }
 
 function datoSensorValido(valor) {
@@ -50,7 +31,7 @@ function mapearRegistro(registro, salon) {
 }
 
 export const obtenerUltimasLecturasSalones = async () => {
-  const salones = await cliente.get("/rooms").then(res => filtrarSalonesPrincipales(res.data))
+  const salones = await cliente.get("/rooms").then(res => filtrarSalonesAtmos(res.data))
   const ultimasLecturas = await Promise.all(
     salones.map(salon =>
       cliente.get("/lecturas/registros/reciente", {
