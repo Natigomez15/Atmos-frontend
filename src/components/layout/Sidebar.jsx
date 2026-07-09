@@ -18,7 +18,7 @@ import { useAuth } from "../../context/AuthContext"
 
 const navPublico = [
   { etiqueta: "Dashboard",      icono: MdDashboard,     ruta: "/dashboard" },
-  { etiqueta: "Laboratorios",   icono: MdMeetingRoom,   ruta: "/rooms" },
+  { etiqueta: "Espacios",       icono: MdMeetingRoom,   ruta: "/rooms" },
   { etiqueta: "Monitoreo",      icono: MdMonitor,       ruta: "/monitoring" },
   { etiqueta: "Predicciones ML",icono: MdAutoGraph,     ruta: "/predictions" },
   { etiqueta: "Alertas",        icono: MdNotifications, ruta: "/alerts" },
@@ -116,7 +116,7 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
         `}
       >
         {/* Logo */}
-        <div className="h-14 flex items-center justify-center px-4 border-b border-gray-100 shrink-0 relative">
+        <div className="h-14 lg:h-28 flex items-center justify-center px-4 lg:px-0 border-b border-gray-100 shrink-0 relative overflow-hidden">
           <button
             onClick={alCerrar}
             className="md:hidden absolute right-3 p-1 rounded-lg text-muted hover:text-dark hover:bg-gray-100 transition-colors"
@@ -126,7 +126,12 @@ export default function Sidebar({ cantidadAlertas = 0, estaAbierto = false, alCe
           <img
             src={logoAtmos}
             alt="ATMOS"
-            className="h-7 w-auto object-contain"
+            className="h-7 w-auto object-contain lg:hidden"
+          />
+          <img
+            src="/LOGO1.png"
+            alt="ATMOS"
+            className="hidden lg:block h-32 w-full object-contain object-center translate-x-1"
           />
         </div>
 
