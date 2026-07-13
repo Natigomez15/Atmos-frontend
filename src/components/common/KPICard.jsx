@@ -1,9 +1,11 @@
-const MAPA_DOT = {
-  primary:   "bg-primary",
-  secondary: "bg-secondary",
-  success:   "bg-success",
-  warning:   "bg-warning",
-  danger:    "bg-danger",
+// Misma estructura de 3 filas que las metric cards del dashboard:
+// label uppercase 11px (el nombre real de la métrica) / valor 24px / línea 12px.
+// El badge, cuando se pasa, refleja el ESTADO REAL derivado del valor.
+const TONOS = {
+  success: { dot: "bg-success",  badge: "bg-success/10 text-success" },
+  danger:  { dot: "bg-danger",   badge: "bg-danger/10 text-danger" },
+  warning: { dot: "bg-warning",  badge: "bg-warning/10 text-warning" },
+  neutral: { dot: "bg-gray-300", badge: "bg-gray-100 text-muted" },
 }
 
 export default function KPICard({
@@ -11,61 +13,48 @@ export default function KPICard({
   valor,
   unidad,
   icono,
-  tendencia,
-  color    = "primary",
+  linea,
+  badgeTexto,
+  tono = "neutral",
   cargando = false,
 }) {
-  const dot = MAPA_DOT[color] ?? MAPA_DOT.primary
-
   if (cargando) {
     return (
-      <div className="card animate-pulse">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
-            <div className="h-2.5 w-16 bg-gray-100 rounded" />
-          </div>
+      <div className="card px-[14px] py-3 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="h-2.5 w-24 bg-gray-100 rounded" />
           <div className="w-4 h-4 bg-gray-100 rounded" />
         </div>
-        <div className="h-7 w-1/2 bg-gray-100 rounded mb-1" />
-        <div className="flex items-center justify-between mt-1">
-          <div className="h-2.5 w-2/3 bg-gray-100 rounded" />
-          <div className="w-10 h-4 bg-gray-100 rounded" />
-        </div>
+        <div className="h-7 w-1/2 bg-gray-100 rounded mt-2 mb-1" />
+        <div className="h-2.5 w-2/3 bg-gray-100 rounded mt-1" />
       </div>
     )
   }
 
+  const cfg = TONOS[tono] ?? TONOS.neutral
+
   return (
-    <div className="card p-4 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200 cursor-default">
-      {/* Dot + label | icono ghost */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-          <p className="text-[10px] font-semibold text-muted uppercase tracking-widest">Métrica</p>
-        </div>
-        <span className="text-muted/40 [&>svg]:w-[15px] [&>svg]:h-[15px]">{icono}</span>
-      </div>
-
-      {/* Número + unidad */}
-      <div className="flex items-baseline gap-1">
-        <span className="text-2xl font-bold text-dark tracking-tight leading-none tabular-nums">{valor}</span>
-        {unidad && <span className="text-xs text-muted font-medium">{unidad}</span>}
-      </div>
-
-      {/* Titulo + tendencia */}
-      <div className="flex items-center justify-between gap-2 mt-1">
-        <p className="text-xs text-muted truncate">{titulo}</p>
-        {tendencia != null && (
-          <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md tabular-nums ${
-            tendencia >= 0
-              ? "bg-success/8 text-success"
-              : "bg-danger/8 text-danger"
-          }`}>
-            {tendencia >= 0 ? "+" : ""}{tendencia.toFixed(1)}%
+    <article className="card px-[14px] py-3 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-medium text-muted uppercase tracking-[0.05em] truncate">
+          {titulo}
+        </p>
+        {badgeTexto ? (
+          <span className={`shrink-0 inline-flex items-center gap-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cfg.badge}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {badgeTexto}
           </span>
+        ) : (
+          <span className="text-muted/40 shrink-0 [&>svg]:w-4 [&>svg]:h-4">{icono}</span>
         )}
       </div>
-    </div>
+
+      <div className="mt-1 flex items-baseline gap-1 h-8">
+        <span className="text-2xl font-semibold text-dark tabular-nums leading-none">{valor}</span>
+        {unidad && <span className="text-[13px] font-normal text-muted">{unidad}</span>}
+      </div>
+
+      {linea && <p className="mt-0.5 text-xs leading-4 text-muted truncate">{linea}</p>}
+    </article>
   )
 }

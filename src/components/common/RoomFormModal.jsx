@@ -1,34 +1,57 @@
 import { useEffect, useState } from "react"
 import { MdClose } from "react-icons/md"
 import { crearSalon, actualizarSalon } from "../../api/rooms"
+import DialogoConfirmacion from "./DialogoConfirmacion"
 
 const DATOS_VACIOS = {
   name:     "",
   pavilion: "",
-  capacity: "",
-  area_m2:  "",
+  tipo:     "laboratorio",
   ac_model: "",
   ac_btu:   "",
   ac_type:  "",
 }
 
 const TIPOS_AC = ["Seleccionar tipo", "Split", "Ventana", "Cassette", "Piso techo"]
+const TIPOS_ESPACIO = [
+  { valor: "laboratorio", etiqueta: "Laboratorio" },
+  { valor: "oficina",     etiqueta: "Oficina" },
+  { valor: "salon",       etiqueta: "Aula" },
+]
 
 function validar(datos) {
   const errores = {}
   if (!datos.name || datos.name.trim().length < 3) {
     errores.name = "El nombre es obligatorio (mínimo 3 caracteres)"
   }
-  if (datos.capacity !== "" && (isNaN(datos.capacity) || Number(datos.capacity) < 1 || !Number.isInteger(Number(datos.capacity)))) {
-    errores.capacity = "Debe ser un número entero positivo"
-  }
-  if (datos.area_m2 !== "" && (isNaN(datos.area_m2) || Number(datos.area_m2) <= 0)) {
-    errores.area_m2 = "Debe ser un número positivo"
-  }
   if (datos.ac_btu !== "" && (isNaN(datos.ac_btu) || Number(datos.ac_btu) <= 0)) {
     errores.ac_btu = "Debe ser un número positivo"
   }
   return errores
+}
+
+function normalizarTexto(valor) {
+  return String(valor ?? "").trim()
+}
+
+function extraerMensajeApi(error) {
+  const estado = error?.response?.status
+  const detalle = error?.response?.data?.detail
+  let mensaje = null
+
+  if (typeof detalle === "string") {
+    mensaje = detalle
+  } else if (Array.isArray(detalle)) {
+    mensaje = detalle
+      .map(item => item?.msg || item?.message || JSON.stringify(item))
+      .filter(Boolean)
+      .join(". ")
+  } else if (detalle && typeof detalle === "object") {
+    mensaje = detalle.message || detalle.error || JSON.stringify(detalle)
+  }
+
+  if (!mensaje) mensaje = error?.message || "Error al guardar el salón"
+  return estado ? `HTTP ${estado}: ${mensaje}` : mensaje
 }
 
 const estiloInput =
@@ -51,9 +74,10 @@ function CampoFormulario({ etiqueta, requerido, error, children }) {
 
 export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon }) {
   const [datosFormulario, setDatosFormulario] = useState(DATOS_VACIOS)
-  const [errores,         setErrores]         = useState({})
-  const [guardando,       setGuardando]        = useState(false)
-  const [errorGeneral,    setErrorGeneral]     = useState(null)
+  const [errores, setErrores] = useState({})
+  const [guardando, setGuardando] = useState(false)
+  const [errorGeneral, setErrorGeneral] = useState(null)
+  const [mostrarAdvertenciaPabellon, setMostrarAdvertenciaPabellon] = useState(false)
 
   const modoEdicion = !!salon
 
@@ -63,10 +87,9 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
       setDatosFormulario({
         name:     salon.nombre   ?? "",
         pavilion: salon.pavilion ?? "",
-        capacity: salon.capacity != null ? String(salon.capacity) : "",
-        area_m2:  salon.area_m2  != null ? String(salon.area_m2)  : "",
+        tipo:     salon.tipo     ?? "laboratorio",
         ac_model: salon.ac_model ?? "",
-        ac_btu:   salon.ac_btu   != null ? String(salon.ac_btu)   : "",
+        ac_btu:   salon.ac_btu   != null ? String(salon.ac_btu) : "",
         ac_type:  salon.ac_type  ?? "",
       })
     } else {
@@ -74,6 +97,7 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
     }
     setErrores({})
     setErrorGeneral(null)
+    setMostrarAdvertenciaPabellon(false)
   }, [salon, estaAbierto])
 
   if (!estaAbierto) return null
@@ -83,23 +107,34 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
     if (errores[campo]) setErrores(prev => ({ ...prev, [campo]: undefined }))
   }
 
-  async function manejarEnvio(e) {
-    e.preventDefault()
+  function cambioPabellonRequiereConfirmacion() {
+    if (!modoEdicion) return false
+    const pabellonAnterior = normalizarTexto(salon?.pavilion ?? salon?.pabellon)
+    const pabellonNuevo = normalizarTexto(datosFormulario.pavilion)
+    return pabellonAnterior !== pabellonNuevo
+  }
+
+  async function guardar(confirmarCambioPabellon = false) {
     const erroresValidacion = validar(datosFormulario)
     if (Object.keys(erroresValidacion).length) {
       setErrores(erroresValidacion)
       return
     }
 
+    if (cambioPabellonRequiereConfirmacion() && !confirmarCambioPabellon) {
+      setMostrarAdvertenciaPabellon(true)
+      return
+    }
+
     setGuardando(true)
     setErrorGeneral(null)
+    setMostrarAdvertenciaPabellon(false)
 
     const carga = {
       ...datosFormulario,
-      capacity: datosFormulario.capacity !== "" ? Number(datosFormulario.capacity) : undefined,
-      area_m2:  datosFormulario.area_m2  !== "" ? Number(datosFormulario.area_m2)  : undefined,
-      ac_btu:   datosFormulario.ac_btu   !== "" ? Number(datosFormulario.ac_btu)   : undefined,
-      ac_type:  datosFormulario.ac_type  === "Seleccionar tipo" ? "" : datosFormulario.ac_type,
+      ac_btu:  datosFormulario.ac_btu !== "" ? Number(datosFormulario.ac_btu) : undefined,
+      ac_type: datosFormulario.ac_type === "Seleccionar tipo" ? "" : datosFormulario.ac_type,
+      tipo:    datosFormulario.tipo || "laboratorio",
     }
 
     try {
@@ -110,11 +145,16 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
       }
       alGuardar()
       alCerrar()
-    } catch {
-      setErrorGeneral("Error al guardar el salón")
+    } catch (error) {
+      setErrorGeneral(extraerMensajeApi(error))
     } finally {
       setGuardando(false)
     }
+  }
+
+  async function manejarEnvio(e) {
+    e.preventDefault()
+    await guardar(false)
   }
 
   return (
@@ -126,7 +166,6 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
         className="bg-white rounded-2xl shadow-xl w-full max-w-[480px] max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        {/* Encabezado */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-dark">
             {modoEdicion ? "Editar salón" : "Nuevo salón"}
@@ -139,21 +178,17 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
           </button>
         </div>
 
-        {/* Formulario */}
         <form onSubmit={manejarEnvio} className="px-6 py-5 flex flex-col gap-4">
-
-          {/* 1. Nombre */}
           <CampoFormulario etiqueta="Nombre del salón" requerido error={errores.name}>
             <input
               type="text"
               value={datosFormulario.name}
               onChange={e => actualizarCampo("name", e.target.value)}
-              placeholder="Ej: Salón 3A-101"
+              placeholder="Ej: Aula 3A-101"
               className={estiloInput}
             />
           </CampoFormulario>
 
-          {/* 2. Pabellón */}
           <CampoFormulario etiqueta="Pabellón" error={errores.pavilion}>
             <input
               type="text"
@@ -164,30 +199,18 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
             />
           </CampoFormulario>
 
-          {/* 3. Capacidad + 4. Área */}
-          <div className="grid grid-cols-2 gap-4">
-            <CampoFormulario etiqueta="Capacidad (personas)" error={errores.capacity}>
-              <input
-                type="number"
-                min={1} max={200}
-                value={datosFormulario.capacity}
-                onChange={e => actualizarCampo("capacity", e.target.value)}
-                className={estiloInput}
-              />
-            </CampoFormulario>
+          <CampoFormulario etiqueta="Tipo de espacio" error={errores.tipo}>
+            <select
+              value={datosFormulario.tipo}
+              onChange={e => actualizarCampo("tipo", e.target.value)}
+              className={estiloInput + " bg-white"}
+            >
+              {TIPOS_ESPACIO.map(tipo => (
+                <option key={tipo.valor} value={tipo.valor}>{tipo.etiqueta}</option>
+              ))}
+            </select>
+          </CampoFormulario>
 
-            <CampoFormulario etiqueta="Área (m²)" error={errores.area_m2}>
-              <input
-                type="number"
-                min={1} step={0.5}
-                value={datosFormulario.area_m2}
-                onChange={e => actualizarCampo("area_m2", e.target.value)}
-                className={estiloInput}
-              />
-            </CampoFormulario>
-          </div>
-
-          {/* 5. Modelo AC + 6. BTU */}
           <div className="grid grid-cols-2 gap-4">
             <CampoFormulario etiqueta="Modelo del AC" error={errores.ac_model}>
               <input
@@ -211,7 +234,6 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
             </CampoFormulario>
           </div>
 
-          {/* 7. Tipo de AC */}
           <CampoFormulario etiqueta="Tipo de AC" error={errores.ac_type}>
             <select
               value={datosFormulario.ac_type || "Seleccionar tipo"}
@@ -228,7 +250,6 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
             <p className="text-xs text-danger">{errorGeneral}</p>
           )}
 
-          {/* Pie del modal */}
           <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
             <button
               type="button"
@@ -250,6 +271,16 @@ export default function RoomFormModal({ estaAbierto, alCerrar, alGuardar, salon 
           </div>
         </form>
       </div>
+
+      <DialogoConfirmacion
+        abierto={mostrarAdvertenciaPabellon}
+        titulo="Cambiar pabellón"
+        mensaje="Cambiar el pabellón modifica la ruta usada para asociar lecturas y comandos del ESP32. Si el dispositivo físico sigue reportando al pabellón anterior, puede dejar de verse o controlar el aire correcto. ¿Quieres continuar?"
+        etiquetaConfirmar="Continuar"
+        etiquetaCancelar="Cancelar"
+        alConfirmar={() => guardar(true)}
+        alCancelar={() => setMostrarAdvertenciaPabellon(false)}
+      />
     </div>
   )
 }

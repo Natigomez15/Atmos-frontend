@@ -70,7 +70,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
 
   function validarFormulario() {
     const errores = {}
-    if (!idSalonSeleccionado) errores.salon = "Selecciona un salon"
+    if (!idSalonSeleccionado) errores.salon = "Selecciona un espacio"
     if (idSalonSeleccionado && airesDisponibles.length && !aireActivo) {
       errores.aire = "Selecciona un aire"
     }
@@ -127,7 +127,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
             onChange={e => seleccionarSalon(e.target.value)}
             className={estiloInput}
           >
-            <option value="">Seleccionar salon...</option>
+            <option value="">Seleccionar espacio...</option>
             {salones.map(salon => (
               <option key={salon.sala_id} value={salon.sala_id}>{salon.nombre}</option>
             ))}
@@ -151,7 +151,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
             className={`${estiloInput} disabled:bg-gray-50 disabled:text-muted disabled:cursor-not-allowed`}
           >
             {!idSalonSeleccionado ? (
-              <option value="">Elige un salon primero</option>
+              <option value="">Elige un espacio primero</option>
             ) : cargandoAires ? (
               <option value="">Cargando aires...</option>
             ) : !airesDisponibles.length ? (

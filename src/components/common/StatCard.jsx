@@ -1,54 +1,37 @@
-const CONFIG = {
-  "text-success": {
-    dot:        "bg-success",
-    badge:      "bg-success/8 text-success",
-    badgeTexto: "Activo",
-    descripcion:"Salones operativos",
-  },
-  "text-danger": {
-    dot:        "bg-danger",
-    badge:      "bg-danger/8 text-danger",
-    badgeTexto: "Alerta",
-    descripcion:"Requiere atención",
-  },
-  "text-secondary": {
-    dot:        "bg-secondary",
-    badge:      "bg-secondary/8 text-secondary",
-    badgeTexto: "Normal",
-    descripcion:"Climatización activa",
-  },
+// Estructura de 3 filas alineada con las metric cards del dashboard:
+// label uppercase 11px / valor 24px / línea corta 12px.
+// El badge (opcional) refleja el ESTADO REAL derivado del valor, nunca es decorativo fijo.
+const TONOS = {
+  success: { dot: "bg-success",   badge: "bg-success/10 text-success" },
+  danger:  { dot: "bg-danger",    badge: "bg-danger/10 text-danger" },
+  warning: { dot: "bg-warning",   badge: "bg-warning/10 text-warning" },
+  neutral: { dot: "bg-gray-300",  badge: "bg-gray-100 text-muted" },
 }
 
-export default function StatCard({ icono, valor, etiqueta, colorTexto, descripcion, badgeTexto }) {
-  const cfg = CONFIG[colorTexto] ?? CONFIG["text-secondary"]
-  const desc  = descripcion ?? cfg.descripcion
-  const badge = badgeTexto  ?? cfg.badgeTexto
+export default function StatCard({ icono, valor, unidad, etiqueta, linea, tono, badgeTexto }) {
+  const cfg = TONOS[tono] ?? TONOS.neutral
 
   return (
-    <div className="card p-4 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200">
-
-      {/* Dot + icono */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-          <p className="text-[10px] font-semibold text-muted uppercase tracking-widest">Estado</p>
-        </div>
-        <span className="text-muted/40">{icono}</span>
+    <article className="card px-[14px] py-3 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-medium text-muted uppercase tracking-[0.05em] truncate flex items-center gap-1.5">
+          {icono && <span className="text-muted/60 [&>svg]:w-4 [&>svg]:h-4 shrink-0">{icono}</span>}
+          {etiqueta}
+        </p>
+        {badgeTexto && (
+          <span className={`shrink-0 inline-flex items-center gap-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cfg.badge}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
+            {badgeTexto}
+          </span>
+        )}
       </div>
 
-      {/* Número + etiqueta */}
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-xl font-bold tabular-nums tracking-tight leading-none text-dark">{valor}</span>
-        <span className="text-sm font-semibold text-dark">{etiqueta}</span>
+      <div className="mt-1 flex items-baseline gap-1 h-8">
+        <span className="text-2xl font-semibold tabular-nums leading-none text-dark">{valor}</span>
+        {unidad && <span className="text-[13px] font-normal text-muted">{unidad}</span>}
       </div>
 
-      {/* Descripción + badge */}
-      <div className="flex items-center justify-between gap-2 mt-1">
-        <p className="text-xs text-muted">{desc}</p>
-        <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${cfg.badge}`}>
-          {badge}
-        </span>
-      </div>
-    </div>
+      {linea && <p className="mt-0.5 text-xs leading-4 text-muted truncate">{linea}</p>}
+    </article>
   )
 }

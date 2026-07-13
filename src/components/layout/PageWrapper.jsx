@@ -5,6 +5,7 @@ import Sidebar                  from "./Sidebar"
 import Topbar                   from "./Topbar"
 import AlertToastContainer      from "../common/AlertToast"
 import cliente                  from "../../api/client"
+import { modoDemoDashboardActivo } from "../../api/dashboard"
 import { WS_BASE_URL }          from "../../constants/config"
 
 const WS_URL_ALERTAS = `${WS_BASE_URL}/ws/alerts`
@@ -18,6 +19,7 @@ export default function PageWrapper({ children }) {
   const [cantidadAlertas, setCantidadAlertas] = useState(0)
   const [wsConectado,     setWsConectado]     = useState(false)
   const [toasts,          setToasts]          = useState([])
+  const modoDemoDashboard = modoDemoDashboardActivo()
 
   const refWs             = useRef(null)
   const timeoutReconexion = useRef(null)
@@ -46,6 +48,7 @@ export default function PageWrapper({ children }) {
 
   // ── Polling HTTP de respaldo (60s) ───────────────────────────────────────
   useEffect(() => {
+    if (modoDemoDashboard) return
     async function obtenerResumen() {
       try {
         const resp = await cliente.get("/alerts/summary")
@@ -55,10 +58,11 @@ export default function PageWrapper({ children }) {
     obtenerResumen()
     const intervalo = setInterval(obtenerResumen, 60000)
     return () => clearInterval(intervalo)
-  }, [])
+  }, [modoDemoDashboard])
 
   // ── WebSocket global ─────────────────────────────────────────────────────
   useEffect(() => {
+    if (modoDemoDashboard) return
     montado.current = true
 
     function conectar() {
@@ -128,7 +132,7 @@ export default function PageWrapper({ children }) {
       clearTimeout(timeoutReconexion.current)
       if (refWs.current) { refWs.current.onclose = null; refWs.current.close() }
     }
-  }, [clienteQuery, agregarToast])
+  }, [clienteQuery, agregarToast, modoDemoDashboard])
 
   return (
     <div className="h-screen overflow-hidden flex bg-white">

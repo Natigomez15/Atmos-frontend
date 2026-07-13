@@ -1,42 +1,40 @@
 import { useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { useQuery } from "@tanstack/react-query"
-import { useAuth } from "../context/AuthContext"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   MdAdd,
   MdSearch,
   MdMeetingRoom,
+  MdSignalWifi4Bar,
 } from "react-icons/md"
 import {
-  TbCircleCheck,
   TbWifiOff,
   TbWind,
 } from "react-icons/tb"
 
-import PageWrapper     from "../components/layout/PageWrapper"
-import PageHeader      from "../components/common/PageHeader"
-import StatCard        from "../components/common/StatCard"
-import RoomRow         from "../components/common/RoomRow"
-import RoomFormModal   from "../components/common/RoomFormModal"
+import PageWrapper      from "../components/layout/PageWrapper"
+import PageHeader       from "../components/common/PageHeader"
+import StatCard         from "../components/common/StatCard"
+import RoomRow          from "../components/common/RoomRow"
+import RoomFormModal    from "../components/common/RoomFormModal"
+import DialogoConfirmacion from "../components/common/DialogoConfirmacion"
 import AccionProtegida  from "../components/common/AccionProtegida"
-import { obtenerSalones, obtenerUltimaLecturaDetalladaSalon } from "../api/rooms"
+import { obtenerSalones, obtenerUltimaLecturaDetalladaSalon, eliminarSalon } from "../api/rooms"
 
 const ENCABEZADOS_TABLA = [
-  { texto: "Salón",     clase: "" },
+  { texto: "Espacio",   clase: "" },
   { texto: "Estado",    clase: "" },
   { texto: "Temp",      clase: "" },
-  { texto: "Humedad",   clase: "hidden md:table-cell" },
   { texto: "Consumo",   clase: "hidden md:table-cell" },
+  { texto: "Ocupación", clase: "hidden sm:table-cell" },
   { texto: "AC",        clase: "" },
-  { texto: "Capacidad", clase: "hidden lg:table-cell" },
   { texto: "Acciones",  clase: "" },
 ]
 
-const OPCIONES_FILTRO = [
-  { valor: "todos",        etiqueta: "Todos" },
-  { valor: "en_linea",     etiqueta: "En línea" },
-  { valor: "sin_senal",    etiqueta: "Sin señal" },
-  { valor: "ac_encendido", etiqueta: "AC encendido" },
+const TIPOS_ESPACIO = [
+  { valor: "oficina",     etiqueta: "Oficina" },
+  { valor: "laboratorio", etiqueta: "Laboratorio" },
+  { valor: "salon",       etiqueta: "Aula" },
 ]
 
 function minutosDesde(iso) {
@@ -48,18 +46,16 @@ function estaEnLinea(lectura) {
   return lectura != null && minutosDesde(lectura.registrado_en) <= 10
 }
 
-
 export default function RoomsPage() {
   const navegar = useNavigate()
-  const { esAdmin } = useAuth()
+  const clienteQuery = useQueryClient()
 
-  const [mostrarModal,   setMostrarModal]   = useState(false)
-  const [salonEditando,  setSalonEditando]  = useState(null)
+  const [mostrarModal, setMostrarModal] = useState(false)
+  const [salonEditando, setSalonEditando] = useState(null)
+  const [salonEliminando, setSalonEliminando] = useState(null)
   const [terminoBusqueda, setTerminoBusqueda] = useState("")
-  const [filtroActivo,   setFiltroActivo]   = useState("todos")
+  const [filtroTipo, setFiltroTipo] = useState("todos")
   const [ultimaActualizacion] = useState(new Date())
-
-  // ── Queries ────────────────────────────────────────────────────────
 
   const { data: salones, isLoading: cargandoSalones, refetch: recargarSalones } = useQuery({
     queryKey:        ["rooms"],
@@ -80,7 +76,16 @@ export default function RoomsPage() {
     refetchInterval: 30000,
   })
 
-  // ── Estadísticas ───────────────────────────────────────────────────
+  const mutacionEliminar = useMutation({
+    mutationFn: eliminarSalon,
+    onSuccess: () => {
+      setSalonEliminando(null)
+      clienteQuery.invalidateQueries({ queryKey: ["rooms"] })
+      clienteQuery.invalidateQueries({ queryKey: ["rooms-readings"] })
+    },
+  })
+
+  const totalEspacios = salones?.length ?? 0
 
   const conteoEnLinea = useMemo(() =>
     salones?.filter(salon => estaEnLinea(lecturas?.[salon.sala_id])).length ?? 0,
@@ -94,8 +99,40 @@ export default function RoomsPage() {
     salones?.filter(salon => lecturas?.[salon.sala_id]?.ac_encendido).length ?? 0,
     [salones, lecturas]
   )
+  // Consumo actual: suma de potencia de los espacios en línea (misma fuente que la tabla).
+  const consumoActualW = useMemo(() =>
+    salones?.reduce((total, salon) => {
+      const lectura = lecturas?.[salon.sala_id]
+      if (!estaEnLinea(lectura)) return total
+      return total + (Number(lectura?.potencia_w) || 0)
+    }, 0) ?? 0,
+    [salones, lecturas]
+  )
+  // Desperdicio: espacio en línea, Vacío y con AC encendido (condición que ATMOS detecta).
+  const conteoDesperdicio = useMemo(() =>
+    salones?.filter(salon => {
+      const lectura = lecturas?.[salon.sala_id]
+      return estaEnLinea(lectura) && !lectura?.presencia && lectura?.ac_encendido
+    }).length ?? 0,
+    [salones, lecturas]
+  )
 
-  // ── Filtrado ───────────────────────────────────────────────────────
+  const conteoPorTipo = useMemo(() => {
+    const conteos = Object.fromEntries(TIPOS_ESPACIO.map(tipo => [tipo.valor, 0]))
+    for (const salon of salones ?? []) {
+      const tipo = salon.tipo ?? "laboratorio"
+      conteos[tipo] = (conteos[tipo] ?? 0) + 1
+    }
+    return conteos
+  }, [salones])
+
+  const opcionesTipo = useMemo(() => [
+    { valor: "todos", etiqueta: "Todos", cantidad: salones?.length ?? 0 },
+    ...TIPOS_ESPACIO.map(tipo => ({
+      ...tipo,
+      cantidad: conteoPorTipo[tipo.valor] ?? 0,
+    })),
+  ], [conteoPorTipo, salones])
 
   const salonesFiltrados = useMemo(() => {
     if (!salones) return []
@@ -106,18 +143,12 @@ export default function RoomsPage() {
       resultado = resultado.filter(salon => salon.nombre.toLowerCase().includes(termino))
     }
 
-    if (filtroActivo === "en_linea") {
-      resultado = resultado.filter(salon => estaEnLinea(lecturas?.[salon.sala_id]))
-    } else if (filtroActivo === "sin_senal") {
-      resultado = resultado.filter(salon => !estaEnLinea(lecturas?.[salon.sala_id]))
-    } else if (filtroActivo === "ac_encendido") {
-      resultado = resultado.filter(salon => lecturas?.[salon.sala_id]?.ac_encendido)
+    if (filtroTipo !== "todos") {
+      resultado = resultado.filter(salon => (salon.tipo ?? "laboratorio") === filtroTipo)
     }
 
     return resultado
-  }, [salones, lecturas, terminoBusqueda, filtroActivo])
-
-  // ── Handlers ───────────────────────────────────────────────────────
+  }, [salones, terminoBusqueda, filtroTipo])
 
   function abrirNuevoSalon() {
     setSalonEditando(null)
@@ -134,108 +165,97 @@ export default function RoomsPage() {
     setSalonEditando(null)
   }
 
-  // ── Render ─────────────────────────────────────────────────────────
+  function confirmarEliminar() {
+    if (salonEliminando?.sala_id && !mutacionEliminar.isPending) {
+      mutacionEliminar.mutate(salonEliminando.sala_id)
+    }
+  }
+
+  const tarjetasResumen = [
+    {
+      icono: <MdSignalWifi4Bar size={16} />,
+      etiqueta: "Sensores en línea",
+      valor: conteoEnLinea,
+      linea: "Reportando ahora",
+      tono: totalEspacios === 0 ? "neutral" : conteoSinSenal === 0 ? "success" : "warning",
+      badgeTexto: totalEspacios === 0 ? "Sin datos" : conteoSinSenal === 0 ? "OK" : "Parcial",
+    },
+    {
+      icono: <TbWifiOff size={16} />,
+      etiqueta: "Sin señal",
+      valor: conteoSinSenal,
+      linea: "Sin lecturas recientes",
+      tono: conteoSinSenal >= 1 ? "danger" : "success",
+      badgeTexto: conteoSinSenal >= 1 ? "Alerta" : "OK",
+    },
+    {
+      icono: <TbWind size={16} />,
+      etiqueta: "Consumo actual",
+      valor: Math.round(consumoActualW),
+      unidad: "W",
+      linea: `${conteoAcEncendido} AC encendido${conteoAcEncendido === 1 ? "" : "s"}`,
+      tono: conteoDesperdicio >= 1 ? "warning" : "neutral",
+      badgeTexto: conteoDesperdicio >= 1 ? "Desperdicio" : "En vivo",
+    },
+  ]
 
   return (
     <PageWrapper>
-
-      {/* ── Fila 1: Encabezado ──────────────────────────────────────── */}
       <div className="mb-6">
         <PageHeader
-          eyebrow="Gestión de espacios"
-          title="Laboratorios"
-          description={`${salones?.length ?? 0} salones registrados en el sistema`}
+          title="Espacios"
+          description="Monitoreo en tiempo real de espacios climatizados"
           actions={
-            <AccionProtegida requiereRol="admin">
-              <button className="btn-primary flex items-center gap-2" onClick={abrirNuevoSalon}>
-                <MdAdd size={18} />
-                Nuevo salón
-              </button>
-            </AccionProtegida>
+            <div className="flex items-center gap-3">
+              <AccionProtegida requiereRol="admin">
+                <button className="btn-primary flex items-center gap-2" onClick={abrirNuevoSalon}>
+                  <MdAdd size={18} />
+                  Nuevo espacio
+                </button>
+              </AccionProtegida>
+            </div>
           }
         />
       </div>
 
-      {/* ── Fila 2: Estadísticas ────────────────────────────────────── */}
-
-      {/* Mobile: scroll horizontal con mini cards */}
-      <div className="flex sm:hidden gap-3 overflow-x-auto pb-1 mb-6 -mx-4 px-4 hide-scrollbar">
-        {[
-          { dot: "bg-success",   badge: "bg-success/8 text-success",     badgeTexto: "Activo", etiqueta: "En línea",     valor: conteoEnLinea,     icono: <TbCircleCheck size={16} /> },
-          { dot: "bg-danger",    badge: "bg-danger/8 text-danger",        badgeTexto: "Alerta", etiqueta: "Sin señal",    valor: conteoSinSenal,    icono: <TbWifiOff size={16} /> },
-          { dot: "bg-secondary", badge: "bg-secondary/8 text-secondary",  badgeTexto: "Normal", etiqueta: "AC encendido", valor: conteoAcEncendido, icono: <TbWind size={16} /> },
-        ].map(({ dot, badge, badgeTexto, etiqueta, valor, icono }) => (
-          <div key={etiqueta} className="card shrink-0 w-40 p-3 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                <span className="text-muted/40">{icono}</span>
-              </div>
-              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${badge}`}>
-                {badgeTexto}
-              </span>
-            </div>
-            <div>
-              <p className="text-lg font-bold tabular-nums text-dark leading-none">{valor}</p>
-              <p className="text-xs text-muted mt-0.5 leading-tight">{etiqueta}</p>
-            </div>
-          </div>
+      {/* Teléfono: tarjetas a ancho completo. Laptop/desktop: grilla de tres. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        {tarjetasResumen.map(tarjeta => (
+          <StatCard key={tarjeta.etiqueta} {...tarjeta} />
         ))}
       </div>
 
-      {/* Tablet / Desktop: 3 cards completas */}
-      <div className="hidden sm:grid sm:grid-cols-3 gap-3 mb-6">
-        <StatCard
-          icono={<TbCircleCheck size={22} />}
-          valor={conteoEnLinea}
-          etiqueta="En línea"
-          colorTexto="text-success"
-        />
-        <StatCard
-          icono={<TbWifiOff size={22} />}
-          valor={conteoSinSenal}
-          etiqueta="Sin señal"
-          colorTexto="text-danger"
-        />
-        <StatCard
-          icono={<TbWind size={22} />}
-          valor={conteoAcEncendido}
-          etiqueta="AC encendido"
-          colorTexto="text-secondary"
-        />
-      </div>
+      <div className="flex flex-col sm:flex-row sm:items-center mb-4 gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-64">
+            <MdSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+            <input
+              type="text"
+              value={terminoBusqueda}
+              onChange={e => setTerminoBusqueda(e.target.value)}
+              placeholder="Buscar espacio..."
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl
+                         focus:outline-none focus:ring-2 focus:ring-secondary/30
+                         focus:border-secondary transition-colors"
+            />
+          </div>
 
-      {/* ── Fila 3: Búsqueda y filtros ──────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-        {/* Búsqueda */}
-        <div className="relative w-full sm:w-64">
-          <MdSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input
-            type="text"
-            value={terminoBusqueda}
-            onChange={e => setTerminoBusqueda(e.target.value)}
-            placeholder="Buscar salón..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-xl
+          <select
+            value={filtroTipo}
+            onChange={e => setFiltroTipo(e.target.value)}
+            className="w-full sm:w-44 text-sm border border-gray-200 rounded-xl px-3 py-2
                        focus:outline-none focus:ring-2 focus:ring-secondary/30
-                       focus:border-secondary transition-colors"
-          />
+                       focus:border-secondary transition-colors bg-white text-dark"
+          >
+            {opcionesTipo.map(opcion => (
+              <option key={opcion.valor} value={opcion.valor}>
+                {opcion.etiqueta} ({opcion.cantidad})
+              </option>
+            ))}
+          </select>
         </div>
-
-        {/* Filtro de estado */}
-        <select
-          value={filtroActivo}
-          onChange={e => setFiltroActivo(e.target.value)}
-          className="text-sm border border-gray-200 rounded-xl px-3 py-2
-                     focus:outline-none focus:ring-2 focus:ring-secondary/30
-                     focus:border-secondary transition-colors bg-white text-dark"
-        >
-          {OPCIONES_FILTRO.map(opcion => (
-            <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>
-          ))}
-        </select>
       </div>
 
-      {/* ── Fila 4: Tabla ───────────────────────────────────────────── */}
       <div className="card p-0 overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="sticky top-0">
@@ -255,7 +275,7 @@ export default function RoomsPage() {
             {cargandoSalones ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-gray-50">
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} className="px-4 py-3">
                       <div className="h-4 bg-gray-100 rounded animate-pulse" />
                     </td>
@@ -264,9 +284,9 @@ export default function RoomsPage() {
               ))
             ) : !salonesFiltrados.length ? (
               <tr>
-                <td colSpan={8} className="px-2 py-16 text-center">
+                <td colSpan={7} className="px-2 py-16 text-center">
                   <MdMeetingRoom size={40} className="text-muted mx-auto mb-3" />
-                  <p className="text-sm font-medium text-dark">No se encontraron salones</p>
+                  <p className="text-sm font-medium text-dark">No se encontraron espacios</p>
                   {terminoBusqueda ? (
                     <p className="text-xs text-muted mt-1">
                       Intenta con otro término de búsqueda
@@ -277,7 +297,7 @@ export default function RoomsPage() {
                         className="btn-primary mt-4 inline-flex items-center gap-2"
                         onClick={abrirNuevoSalon}
                       >
-                        <MdAdd size={16} /> Registrar primer salón
+                        <MdAdd size={16} /> Registrar primer espacio
                       </button>
                     </AccionProtegida>
                   )}
@@ -290,19 +310,19 @@ export default function RoomsPage() {
                   salon={salon}
                   lectura={lecturas?.[salon.sala_id] ?? null}
                   alEditar={() => abrirEdicionSalon(salon)}
+                  alEliminar={() => setSalonEliminando(salon)}
                   alMonitorear={() => navegar(`/monitoring?room_id=${salon.sala_id}`)}
-                  puedeEditar={esAdmin}
+                  puedeEditar
                 />
               ))
             )}
           </tbody>
         </table>
 
-        {/* ── Pie de tabla ──────────────────────────────────────────── */}
         {!cargandoSalones && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-50">
             <p className="text-xs text-muted">
-              Mostrando {salonesFiltrados.length} de {salones?.length ?? 0} salones
+              Mostrando {salonesFiltrados.length} de {totalEspacios} espacios
             </p>
             <p className="text-xs text-muted">
               Actualizado: {ultimaActualizacion.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false })}
@@ -311,16 +331,23 @@ export default function RoomsPage() {
         )}
       </div>
 
-      {/* ── Modal ───────────────────────────────────────────────────── */}
-      {esAdmin && (
-        <RoomFormModal
-          estaAbierto={mostrarModal}
-          alCerrar={cerrarModal}
-          alGuardar={recargarSalones}
-          salon={salonEditando}
-        />
-      )}
+      <RoomFormModal
+        estaAbierto={mostrarModal}
+        alCerrar={cerrarModal}
+        alGuardar={recargarSalones}
+        salon={salonEditando}
+      />
 
+      <DialogoConfirmacion
+        abierto={!!salonEliminando}
+        titulo="Eliminar espacio"
+        mensaje={`Se desactivará ${salonEliminando?.nombre ?? "este espacio"} con soft-delete: se ocultará del dashboard sin borrar su historial y podrá revertirse reactivando el registro.`}
+        etiquetaConfirmar={mutacionEliminar.isPending ? "Eliminando..." : "Eliminar"}
+        etiquetaCancelar="Cancelar"
+        peligroso
+        alConfirmar={confirmarEliminar}
+        alCancelar={() => setSalonEliminando(null)}
+      />
     </PageWrapper>
   )
 }

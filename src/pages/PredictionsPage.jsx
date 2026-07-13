@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import {
-  MdAssessment,
   MdAutoGraph,
   MdBolt,
   MdCheckCircle,
-  MdSavings,
+  MdVerified,
 } from "react-icons/md"
 
 import PageWrapper from "../components/layout/PageWrapper"
@@ -16,40 +15,42 @@ import FeaturesChart from "../components/charts/FeaturesChart"
 
 import {
   aplicarPrediccion,
-  dispararEvaluacion,
   obtenerCaracteristicasML,
-  obtenerImpactoDecisiones,
-  obtenerImpactoReal,
+  obtenerInfoModelo,
   obtenerSalonesPrediciones,
   obtenerTodasUltimasPredicciones,
 } from "../api/predictions"
 
-const SENALES_OPERATIVAS = [
-  { etiqueta: "Presencia registrada", porcentaje: 42 },
-  { etiqueta: "Horario de lectura", porcentaje: 28 },
-  { etiqueta: "Temperatura ambiente", porcentaje: 15 },
-  { etiqueta: "Humedad", porcentaje: 9 },
-  { etiqueta: "Potencia estimada", porcentaje: 6 },
-]
+const ZONA_PANAMA = "America/Panama"
 
-const INFO_MOTOR_ATMOS = [
-  { etiqueta: "Tipo",      valor: "RandomForestClassifier" },
-  { etiqueta: "Estado",    valor: "Disponible" },
-  { etiqueta: "Actualiza", valor: "Por lectura" },
-  { etiqueta: "Versión",   valor: "modelo_atmos_rf_v1" },
-]
+function esPrediccionGuardada(prediccion) {
+  return prediccion.disponible === true || prediccion.fuente === "ml_predictions"
+}
 
-function BarraSenal({ etiqueta, porcentaje }) {
+function fechaPanamaYMD(iso) {
+  if (!iso) return null
+  const fecha = new Date(iso)
+  if (Number.isNaN(fecha.getTime())) return null
+  return fecha.toLocaleDateString("en-CA", { timeZone: ZONA_PANAMA })
+}
+
+function BarraImportancia({ etiqueta, porcentaje }) {
   return (
     <div className="flex items-center gap-2">
-      <p className="text-xs text-dark w-40 truncate">{etiqueta}</p>
+      <p className="text-xs text-dark w-40 truncate" title={etiqueta}>{etiqueta}</p>
       <div className="flex-1 bg-gray-100 h-2 rounded-full">
-        <div
-          className="bg-secondary h-2 rounded-full"
-          style={{ width: `${porcentaje}%` }}
-        />
+        <div className="bg-secondary h-2 rounded-full" style={{ width: `${porcentaje}%` }} />
       </div>
-      <p className="text-xs text-muted w-8 text-right">{porcentaje}%</p>
+      <p className="text-xs text-muted w-10 text-right tabular-nums">{porcentaje.toFixed(1)}%</p>
+    </div>
+  )
+}
+
+function FilaMetrica({ etiqueta, valor }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <p className="text-xs text-muted">{etiqueta}</p>
+      <p className="text-xs font-medium text-dark text-right tabular-nums">{valor}</p>
     </div>
   )
 }
@@ -57,28 +58,15 @@ function BarraSenal({ etiqueta, porcentaje }) {
 export default function PredictionsPage() {
   const [idSalonSeleccionado, setIdSalonSeleccionado] = useState("")
   const [idAplicando, setIdAplicando] = useState(null)
-  const [evaluando, setEvaluando] = useState(false)
 
   const { data: salones } = useQuery({
     queryKey: ["rooms"],
     queryFn: obtenerSalonesPrediciones,
-    onSuccess: datos => {
-      if (!idSalonSeleccionado && datos?.length) {
-        setIdSalonSeleccionado(String(datos[0].id))
-      }
-    },
   })
 
-  const salonSeleccionado = useMemo(
-    () => salones?.find(salon => String(salon.id) === String(idSalonSeleccionado)),
-    [salones, idSalonSeleccionado]
-  )
-
-  const idFuenteCaracteristicas = (
-    salonSeleccionado?.prediction_source_room_id
-    ?? salonSeleccionado?.source_room_id
-    ?? idSalonSeleccionado
-  )
+  // Auto-selección del primer espacio (cubre el caso de un solo espacio) como
+  // valor DERIVADO: si el usuario aún no eligió, se usa el primero disponible.
+  const idSalonEfectivo = idSalonSeleccionado || (salones?.length ? String(salones[0].id) : "")
 
   const {
     data: todasPredicciones,
@@ -92,44 +80,43 @@ export default function PredictionsPage() {
     refetchInterval: 60000,
   })
 
-  const { isLoading: cargandoImpacto } = useQuery({
-    queryKey: ["ml-impacto-decisiones"],
-    queryFn: obtenerImpactoDecisiones,
+  const { data: infoModelo, isLoading: cargandoModelo } = useQuery({
+    queryKey: ["ml-modelo-info"],
+    queryFn: obtenerInfoModelo,
     refetchInterval: 60000,
   })
 
-  const { data: impactoReal } = useQuery({
-    queryKey: ["ml-impacto-real"],
-    queryFn: obtenerImpactoReal,
-    refetchInterval: 300000,
-  })
-
   const { data: caracteristicas, isLoading: cargandoCaracteristicas } = useQuery({
-    queryKey: ["ml-features", idFuenteCaracteristicas],
-    queryFn: () => obtenerCaracteristicasML(idFuenteCaracteristicas, 7),
-    enabled: !!idFuenteCaracteristicas,
+    queryKey: ["ml-features", idSalonEfectivo],
+    queryFn: () => obtenerCaracteristicasML(idSalonEfectivo, 7),
+    enabled: !!idSalonEfectivo,
   })
 
-  const promedioAhorro = useMemo(() => {
-    const conPrediccion = todasPredicciones?.filter(p => p.predicted_savings_pct != null) ?? []
-    if (conPrediccion.length) {
-      return (
-        conPrediccion.reduce((acc, p) => acc + p.predicted_savings_pct, 0) /
-        conPrediccion.length
-      ).toFixed(1)
-    }
-    return impactoReal?.ahorro_promedio_pct ?? null
-  }, [todasPredicciones, impactoReal])
+  const metricas = infoModelo?.metricas
+  const metricasDisponibles = infoModelo?.metricas_disponibles === true
 
-  const conteoPrediccionesGuardadas = useMemo(
-    () => todasPredicciones?.filter(p => p.disponible === true || p.fuente === "ml_predictions").length ?? 0,
-    [todasPredicciones]
+  // 4a) Precisión del modelo: accuracy de validación de la versión activa.
+  // Sin metadata persistida → no se muestra ningún número calculado.
+  const precisionValor = metricasDisponibles && metricas?.accuracy != null
+    ? (Number(metricas.accuracy) * 100).toFixed(1)
+    : null
+
+  // 4b) Predicciones hoy: conteo real de predicciones guardadas hoy (Panamá).
+  const hoyPanama = fechaPanamaYMD(new Date().toISOString())
+  const prediccionesHoy = useMemo(() =>
+    todasPredicciones?.filter(p =>
+      esPrediccionGuardada(p) && fechaPanamaYMD(p.predicted_at) === hoyPanama
+    ).length ?? 0,
+    [todasPredicciones, hoyPanama]
   )
 
-  const conteoRecomendacionesOperativas = useMemo(
-    () => todasPredicciones?.filter(p => p.fallback_disponible).length ?? 0,
+  // 4c) Recomendaciones activas: espacios con recomendación (guardada u operativa).
+  const recomendacionesActivas = useMemo(() =>
+    todasPredicciones?.filter(p => esPrediccionGuardada(p) || p.fallback_disponible).length ?? 0,
     [todasPredicciones]
   )
+  const hayEspacios = (todasPredicciones?.length ?? 0) > 0
+  const activasInactivo = recomendacionesActivas === 0 && hayEspacios
 
   const promedioTemperatura = useMemo(() => {
     const validos = caracteristicas?.filter(c => c.avg_temp != null) ?? []
@@ -149,6 +136,9 @@ export default function PredictionsPage() {
     return (validos.reduce((acc, c) => acc + c.avg_power_w, 0) / validos.length).toFixed(0)
   }, [caracteristicas])
 
+  const importancias = infoModelo?.importancia_variables ?? []
+  const aciertos = infoModelo?.aciertos_produccion
+
   async function manejarAplicar(idPrediccion) {
     if (!idPrediccion) return
     setIdAplicando(idPrediccion)
@@ -160,15 +150,16 @@ export default function PredictionsPage() {
     }
   }
 
-  async function manejarEvaluar() {
-    setEvaluando(true)
-    try {
-      await dispararEvaluacion()
-      recargarPredicciones()
-    } finally {
-      setEvaluando(false)
-    }
-  }
+  // Chips del análisis: sin dato → "–" fino gris, nunca la unidad pegada al guión.
+  const hayCaracteristicas = (caracteristicas?.length ?? 0) > 0
+  const chips = [
+    { etiqueta: "Temp promedio", valor: promedioTemperatura, unidad: "°C" },
+    { etiqueta: "Presencia",     valor: promedioPresencia,    unidad: "%" },
+    { etiqueta: "Potencia promedio", valor: promedioPotencia, unidad: "W" },
+    { etiqueta: "Horas con datos", valor: String(caracteristicas?.length ?? 0), unidad: "" },
+  ]
+
+  const unaPrediccion = (todasPredicciones?.length ?? 0) === 1
 
   return (
     <PageWrapper>
@@ -178,58 +169,45 @@ export default function PredictionsPage() {
           title="Predicciones ATMOS"
           description="Recomendaciones y predicciones en tiempo real."
           actions={
-            <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}
-              >
-                <MdAutoGraph size={14} /> Motor ATMOS v1
-              </span>
-              <button
-                onClick={manejarEvaluar}
-                disabled={evaluando}
-                title="Compara predicciones guardadas con datos reales cuando existan"
-                className="btn-secondary flex items-center gap-1.5 disabled:opacity-50"
-              >
-                {evaluando
-                  ? <span className="w-4 h-4 border-2 border-secondary/40 border-t-secondary rounded-full animate-spin" />
-                  : <MdAssessment size={16} />
-                }
-                Evaluar precisión
-              </button>
-            </div>
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
+              style={{ backgroundColor: "#f5f3ff", color: "#7c3aed" }}
+            >
+              <MdAutoGraph size={14} /> Motor ATMOS v1
+            </span>
           }
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
         <KPICard
-          titulo="Ahorro proyectado"
-          valor={promedioAhorro ?? "Pendiente"}
-          unidad={promedioAhorro != null ? "%" : undefined}
-          icono={<MdSavings size={20} />}
-          color="success"
-          cargando={cargandoPredicciones || cargandoImpacto}
+          titulo="Precisión del modelo"
+          valor={precisionValor ?? "–"}
+          unidad={precisionValor != null ? "%" : undefined}
+          icono={<MdVerified size={20} />}
+          linea={precisionValor != null ? "Exactitud en validación" : "No disponible para esta versión"}
+          cargando={cargandoModelo}
         />
         <KPICard
-          titulo="Predicciones entrenadas"
-          valor={conteoPrediccionesGuardadas}
-          unidad={`/ ${todasPredicciones?.length ?? 0}`}
+          titulo="Predicciones hoy"
+          valor={prediccionesHoy}
           icono={<MdBolt size={20} />}
-          color="secondary"
+          linea="Guardadas por el motor hoy"
           cargando={cargandoPredicciones}
         />
         <KPICard
-          titulo="Recomendaciones operativas"
-          valor={conteoRecomendacionesOperativas}
+          titulo="Recomendaciones activas"
+          valor={recomendacionesActivas}
           icono={<MdCheckCircle size={20} />}
-          color="primary"
+          linea="Espacios con recomendación ahora"
+          badgeTexto={activasInactivo ? "Inactivo" : undefined}
+          tono={activasInactivo ? "warning" : "neutral"}
           cargando={cargandoPredicciones}
         />
       </div>
 
       <div className="flex items-baseline gap-3 mb-3">
-        <h3 className="text-lg font-semibold text-dark">Recomendacion por salon</h3>
+        <h3 className="text-lg font-semibold text-dark">Recomendación por espacio</h3>
         <span className="text-xs text-muted">Actualizado cada 60 segundos</span>
       </div>
 
@@ -243,7 +221,7 @@ export default function PredictionsPage() {
         <div className="card mb-6 border-l-4 border-l-danger">
           <p className="font-semibold text-dark text-sm">No se pudieron cargar las recomendaciones</p>
           <p className="text-xs text-muted mt-1">
-            El frontend no recibio la respuesta de predicciones desde el backend.
+            El frontend no recibió la respuesta de predicciones desde el backend.
           </p>
           <p className="text-xs text-danger mt-2">
             {detalleErrorPredicciones?.message ?? "Error desconocido"}
@@ -254,16 +232,16 @@ export default function PredictionsPage() {
         </div>
       ) : !todasPredicciones?.length ? (
         <div className="card mb-6">
-          <p className="font-semibold text-dark text-sm">Sin salones para mostrar</p>
+          <p className="font-semibold text-dark text-sm">Sin espacios para mostrar</p>
           <p className="text-xs text-muted mt-1">
-            El backend no devolvio salones o recomendaciones operativas para esta vista.
+            El backend no devolvió espacios ni recomendaciones operativas para esta vista.
           </p>
           <button onClick={() => recargarPredicciones()} className="btn-secondary mt-3 text-xs">
             Reintentar
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+        <div className={`grid grid-cols-1 gap-3 mb-6 ${unaPrediccion ? "" : "md:grid-cols-2"}`}>
           {todasPredicciones?.map((prediccion, indice) => (
             <PredictionCard
               key={prediccion.room_id ?? indice}
@@ -278,14 +256,14 @@ export default function PredictionsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-3 card">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <p className="font-semibold text-dark text-sm">Analisis detallado</p>
+            <p className="font-semibold text-dark text-sm">Análisis detallado</p>
             <select
-              value={idSalonSeleccionado}
+              value={idSalonEfectivo}
               onChange={evento => setIdSalonSeleccionado(evento.target.value)}
               className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-white text-dark
                          focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
             >
-              <option value="">Seleccionar salon</option>
+              <option value="">Seleccionar espacio</option>
               {salones?.map(salon => (
                 <option key={salon.id} value={salon.id}>{salon.name ?? salon.nombre}</option>
               ))}
@@ -293,55 +271,115 @@ export default function PredictionsPage() {
           </div>
 
           <p className="text-xs text-muted mb-3">
-            Ultimos 7 dias disponibles desde registros reales.
+            Últimos 7 días disponibles desde registros reales.
           </p>
 
           <FeaturesChart datos={caracteristicas ?? []} cargando={cargandoCaracteristicas} />
 
           <hr className="border-gray-100 my-4" />
 
-          <div className="flex flex-wrap gap-2">
-            {[
-              { etiqueta: `Temp promedio: ${promedioTemperatura ?? "-"} C` },
-              { etiqueta: `Presencia: ${promedioPresencia ?? "-"}%` },
-              { etiqueta: `Potencia promedio: ${promedioPotencia ?? "-"} W` },
-              { etiqueta: `Horas con datos: ${caracteristicas?.length ?? 0}` },
-            ].map(pildora => (
-              <span
-                key={pildora.etiqueta}
-                className="text-xs bg-gray-50 text-muted px-3 py-1 rounded-full"
-              >
-                {pildora.etiqueta}
-              </span>
-            ))}
-          </div>
+          {hayCaracteristicas ? (
+            <div className="flex flex-wrap gap-2">
+              {chips.map(chip => (
+                <span
+                  key={chip.etiqueta}
+                  className="text-xs bg-gray-50 text-muted px-3 py-1 rounded-full"
+                >
+                  {chip.etiqueta}: {chip.valor == null
+                    ? <span className="text-gray-300">–</span>
+                    : <>{chip.valor}{chip.unidad && ` ${chip.unidad}`}</>}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted bg-gray-50 rounded-xl px-3 py-2">
+              Aún no hay lecturas válidas suficientes para calcular promedios.
+            </p>
+          )}
         </div>
 
         <div className="lg:col-span-2 card flex flex-col gap-4">
           <p className="font-semibold text-dark text-sm">Sobre el motor</p>
 
           <div className="flex flex-col gap-2">
-            {INFO_MOTOR_ATMOS.map(fila => (
-              <div key={fila.etiqueta} className="flex items-start justify-between gap-2">
-                <p className="text-xs text-muted">{fila.etiqueta}</p>
-                <p className="text-xs font-medium text-dark text-right">{fila.valor}</p>
-              </div>
-            ))}
+            <FilaMetrica etiqueta="Tipo" valor={infoModelo?.tipo_modelo ?? "RandomForestClassifier"} />
+            <FilaMetrica etiqueta="Versión" valor={infoModelo?.version_modelo ?? "modelo_atmos_rf_v1"} />
+            <FilaMetrica etiqueta="Se actualiza" valor="Con cada lectura nueva" />
           </div>
 
           <hr className="border-gray-100" />
 
+          {/* Métricas de validación (estáticas por versión) */}
           <div>
-            <p className="text-sm font-medium text-dark mb-3">Señales usadas</p>
-            <div className="flex flex-col gap-2.5">
-              {SENALES_OPERATIVAS.map(variable => (
-                <BarraSenal
-                  key={variable.etiqueta}
-                  etiqueta={variable.etiqueta}
-                  porcentaje={variable.porcentaje}
-                />
-              ))}
+            <p className="text-sm font-medium text-dark mb-2">Métricas de validación</p>
+            {cargandoModelo ? (
+              <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+            ) : metricasDisponibles && metricas ? (
+              <div className="flex flex-col gap-1.5">
+                <FilaMetrica etiqueta="Accuracy" valor={`${(metricas.accuracy * 100).toFixed(1)}%`} />
+                <FilaMetrica etiqueta="Precisión" valor={`${(metricas.precision * 100).toFixed(1)}%`} />
+                <FilaMetrica etiqueta="Recall" valor={`${(metricas.recall * 100).toFixed(1)}%`} />
+                <FilaMetrica etiqueta="F1" valor={`${(metricas.f1 * 100).toFixed(1)}%`} />
+                {metricas.n_muestras != null && (
+                  <FilaMetrica etiqueta="Dataset" valor={`${metricas.n_muestras} lecturas`} />
+                )}
+                {infoModelo?.fecha_entrenamiento && (
+                  <FilaMetrica etiqueta="Entrenado" valor={infoModelo.fecha_entrenamiento} />
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted bg-gray-50 rounded-xl px-3 py-2">
+                No disponible para esta versión. Las métricas se registrarán en el próximo reentrenamiento.
+              </p>
+            )}
+          </div>
+
+          {/* Aciertos en producción (Fase 2.3) */}
+          <div>
+            <p className="text-sm font-medium text-dark mb-1">Aciertos en producción</p>
+            {aciertos?.estado === "disponible" ? (
+              <p className="text-xs text-muted">
+                <span className="font-semibold text-dark">{aciertos.precision_pct}%</span>{" "}
+                de {aciertos.evaluadas} recomendaciones de apagado correctas
+                (sin ocupación en {aciertos.ventana_min} min).
+              </p>
+            ) : (
+              <p className="text-xs text-muted bg-gray-50 rounded-xl px-3 py-2">
+                Pendiente: aún no hay recomendaciones de apagado con ventana vencida para evaluar.
+              </p>
+            )}
+          </div>
+
+          <hr className="border-gray-100" />
+
+          {/* 5) Importancia de variables (real, del entrenamiento) */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p
+                className="text-sm font-medium text-dark"
+                title="Peso de cada variable en las decisiones del modelo, calculado durante el entrenamiento."
+              >
+                Importancia de variables del modelo
+              </p>
             </div>
+            <p className="text-[11px] text-muted mb-3">
+              Del entrenamiento · {infoModelo?.version_modelo ?? "modelo_atmos_rf_v1"}
+            </p>
+            {cargandoModelo ? (
+              <div className="h-24 bg-gray-100 rounded-xl animate-pulse" />
+            ) : importancias.length ? (
+              <div className="flex flex-col gap-2.5">
+                {importancias.map(variable => (
+                  <BarraImportancia
+                    key={variable.variable}
+                    etiqueta={variable.etiqueta}
+                    porcentaje={variable.importancia_pct}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted">No disponible.</p>
+            )}
           </div>
         </div>
       </div>

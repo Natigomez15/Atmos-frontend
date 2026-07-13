@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router-dom"
+import { useState } from "react"
 import { MdNotifications, MdMenu, MdLogin } from "react-icons/md"
 import { useAuth } from "../../context/AuthContext"
 
 export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
   const navegar = useNavigate()
   const { estaLogueado } = useAuth()
+  const [alertasAbiertas, setAlertasAbiertas] = useState(false)
 
   return (
     <header className="fixed top-0 right-0 left-0 md:left-16 lg:left-60 h-14
@@ -23,20 +25,42 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
 
       {/* Derecha */}
       <div className="flex items-center gap-2">
-        <button
-          onClick={() => navegar("/alerts")}
-          className="relative p-2 rounded-xl text-muted hover:text-dark hover:bg-gray-100 transition-all duration-150 active:scale-95"
-          aria-label="Ver alertas"
-        >
-          <MdNotifications size={19} />
-          {cantidadAlertas > 0 && (
-            <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5
-                             bg-danger text-white text-[10px] font-bold rounded-full
-                             flex items-center justify-center leading-none">
-              {cantidadAlertas > 99 ? "99+" : cantidadAlertas}
-            </span>
+        <div className="relative">
+          <button
+            onClick={() => setAlertasAbiertas(valor => !valor)}
+            className="relative p-2 rounded-xl text-muted hover:text-dark hover:bg-gray-100 transition-all duration-150 active:scale-95"
+            aria-label="Ver alertas"
+          >
+            <MdNotifications size={19} />
+            {cantidadAlertas > 0 && (
+              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-0.5
+                               bg-danger text-white text-[10px] font-bold rounded-full
+                               flex items-center justify-center leading-none">
+                {cantidadAlertas > 99 ? "99+" : cantidadAlertas}
+              </span>
+            )}
+          </button>
+
+          {alertasAbiertas && (
+            <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-gray-100 bg-white shadow-card-md p-3 z-50">
+              <p className="text-xs font-semibold text-muted uppercase tracking-widest">Alertas</p>
+              <p className="text-sm text-dark mt-2">
+                {cantidadAlertas > 0
+                  ? `${cantidadAlertas} alerta${cantidadAlertas === 1 ? "" : "s"} sin resolver`
+                  : "Sin alertas sin resolver"}
+              </p>
+              <button
+                onClick={() => {
+                  setAlertasAbiertas(false)
+                  navegar("/alerts")
+                }}
+                className="btn-primary w-full justify-center mt-3 text-sm"
+              >
+                Ver todas
+              </button>
+            </div>
           )}
-        </button>
+        </div>
 
         {!estaLogueado && (
           <button

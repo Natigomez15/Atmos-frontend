@@ -61,12 +61,15 @@ function formatearValor(valor) {
   return String(valor)
 }
 
-function etiquetaModelo(prediccion, esOperativa) {
-  const modelo = prediccion.modelo_ml
-  if (modelo?.modelo_usado) return modelo.tipo_modelo ?? prediccion.model_version
-  if (modelo?.modelo_disponible) return "Modelo disponible"
-  if (esOperativa) return "Registros"
-  return prediccion.model_version ?? "Sin modelo"
+// Estado real de la card por espacio:
+//  - "Prediciendo" (verde): modelo cargado + predicción generada.
+//  - "Esperando datos" (ámbar): modelo cargado, pero sin lecturas válidas suficientes.
+//  - "Sin modelo" (gris): modelo no disponible.
+function estadoPrediccion(prediccion, esGuardada) {
+  const modeloDisponible = prediccion.modelo_ml?.modelo_disponible ?? false
+  if (!modeloDisponible) return { texto: "Sin modelo", clase: "badge-muted" }
+  if (esGuardada) return { texto: "Prediciendo", clase: "badge-success" }
+  return { texto: "Esperando datos", clase: "badge-warning" }
 }
 
 export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
@@ -83,13 +86,16 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
   return (
     <div className="card p-4 flex flex-col gap-2 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200">
 
-      {/* Header: nombre + badge */}
-      <div className="flex items-center justify-between">
-        <p className="font-semibold text-dark text-sm">{prediccion.room_name}</p>
-        <span className="badge-muted text-[10px]">
-          {etiquetaModelo(prediccion, esOperativa)}
-        </span>
-      </div>
+      {/* Header: nombre + badge de estado real */}
+      {(() => {
+        const estado = estadoPrediccion(prediccion, esPrediccionGuardada)
+        return (
+          <div className="flex items-center justify-between">
+            <p className="font-semibold text-dark text-sm">{prediccion.room_name}</p>
+            <span className={`${estado.clase} text-[10px]`}>{estado.texto}</span>
+          </div>
+        )
+      })()}
 
       {/* ── Sin datos ── */}
       {sinDatos && (
@@ -97,7 +103,7 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
           <MdAutoGraph size={20} className="text-muted shrink-0" />
           <div>
             <p className="text-sm font-medium text-dark">Datos insuficientes</p>
-            <p className="text-xs text-muted">Aun no hay lecturas validas suficientes.</p>
+            <p className="text-xs text-muted">Aún no hay lecturas válidas suficientes.</p>
           </div>
         </div>
       )}
@@ -107,7 +113,7 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
         <>
           <div className="bg-gray-50 rounded-xl p-2.5">
             <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
-              Recomendacion operativa
+              Recomendación operativa
             </p>
             <p className="text-[15px] font-semibold text-dark leading-snug">
               {prediccion.recommendation_text ?? "Mantener estado actual"}
@@ -136,7 +142,7 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-0.5">
               <span className="text-[15px] font-semibold text-dark tabular-nums">
-                {prediccion.recommended_setpoint != null ? `${prediccion.recommended_setpoint} C` : "Sin cambio"}
+                {prediccion.recommended_setpoint != null ? `${prediccion.recommended_setpoint} °C` : "Sin cambio"}
               </span>
               <p className="text-xs text-muted">Setpoint sugerido</p>
             </div>
@@ -155,15 +161,16 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
       {/* ── Prediccion ML guardada ── */}
       {esPrediccionGuardada && (
         <>
-          {(prediccionModelo || accionFinal) && (
+          {(prediccion.recomendacion_texto || prediccionModelo || accionFinal) && (
             <div className="bg-secondary/5 rounded-xl p-2.5">
               <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
-                Prediccion del modelo
+                Predicción del modelo
               </p>
+              {/* "Apagar aire — confianza 87%" (RandomForest.predict_proba) */}
               <p className="text-[15px] font-semibold text-dark leading-snug">
-                {prediccionModelo ?? "No disponible"}
+                {prediccion.recomendacion_texto ?? prediccionModelo ?? "No disponible"}
               </p>
-              {accionFinal && (
+              {accionFinal && !prediccion.recomendacion_texto && (
                 <p className="text-xs text-muted mt-0.5">{accionFinal}</p>
               )}
             </div>
@@ -172,7 +179,7 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
           <div className="grid grid-cols-3 gap-2">
             <div className="flex flex-col items-center gap-0.5">
               <span className="text-[15px] font-semibold text-dark tabular-nums">
-                {prediccion.recommended_setpoint} C
+                {prediccion.recommended_setpoint} °C
               </span>
               <p className="text-xs text-muted text-center">Setpoint</p>
             </div>
@@ -195,7 +202,7 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
                   size={13}
                   className={`transition-transform duration-150 ${mostrarDetalles ? "rotate-180" : ""}`}
                 />
-                {mostrarDetalles ? "Ocultar caracteristicas" : "Ver caracteristicas"}
+                {mostrarDetalles ? "Ocultar características" : "Ver características"}
               </button>
               {mostrarDetalles && (
                 <div className="grid grid-cols-2 gap-1.5 text-xs">
@@ -252,15 +259,19 @@ export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
         </>
       )}
 
-      {/* Pie */}
-      <div className="flex items-center justify-between pt-1 border-t border-gray-50">
-        <p className="text-xs text-muted">{tiempoAtras(prediccion.predicted_at)}</p>
-        {prediccion.model_version && (
-          <p className="text-xs text-muted">
-            {esOperativa ? "Motor" : "Modelo"}: {prediccion.model_version}
-          </p>
-        )}
-      </div>
+      {/* Pie: solo se renderiza el timestamp si existe (sin guiones huérfanos) */}
+      {(prediccion.predicted_at || prediccion.model_version) && (
+        <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+          {prediccion.predicted_at
+            ? <p className="text-xs text-muted">{tiempoAtras(prediccion.predicted_at)}</p>
+            : <span />}
+          {prediccion.model_version && (
+            <p className="text-xs text-muted">
+              {esOperativa ? "Motor" : "Modelo"}: {prediccion.model_version}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

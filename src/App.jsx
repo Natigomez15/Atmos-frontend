@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { AuthProvider, useAuth } from "./context/AuthContext"
 import { ProveedorToast } from "./components/common/SistemaToast"
@@ -36,6 +36,11 @@ function pag(Componente) {
   )
 }
 
+function RedireccionDashboard() {
+  const ubicacion = useLocation()
+  return <Navigate to={`/dashboard${ubicacion.search}`} replace />
+}
+
 function ContenidoApp() {
   const { cargando } = useAuth()
 
@@ -65,7 +70,7 @@ function ContenidoApp() {
         <Route path="/users"      element={pag(UsersPage)} />
         <Route path="/settings"   element={pag(AjustesPage)} />
         <Route path="/pabellon"   element={pag(PabellonPage)} />
-        <Route path="/"           element={<Navigate to="/dashboard" replace />} />
+        <Route path="/"           element={<RedireccionDashboard />} />
         <Route path="*"           element={<PaginaNoEncontrada />} />
       </Routes>
     </BrowserRouter>

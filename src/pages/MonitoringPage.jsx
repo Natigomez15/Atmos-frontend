@@ -483,7 +483,7 @@ export default function MonitoringPage() {
           <EstadoAC lecturaActual={lecturaActual} onComandos={() => navegar("/commands")} />
 
           {/* Comandos pendientes */}
-          <div className="card flex-1 flex flex-col">
+          <div className="card flex-1 flex flex-col max-h-[360px] min-h-0">
             <p className="font-semibold text-dark mb-3">Comandos pendientes</p>
             {!comandosPendientes?.length ? (
               <div className="flex items-center gap-2 py-2">
@@ -491,7 +491,7 @@ export default function MonitoringPage() {
                 <p className="text-xs text-muted">Sin comandos pendientes</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 overflow-y-auto pr-1 min-h-0">
                 {comandosPendientes.map((cmd, i) => (
                   <div
                     key={cmd.id ?? i}

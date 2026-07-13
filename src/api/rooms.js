@@ -32,6 +32,9 @@ export const crearSalon = (carga) =>
 export const actualizarSalon = (idSalon, carga) =>
   cliente.patch(`/salas/${idSalon}`, carga).then(res => mapearSalon(res.data))
 
+export const eliminarSalon = (idSalon) =>
+  cliente.delete(`/salas/${idSalon}`).then(res => mapearSalon(res.data))
+
 export const obtenerUltimaLecturaDetalladaSalon = (salon) => {
   const aire = airePrincipalSalon(salon)
   if (!aire || esAireIgnorado(aire)) return Promise.resolve(null)

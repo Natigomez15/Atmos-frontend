@@ -11,7 +11,7 @@ import { obtenerComandos, obtenerSalonesComandos } from "../api/commands"
 import { useAuth } from "../context/AuthContext"
 
 const ENCABEZADOS_TABLA = [
-  { texto: "Salón",    clase: "" },
+  { texto: "Espacio",  clase: "" },
   { texto: "Comando",  clase: "" },
   { texto: "Fuente",   clase: "hidden md:table-cell" },
   { texto: "Estado",   clase: "" },

@@ -41,6 +41,11 @@ export const obtenerImpactoDecisiones = () =>
 export const obtenerImpactoReal = () =>
   cliente.get("/ml/impacto/real").then(res => res.data)
 
+// Panel "Sobre el motor": tipo de modelo, importancia REAL de variables
+// (feature_importances_) y métricas de validación persistidas (o su ausencia).
+export const obtenerInfoModelo = () =>
+  cliente.get("/ml/modelo/info").then(res => res.data)
+
 export const obtenerCaracteristicasML = (idSalon, diasAtras = 7) =>
   cliente.get(`/ml/features/${idSalon}`, {
     params: { days_back: diasAtras }

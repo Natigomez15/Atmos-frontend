@@ -44,8 +44,7 @@ export function prepararSalonAtmos(salon) {
     pabellon: salon.pabellon ?? salon.pavilion ?? salon.edificio,
     floor: salon.floor ?? salon.piso,
     piso: salon.piso ?? salon.floor,
-    capacity: salon.capacity ?? salon.capacidad,
-    capacidad: salon.capacidad ?? salon.capacity,
+    tipo: salon.tipo ?? "laboratorio",
   }
 
   const aires = limpiarAiresSalon(normalizado)
