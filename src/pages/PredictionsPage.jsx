@@ -94,12 +94,16 @@ export default function PredictionsPage() {
 
   const metricas = infoModelo?.metricas
   const metricasDisponibles = infoModelo?.metricas_disponibles === true
+  const aciertos = infoModelo?.aciertos_produccion
 
-  // 4a) Precisión del modelo: accuracy de validación de la versión activa.
-  // Sin metadata persistida → no se muestra ningún número calculado.
-  const precisionValor = metricasDisponibles && metricas?.accuracy != null
-    ? (Number(metricas.accuracy) * 100).toFixed(1)
+  // La tarjeta principal usa únicamente resultados observados en producción.
+  // No presenta la validación sintética como si fuera precisión del mundo real.
+  const precisionRealValor = aciertos?.estado === "disponible"
+    ? Number(aciertos.precision_pct).toFixed(1)
     : null
+  const precisionRealDescripcion = precisionRealValor != null
+    ? `${aciertos.correctas} de ${aciertos.evaluadas} apagados acertados`
+    : "En evaluación con lecturas reales"
 
   // 4b) Predicciones hoy: conteo real de predicciones guardadas hoy (Panamá).
   const hoyPanama = fechaPanamaYMD(new Date().toISOString())
@@ -137,7 +141,6 @@ export default function PredictionsPage() {
   }, [caracteristicas])
 
   const importancias = infoModelo?.importancia_variables ?? []
-  const aciertos = infoModelo?.aciertos_produccion
 
   async function manejarAplicar(idPrediccion) {
     if (!idPrediccion) return
@@ -181,11 +184,11 @@ export default function PredictionsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
         <KPICard
-          titulo="Precisión del modelo"
-          valor={precisionValor ?? "–"}
-          unidad={precisionValor != null ? "%" : undefined}
+          titulo="Aciertos reales de apagado"
+          valor={precisionRealValor ?? "–"}
+          unidad={precisionRealValor != null ? "%" : undefined}
           icono={<MdVerified size={20} />}
-          linea={precisionValor != null ? "Exactitud en validación" : "No disponible para esta versión"}
+          linea={precisionRealDescripcion}
           cargando={cargandoModelo}
         />
         <KPICard
@@ -309,9 +312,12 @@ export default function PredictionsPage() {
 
           <hr className="border-gray-100" />
 
-          {/* Métricas de validación (estáticas por versión) */}
+          {/* Validación sintética (estática por versión, no equivale a producción) */}
           <div>
-            <p className="text-sm font-medium text-dark mb-2">Métricas de validación</p>
+            <p className="text-sm font-medium text-dark mb-1">Validación sintética</p>
+            <p className="text-[11px] text-muted mb-2">
+              Prueba controlada del entrenamiento; no representa precisión real.
+            </p>
             {cargandoModelo ? (
               <div className="h-16 bg-gray-100 rounded-xl animate-pulse" />
             ) : metricasDisponibles && metricas ? (
@@ -341,11 +347,12 @@ export default function PredictionsPage() {
               <p className="text-xs text-muted">
                 <span className="font-semibold text-dark">{aciertos.precision_pct}%</span>{" "}
                 de {aciertos.evaluadas} recomendaciones de apagado correctas
-                (sin ocupación en {aciertos.ventana_min} min).
+                (sin ocupación en {aciertos.ventana_min} min, usando lecturas de Firebase).
               </p>
             ) : (
               <p className="text-xs text-muted bg-gray-50 rounded-xl px-3 py-2">
-                Pendiente: aún no hay recomendaciones de apagado con ventana vencida para evaluar.
+                Pendiente: aún no hay apagados con {aciertos?.ventana_min ?? 45} minutos cumplidos
+                para evaluarlos con las lecturas reales de Firebase.
               </p>
             )}
           </div>
