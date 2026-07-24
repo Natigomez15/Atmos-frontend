@@ -1,8 +1,8 @@
 import cliente from "./client"
 import { airePrincipalSalon, esAireIgnorado, filtrarSalonesAtmos, limpiarAiresSalon } from "./salonesAtmos"
 
-const UMBRAL_APAGADO_AC_W = Number(import.meta.env.VITE_AC_POWER_OFF_THRESHOLD_W ?? 250)
-const UMBRAL_ENCENDIDO_AC_W = Number(import.meta.env.VITE_AC_POWER_ON_THRESHOLD_W ?? 500)
+const UMBRAL_APAGADO_AC_W = Number(import.meta.env.VITE_AC_POWER_OFF_THRESHOLD_W ?? 700)
+const UMBRAL_ENCENDIDO_AC_W = Number(import.meta.env.VITE_AC_POWER_ON_THRESHOLD_W ?? 700)
 
 export const obtenerSalones = () =>
   cliente.get("/rooms").then(res => filtrarSalonesAtmos(res.data))
