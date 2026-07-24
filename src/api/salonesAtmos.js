@@ -24,6 +24,15 @@ export function limpiarAiresSalon(salon) {
   return airesLimpios
 }
 
+export function equiposDisponiblesSalon(salon) {
+  const aires = limpiarAiresSalon(salon)
+  if (aires.length) return aires
+  if (esSalonRobotica(salon)) return ["Aire_1"]
+
+  const equipo = salon?.aire_monitoreo ?? salon?.aire ?? salon?.nombre ?? salon?.name
+  return equipo && !esAireIgnorado(equipo) ? [equipo] : []
+}
+
 export function airePrincipalSalon(salon, aireSeleccionado = null) {
   if (aireSeleccionado && !esAireIgnorado(aireSeleccionado)) return aireSeleccionado
   if (esSalonRobotica(salon)) return "Aire_1"

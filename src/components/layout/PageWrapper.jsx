@@ -28,7 +28,8 @@ export default function PageWrapper({ children }) {
 
   // Cerrar sidebar al navegar (mobile)
   useEffect(() => {
-    setSidebarAbierto(false)
+    const cierrePendiente = window.setTimeout(() => setSidebarAbierto(false), 0)
+    return () => window.clearTimeout(cierrePendiente)
   }, [ubicacion.pathname])
 
   useEffect(() => {
@@ -143,7 +144,7 @@ export default function PageWrapper({ children }) {
       />
 
       {/* Contenido principal — desplazado por el sidebar fijo */}
-      <div className="flex-1 flex flex-col md:ml-16 lg:ml-60 transition-all duration-300 min-w-0 min-h-0">
+      <div className="flex min-h-0 min-w-0 w-full flex-none flex-col transition-all duration-300 md:ml-16 md:w-[calc(100%-4rem)] lg:ml-60 lg:w-[calc(100%-15rem)]">
         <Topbar
           cantidadAlertas={cantidadAlertas}
           wsConectado={wsConectado}

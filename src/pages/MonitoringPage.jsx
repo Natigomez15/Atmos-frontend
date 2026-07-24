@@ -88,12 +88,7 @@ function BadgeConexion({ estaConectado, reconectando }) {
       Tiempo real
     </span>
   )
-  if (reconectando) return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-warning bg-warning/10 px-2.5 py-1 rounded-full">
-      <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
-      Reconectando…
-    </span>
-  )
+  if (reconectando) return null
   return (
     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted bg-gray-100 px-2.5 py-1 rounded-full">
       <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
@@ -103,7 +98,10 @@ function BadgeConexion({ estaConectado, reconectando }) {
 }
 
 function EstadoAC({ lecturaActual, onComandos }) {
-  const encendido = lecturaActual?.ac_is_on
+  const estado = lecturaActual?.ac_state
+    ?? (lecturaActual?.ac_is_on === true ? "encendido" : "apagado")
+  const encendido = estado === "encendido"
+  const noConfirmado = estado === "no_confirmado"
   const setpoint  = lecturaActual?.setpoint_c
 
   return (
@@ -123,19 +121,29 @@ function EstadoAC({ lecturaActual, onComandos }) {
       <div className={`rounded-xl p-4 flex items-center gap-3 border transition-colors ${
         encendido
           ? "bg-secondary/5 border-secondary/20"
+          : noConfirmado
+            ? "bg-warning/5 border-warning/20"
           : "bg-gray-50 border-gray-100"
       }`}>
         <span className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          encendido ? "bg-secondary/15" : "bg-gray-100"
+          encendido ? "bg-secondary/15" : noConfirmado ? "bg-warning/10" : "bg-gray-100"
         }`}>
-          <MdAir size={20} className={encendido ? "text-secondary" : "text-muted"} />
+          <MdAir size={20} className={encendido ? "text-secondary" : noConfirmado ? "text-warning" : "text-muted"} />
         </span>
         <div className="flex-1">
-          <p className={`text-lg font-bold leading-tight ${encendido ? "text-secondary" : "text-muted"}`}>
-            {encendido ? "Encendido" : "Apagado"}
+          <p className={`text-lg font-bold leading-tight ${encendido ? "text-secondary" : noConfirmado ? "text-warning" : "text-muted"}`}>
+            {encendido ? "Encendido" : noConfirmado ? "No confirmado" : "Apagado"}
           </p>
           <p className="text-xs text-muted mt-0.5">
-            {encendido ? "Aire acondicionado activo" : "Aire acondicionado inactivo"}
+            {lecturaActual?.ac_state_source === "potencia"
+              ? noConfirmado
+                ? `Potencia en zona intermedia (${lecturaActual.power_w?.toFixed(0)} W)`
+                : encendido
+                  ? `Activo según potencia (${lecturaActual.power_w?.toFixed(0)} W)`
+                  : `Apagado; consumo residual detectado (${lecturaActual.power_w?.toFixed(0)} W)`
+              : lecturaActual?.ac_state_source === "comando"
+                ? `${encendido ? "Activo" : "Inactivo"} según último comando`
+                : encendido ? "Aire acondicionado activo" : "Aire acondicionado inactivo"}
           </p>
         </div>
         {encendido && (
@@ -303,7 +311,7 @@ export default function MonitoringPage() {
               <BadgeConexion estaConectado={estaConectado} reconectando={reconectando} />
               {lecturaActual?.recorded_at && (
                 <span className="text-xs text-muted">
-                  · {formatearHora(lecturaActual.recorded_at)}
+                  {!reconectando && "· "}{formatearHora(lecturaActual.recorded_at)}
                 </span>
               )}
             </div>
@@ -528,8 +536,8 @@ export default function MonitoringPage() {
                   <span className="text-sm font-semibold text-dark tabular-nums">{formatearHora(l.recorded_at)}</span>
                   <div className="flex gap-1.5">
                     {l.presence && <span className="badge-success">Presencia</span>}
-                    <span className={l.ac_is_on ? "badge-success" : "badge-muted"}>
-                      AC {l.ac_is_on ? "ON" : "OFF"}
+                    <span className={l.ac_state === "no_confirmado" ? "badge-warning" : l.ac_is_on ? "badge-success" : "badge-muted"}>
+                      AC {l.ac_state === "no_confirmado" ? "?" : l.ac_is_on ? "ON" : "OFF"}
                     </span>
                   </div>
                 </div>

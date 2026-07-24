@@ -1,277 +1,209 @@
-import { useState } from "react"
-import { MdAutoGraph, MdCheckCircle, MdSend, MdExpandMore } from "react-icons/md"
+import { useId, useState } from "react"
+import {
+  MdExpandMore,
+  MdWarning,
+} from "react-icons/md"
 
-function tiempoAtras(iso) {
-  if (!iso) return "-"
-  const minutos = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+import DecisionFlow from "./DecisionFlow"
+
+const ZONA_PANAMA = "America/Panama"
+
+const ETIQUETAS_ACCION = {
+  apagar: "Apagar",
+  mantener: "Mantener",
+  ahorro_24: "Modo ahorro a 24 °C",
+  encender_22: "Encender a 22 °C",
+  encender_23: "Encender a 23 °C",
+  enfriar_fuerte: "Enfriar intensamente",
+}
+
+function etiquetaAccion(valor, recomendacionPrincipal = false) {
+  if (valor == null || valor === "") return "No disponible"
+  const normalizado = String(valor).trim().toLowerCase()
+  if (recomendacionPrincipal && normalizado === "mantener") return "Mantener estado actual"
+  return ETIQUETAS_ACCION[normalizado] ?? String(valor).replaceAll("_", " ")
+}
+
+function fechaValida(valor) {
+  if (!valor) return null
+  const fecha = new Date(valor)
+  return Number.isNaN(fecha.getTime()) ? null : fecha
+}
+
+function porcentajeConfianza(valor) {
+  const numero = Number(valor)
+  if (valor == null || !Number.isFinite(numero)) return null
+  return Math.max(0, Math.min(100, Math.round(numero <= 1 ? numero * 100 : numero)))
+}
+
+function partesFechaPanama(valor) {
+  const fecha = fechaValida(valor)
+  if (!fecha) return null
+  const partes = new Intl.DateTimeFormat("es-PA", {
+    timeZone: ZONA_PANAMA,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).formatToParts(fecha)
+  const parte = tipo => partes.find(item => item.type === tipo)?.value
+  const mes = parte("month")?.replace(".", "")
+  return `${parte("day")} ${mes} ${parte("year")} · ${parte("hour")}:${parte("minute")} ${parte("dayPeriod")}`
+}
+
+function tiempoRelativo(valor) {
+  const fecha = fechaValida(valor)
+  if (!fecha) return null
+  const minutos = Math.max(0, Math.floor((Date.now() - fecha.getTime()) / 60000))
   if (minutos < 1) return "hace un momento"
   if (minutos < 60) return `hace ${minutos} min`
   const horas = Math.floor(minutos / 60)
   if (horas < 24) return `hace ${horas} h`
-  return `hace ${Math.floor(horas / 24)} d`
+  const dias = Math.floor(horas / 24)
+  return dias === 1 ? "hace 1 día" : `hace ${dias} días`
 }
 
-function formatearFecha(iso) {
-  if (!iso) return "-"
-  return new Date(iso).toLocaleString("es-PA", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
+function traducirAdvertencia(advertencia) {
+  const texto = String(advertencia ?? "").trim()
+  if (!texto) return null
+  const normalizado = texto.toLowerCase()
+  if (normalizado.includes("accion_no_reconocida")) {
+    return "La ejecución devolvió un resultado que ATMOS no pudo verificar."
+  }
+  if (normalizado.includes("confirm")) {
+    return "La señal fue enviada, pero no existe confirmación física del aire."
+  }
+  return texto
 }
 
-function CirculoConfianza({ puntuacion }) {
-  const porcentaje = Math.round((puntuacion ?? 0) * 100)
-  const radio = 20
-  const circunferencia = 2 * Math.PI * radio
-  const trazo = circunferencia * (porcentaje / 100)
-  const colorTrazo = puntuacion >= 0.8 ? "#10B981" : puntuacion >= 0.6 ? "#F59E0B" : "#EF4444"
-
+function DatoDetalle({ etiqueta, valor }) {
   return (
-    <div className="flex flex-col items-center gap-1">
-      <svg width={52} height={52} className="-rotate-90">
-        <circle cx={26} cy={26} r={radio} fill="none" stroke="#F1F5F9" strokeWidth={4} />
-        <circle
-          cx={26}
-          cy={26}
-          r={radio}
-          fill="none"
-          stroke={colorTrazo}
-          strokeWidth={4}
-          strokeDasharray={`${trazo} ${circunferencia}`}
-          strokeLinecap="round"
-        />
-      </svg>
-      <span
-        className="text-sm font-bold text-dark -mt-8 relative z-10"
-        style={{ position: "relative", top: -38 }}
-      >
-        {porcentaje}%
-      </span>
-      <p className="text-xs text-muted" style={{ marginTop: -24 }}>Confianza</p>
+    <div className="min-w-0">
+      <dt className="text-xs text-muted">{etiqueta}</dt>
+      <dd className="mt-0.5 text-sm font-medium leading-snug text-dark break-words">{valor ?? "No disponible"}</dd>
     </div>
   )
 }
 
-function formatearValor(valor) {
-  if (valor == null) return "-"
-  if (typeof valor === "number") return Number.isInteger(valor) ? valor : valor.toFixed(2)
-  return String(valor)
+export function PredictionCardSkeleton() {
+  return (
+    <div className="card p-4 sm:p-6 motion-safe:animate-pulse" aria-label="Cargando decisión actual">
+      <div className="flex flex-wrap justify-between gap-3">
+        <div className="space-y-2">
+          <div className="h-4 w-28 rounded bg-gray-100" />
+          <div className="h-6 w-56 max-w-full rounded bg-gray-100" />
+        </div>
+        <div className="h-7 w-36 rounded-full bg-gray-100" />
+      </div>
+      <div className="mt-4 h-20 rounded-xl bg-gray-100" />
+      <div className="mt-3 h-5 w-44 rounded bg-gray-100" />
+    </div>
+  )
 }
 
-// Estado real de la card por espacio:
-//  - "Prediciendo" (verde): modelo cargado + predicción generada.
-//  - "Esperando datos" (ámbar): modelo cargado, pero sin lecturas válidas suficientes.
-//  - "Sin modelo" (gris): modelo no disponible.
-function estadoPrediccion(prediccion, esGuardada) {
-  const modeloDisponible = prediccion.modelo_ml?.modelo_disponible ?? false
-  if (!modeloDisponible) return { texto: "Sin modelo", clase: "badge-muted" }
-  if (esGuardada) return { texto: "Prediciendo", clase: "badge-success" }
-  return { texto: "Esperando datos", clase: "badge-warning" }
-}
-
-export default function PredictionCard({ prediccion, alAplicar, aplicando }) {
-  const [mostrarDetalles, setMostrarDetalles] = useState(false)
-
-  const esPrediccionGuardada = prediccion.disponible === true || prediccion.fuente === "ml_predictions"
-  const esOperativa = prediccion.fallback_disponible && !esPrediccionGuardada
-  const sinDatos = !esPrediccionGuardada && !esOperativa
-  const modeloMl = prediccion.modelo_ml ?? {}
-  const featuresUsadas = modeloMl.features_usadas ?? prediccion.snapshot_features?.features_usadas
-  const prediccionModelo = modeloMl.prediccion_modelo ?? prediccion.snapshot_features?.prediccion_modelo
-  const accionFinal = modeloMl.accion_final ?? prediccion.snapshot_features?.accion_final
+export default function PredictionCard({ datos }) {
+  const [detallesAbiertos, setDetallesAbiertos] = useState(false)
+  const idDetalles = useId()
+  const prediccion = etiquetaAccion(datos.prediccion)
+  const recomendacion = etiquetaAccion(datos.recomendacion)
+  const accionSolicitada = etiquetaAccion(datos.accionSolicitada)
+  const confianza = porcentajeConfianza(datos.confianza)
+  const fechaExacta = partesFechaPanama(datos.actualizadoEn) ?? "No disponible"
+  const advertencias = (datos.advertencias ?? []).map(traducirAdvertencia).filter(Boolean)
+  const valoresComparables = datos.recomendacion != null && datos.accionSolicitada != null
+  const accionInconsistente = valoresComparables &&
+    String(datos.recomendacion).trim().toLowerCase() !== String(datos.accionSolicitada).trim().toLowerCase()
+  const ultimaAccion = etiquetaAccion(
+    datos.ejecucion?.ultima_accion ?? datos.ejecucion?.ultima_accion_ejecutada,
+  )
+  const resultadoFirebase = datos.ejecucion?.resultado ?? datos.ejecucion?.resultado_raw ?? datos.ejecucion?.resultado_firebase ?? "No disponible"
+  const fechaMotivoReferencia = partesFechaPanama(datos.motivoReferenciaEn)
+  const motivoReglas = datos.motivo || (datos.motivoReferencia
+    ? `El registro actual no incluyó el motivo. Último motivo disponible${fechaMotivoReferencia ? ` (${fechaMotivoReferencia})` : ""}: ${datos.motivoReferencia}`
+    : "El registro actual no incluyó un motivo detallado.")
+  const relativo = tiempoRelativo(datos.actualizadoEn) ?? "No disponible"
+  const estadoEjecucion = String(datos.ejecucion?.estado ?? "sin_registro").trim().toLowerCase()
+  const incidenciaEjecucion = ["fallida", "inconsistente"].includes(estadoEjecucion)
 
   return (
-    <div className="card p-4 flex flex-col gap-2 hover:shadow-card-md hover:-translate-y-0.5 transition-all duration-200">
-
-      {/* Header: nombre + badge de estado real */}
-      {(() => {
-        const estado = estadoPrediccion(prediccion, esPrediccionGuardada)
-        return (
-          <div className="flex items-center justify-between">
-            <p className="font-semibold text-dark text-sm">{prediccion.room_name}</p>
-            <span className={`${estado.clase} text-[10px]`}>{estado.texto}</span>
-          </div>
-        )
-      })()}
-
-      {/* ── Sin datos ── */}
-      {sinDatos && (
-        <div className="flex items-center gap-3 py-2">
-          <MdAutoGraph size={20} className="text-muted shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-dark">Datos insuficientes</p>
-            <p className="text-xs text-muted">Aún no hay lecturas válidas suficientes.</p>
-          </div>
+    <article className="card w-full max-w-full min-w-0 overflow-hidden p-4 sm:p-5" aria-labelledby="decision-actual-titulo">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-violet-700">Decisión actual</p>
+          <h2 id="decision-actual-titulo" className="section-title mt-0.5 leading-tight break-words">
+            {etiquetaAccion(datos.recomendacion, true)}
+          </h2>
         </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
+          <p className="text-xs text-muted">Actualizado {relativo}</p>
+        </div>
+      </header>
+
+      <div className="mt-2">
+        <DecisionFlow
+          prediccion={prediccion}
+          confianza={datos.confianza}
+          modificada={datos.modificada}
+          recomendacion={recomendacion}
+          accionSolicitada={accionSolicitada}
+          ejecucion={datos.ejecucion}
+        />
+      </div>
+
+      {(datos.fuentesDesincronizadas || incidenciaEjecucion) && (
+        <aside className="mt-2 flex items-start gap-2 rounded-lg border border-warning/20 bg-warning/5 px-3 py-1.5" role="status">
+          <MdWarning size={17} className="mt-0.5 shrink-0 text-warning" aria-hidden="true" />
+          <p className="text-xs leading-relaxed text-dark">
+            {datos.fuentesDesincronizadas
+              ? "Los datos de predicción y ejecución no están sincronizados."
+              : "ATMOS registró un problema de comunicación durante la ejecución."}
+          </p>
+        </aside>
       )}
 
-      {/* ── Operativa (fallback) ── */}
-      {esOperativa && (
-        <>
-          <div className="bg-gray-50 rounded-xl p-2.5">
-            <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
-              Recomendación operativa
-            </p>
-            <p className="text-[15px] font-semibold text-dark leading-snug">
-              {prediccion.recommendation_text ?? "Mantener estado actual"}
-            </p>
-            <p className="text-xs text-muted mt-1">Basado en registros recientes</p>
+      <div className="mt-2 border-t border-gray-100 pt-2">
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-lg text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
+          aria-expanded={detallesAbiertos}
+          aria-controls={idDetalles}
+          onClick={() => setDetallesAbiertos(abiertos => !abiertos)}
+        >
+          Ver detalles
+          <MdExpandMore size={18} className={`transition-transform motion-reduce:transition-none ${detallesAbiertos ? "rotate-180" : ""}`} aria-hidden="true" />
+        </button>
 
-            {modeloMl.modelo_disponible && !modeloMl.modelo_usado && (
-              <button
-                onClick={() => setMostrarDetalles(v => !v)}
-                className="flex items-center gap-1 text-[10px] text-muted mt-2 hover:text-dark transition-colors"
-              >
-                <MdExpandMore
-                  size={13}
-                  className={`transition-transform duration-150 ${mostrarDetalles ? "rotate-180" : ""}`}
-                />
-                Ver estado del modelo
-              </button>
-            )}
-            {mostrarDetalles && modeloMl.motivo_no_usado && (
-              <p className="text-[10px] text-muted mt-1 leading-relaxed">
-                {modeloMl.motivo_no_usado}
-              </p>
-            )}
-          </div>
+        {detallesAbiertos && (
+          <div id={idDetalles} className="mt-3 rounded-xl bg-slate-50 p-4">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <DatoDetalle etiqueta="Predicción original" valor={prediccion} />
+              <DatoDetalle etiqueta="Confianza completa" valor={confianza == null ? "No disponible" : `${confianza} %`} />
+              <DatoDetalle etiqueta="Reglas aplicadas" valor={datos.modificada ? "Predicción ajustada" : "Sin ajustes"} />
+              <DatoDetalle etiqueta="Motivo del ajuste" valor={motivoReglas} />
+              <DatoDetalle etiqueta="Recomendación final" valor={recomendacion} />
+              <DatoDetalle etiqueta="Acción solicitada" valor={accionSolicitada} />
+              <DatoDetalle etiqueta="Acción finalmente enviada" valor={ultimaAccion} />
+              <DatoDetalle etiqueta="Confirmación del dispositivo" valor={datos.ejecucion?.confirmacion_ir_raw ?? datos.ejecucion?.confirmacion ?? datos.ejecucion?.mensaje ?? "No disponible"} />
+              <DatoDetalle etiqueta="Resultado de Firebase" valor={resultadoFirebase} />
+              <DatoDetalle etiqueta="Fecha exacta" valor={`${fechaExacta} · hora de Panamá`} />
+            </dl>
 
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[15px] font-semibold text-dark tabular-nums">
-                {prediccion.recommended_setpoint != null ? `${prediccion.recommended_setpoint} °C` : "Sin cambio"}
-              </span>
-              <p className="text-xs text-muted">Setpoint sugerido</p>
-            </div>
-            <div className="flex flex-col gap-0.5">
-              <span className="text-[15px] font-semibold text-dark tabular-nums">
-                {prediccion.predicted_savings_pct != null
-                  ? `${prediccion.predicted_savings_pct.toFixed(1)}%`
-                  : "Pendiente"}
-              </span>
-              <p className="text-xs text-muted">Ahorro estimado</p>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ── Prediccion ML guardada ── */}
-      {esPrediccionGuardada && (
-        <>
-          {(prediccion.recomendacion_texto || prediccionModelo || accionFinal) && (
-            <div className="bg-secondary/5 rounded-xl p-2.5">
-              <p className="text-[10px] font-semibold text-muted uppercase tracking-widest mb-1">
-                Predicción del modelo
-              </p>
-              {/* "Apagar aire — confianza 87%" (RandomForest.predict_proba) */}
-              <p className="text-[15px] font-semibold text-dark leading-snug">
-                {prediccion.recomendacion_texto ?? prediccionModelo ?? "No disponible"}
-              </p>
-              {accionFinal && !prediccion.recomendacion_texto && (
-                <p className="text-xs text-muted mt-0.5">{accionFinal}</p>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-3 gap-2">
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[15px] font-semibold text-dark tabular-nums">
-                {prediccion.recommended_setpoint} °C
-              </span>
-              <p className="text-xs text-muted text-center">Setpoint</p>
-            </div>
-            <div className="flex flex-col items-center gap-0.5">
-              <span className="text-[15px] font-semibold text-dark tabular-nums">
-                {prediccion.predicted_savings_pct?.toFixed(1)}%
-              </span>
-              <p className="text-xs text-muted text-center">Ahorro</p>
-            </div>
-            <CirculoConfianza puntuacion={prediccion.confidence_score} />
-          </div>
-
-          {featuresUsadas && (
-            <>
-              <button
-                onClick={() => setMostrarDetalles(v => !v)}
-                className="flex items-center gap-1 text-[10px] text-muted hover:text-dark transition-colors w-fit"
-              >
-                <MdExpandMore
-                  size={13}
-                  className={`transition-transform duration-150 ${mostrarDetalles ? "rotate-180" : ""}`}
-                />
-                {mostrarDetalles ? "Ocultar características" : "Ver características"}
-              </button>
-              {mostrarDetalles && (
-                <div className="grid grid-cols-2 gap-1.5 text-xs">
-                  {Object.entries(featuresUsadas).map(([clave, valor]) => (
-                    <div key={clave} className="bg-gray-50 rounded-lg px-2 py-1">
-                      <p className="text-muted">{clave}</p>
-                      <p className="font-semibold text-dark">{formatearValor(valor)}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
-          <hr className="border-gray-100" />
-
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              {prediccion.was_applied ? (
-                <>
-                  <span className="badge-success flex items-center gap-1 w-fit">
-                    <MdCheckCircle size={12} /> Aplicada
-                  </span>
-                  {prediccion.applied_at && (
-                    <p className="text-xs text-muted mt-0.5">{formatearFecha(prediccion.applied_at)}</p>
-                  )}
-                </>
+            <div className="mt-4 border-t border-gray-200 pt-3">
+              <p className="text-xs font-semibold text-dark">Advertencias técnicas</p>
+              {(advertencias.length || accionInconsistente) ? (
+                <ul className="mt-1.5 space-y-1 text-xs leading-relaxed text-muted">
+                  {accionInconsistente && <li>La acción solicitada y la recomendación final registradas son diferentes.</li>}
+                  {advertencias.map((advertencia, indice) => <li key={`${advertencia}-${indice}`}>{advertencia}</li>)}
+                </ul>
               ) : (
-                <span className="badge-muted">Pendiente de aplicar</span>
+                <p className="mt-1.5 text-xs text-muted">Sin advertencias técnicas registradas.</p>
               )}
             </div>
-
-            {prediccion.was_applied ? (
-              <button
-                disabled
-                className="btn-secondary text-xs opacity-50 cursor-not-allowed flex items-center gap-1"
-              >
-                Ya aplicada
-              </button>
-            ) : (
-              <button
-                onClick={() => alAplicar(prediccion.id)}
-                disabled={aplicando || prediccion.id == null}
-                className="btn-primary text-xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {aplicando
-                  ? <span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  : <MdSend size={13} />
-                }
-                Aplicar ahora
-              </button>
-            )}
           </div>
-        </>
-      )}
-
-      {/* Pie: solo se renderiza el timestamp si existe (sin guiones huérfanos) */}
-      {(prediccion.predicted_at || prediccion.model_version) && (
-        <div className="flex items-center justify-between pt-1 border-t border-gray-50">
-          {prediccion.predicted_at
-            ? <p className="text-xs text-muted">{tiempoAtras(prediccion.predicted_at)}</p>
-            : <span />}
-          {prediccion.model_version && (
-            <p className="text-xs text-muted">
-              {esOperativa ? "Motor" : "Modelo"}: {prediccion.model_version}
-            </p>
-          )}
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </article>
   )
 }

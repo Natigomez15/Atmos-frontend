@@ -5,58 +5,22 @@ export const obtenerSalonesPrediciones = () =>
   cliente.get("/rooms").then(res => filtrarSalonesAtmos(res.data))
 
 export const obtenerUltimaPrediccion = (idSalon) =>
-  cliente.get(`/ml/predictions/${idSalon}/latest`)
-    .then(res => res.data)
-    .catch(() => null)
+  cliente.get(`/ml/predictions/${idSalon}/latest`).then(res => res.data)
 
-export const obtenerTodasUltimasPredicciones = async () => {
-  const salones = await cliente.get("/rooms").then(res => filtrarSalonesAtmos(res.data))
-  const predicciones = await Promise.all(
-    salones.map(salon =>
-      cliente.get(`/ml/predictions/${salon.id}/latest`)
-        .then(res => ({
-          ...res.data,
-          room_name: salon.name ?? salon.nombre,
-        }))
-        .catch(() => ({
-          room_id:               salon.id,
-          room_name:             salon.name ?? salon.nombre,
-          recommended_setpoint:  null,
-          predicted_savings_pct: null,
-          confidence_score:      null,
-          model_version:         null,
-          was_applied:           false,
-          predicted_at:          null,
-        }))
-    )
-  )
-  return predicciones
-}
-
-export const obtenerImpactoDecisiones = () =>
-  cliente.get("/ml/impacto/decisiones", {
-    params: { pabellon: "robotica", aire: "Aire_1" },
+export const obtenerUltimaDecision = ({ pabellon, aire }) =>
+  cliente.get("/ml/decisions/latest", {
+    params: { pabellon, aire },
   }).then(res => res.data)
 
-export const obtenerImpactoReal = () =>
-  cliente.get("/ml/impacto/real").then(res => res.data)
-
-// Panel "Sobre el motor": tipo de modelo, importancia REAL de variables
-// (feature_importances_) y métricas de validación persistidas (o su ausencia).
 export const obtenerInfoModelo = () =>
   cliente.get("/ml/modelo/info").then(res => res.data)
 
 export const obtenerCaracteristicasML = (idSalon, diasAtras = 7) =>
   cliente.get(`/ml/features/${idSalon}`, {
-    params: { days_back: diasAtras }
+    params: { days_back: diasAtras },
   }).then(res => res.data)
-    .catch(() => [])
 
-export const aplicarPrediccion = (idPrediccion) =>
-  cliente.post(`/ac-commands/from-prediction/${idPrediccion}`).then(res => res.data)
-
-export const dispararEvaluacion = () =>
-  cliente.post("/ml/evaluate").then(res => res.data)
-
-export const decidirAtmos = (datosLectura) =>
-  cliente.post("/ml/atmos/decidir", datosLectura).then(res => res.data)
+export const obtenerPotenciaActivaFirebase = ({ pabellon, aire, dias = 7 }) =>
+  cliente.get("/lecturas/registros/potencia-activa", {
+    params: { pabellon, aire, dias },
+  }).then(res => res.data)

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { MdRefresh, MdAir, MdLock } from "react-icons/md"
+import { MdRefresh, MdAir, MdLock, MdChevronLeft, MdChevronRight } from "react-icons/md"
 
 import PageWrapper       from "../components/layout/PageWrapper"
 import PageHeader        from "../components/common/PageHeader"
@@ -19,6 +19,8 @@ const ENCABEZADOS_TABLA = [
   { texto: "Ejecutado", clase: "hidden lg:table-cell" },
 ]
 
+const COMANDOS_POR_PAGINA = 6
+
 function minutosDesde(iso) {
   if (!iso) return 0
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -35,6 +37,7 @@ export default function CommandsPage() {
   const navegar = useNavigate()
   const [idSalonFiltro,   setIdSalonFiltro]   = useState("")
   const [solosPendientes, setSoloPendientes]  = useState(false)
+  const [pagina,          setPagina]           = useState(1)
   const [horaActualizacion]                   = useState(formatearHoraActual)
 
   // ── Queries ────────────────────────────────────────────────────────
@@ -69,6 +72,13 @@ export default function CommandsPage() {
   const conteoEjecutado = useMemo(
     () => comandos?.filter(c => c.was_executed).length ?? 0,
     [comandos]
+  )
+  const totalPaginas = Math.max(1, Math.ceil(conteoTotal / COMANDOS_POR_PAGINA))
+  const paginaActual = Math.min(pagina, totalPaginas)
+  const indiceInicial = (paginaActual - 1) * COMANDOS_POR_PAGINA
+  const comandosVisibles = useMemo(
+    () => comandos?.slice(indiceInicial, indiceInicial + COMANDOS_POR_PAGINA) ?? [],
+    [comandos, indiceInicial]
   )
 
   // ── Render ─────────────────────────────────────────────────────────
@@ -120,7 +130,10 @@ export default function CommandsPage() {
               {/* Filtro por salón */}
               <select
                 value={idSalonFiltro}
-                onChange={e => setIdSalonFiltro(e.target.value)}
+                onChange={e => {
+                  setIdSalonFiltro(e.target.value)
+                  setPagina(1)
+                }}
                 className="text-sm border border-gray-200 rounded-xl px-3 py-1.5 bg-white text-dark
                            focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary"
               >
@@ -132,7 +145,10 @@ export default function CommandsPage() {
 
               {/* Toggle solo pendientes */}
               <button
-                onClick={() => setSoloPendientes(v => !v)}
+                onClick={() => {
+                  setSoloPendientes(v => !v)
+                  setPagina(1)
+                }}
                 className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-colors ${
                   solosPendientes
                     ? "bg-warning/10 text-warning border border-warning/30"
@@ -210,7 +226,7 @@ export default function CommandsPage() {
                     </td>
                   </tr>
                 ) : (
-                  comandos.map((comando, i) => (
+                  comandosVisibles.map((comando, i) => (
                     <CommandRow
                       key={comando.comando_id ?? i}
                       comando={comando}
@@ -224,13 +240,42 @@ export default function CommandsPage() {
 
           {/* Pie de tabla */}
           {!cargandoComandos && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-gray-100">
               <p className="text-xs text-muted">
-                Mostrando {comandos?.length ?? 0} comandos
+                {conteoTotal > 0
+                  ? `Mostrando ${indiceInicial + 1}–${Math.min(indiceInicial + COMANDOS_POR_PAGINA, conteoTotal)} de ${conteoTotal}`
+                  : "Mostrando 0 comandos"}
               </p>
-              <p className="text-xs text-muted">
-                Última actualización: {horaActualizacion}
-              </p>
+              <div className="flex items-center gap-2">
+                {totalPaginas > 1 && (
+                  <nav className="flex items-center gap-1" aria-label="Paginación de comandos">
+                    <button
+                      type="button"
+                      onClick={() => setPagina(valor => Math.max(1, valor - 1))}
+                      disabled={paginaActual === 1}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-muted hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Página anterior"
+                    >
+                      <MdChevronLeft size={18} aria-hidden="true" />
+                    </button>
+                    <span className="min-w-14 text-center text-xs text-muted">
+                      {paginaActual} de {totalPaginas}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPagina(valor => Math.min(totalPaginas, valor + 1))}
+                      disabled={paginaActual === totalPaginas}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-muted hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label="Página siguiente"
+                    >
+                      <MdChevronRight size={18} aria-hidden="true" />
+                    </button>
+                  </nav>
+                )}
+                <p className="hidden text-xs text-muted sm:block">
+                  Última actualización: {horaActualizacion}
+                </p>
+              </div>
             </div>
           )}
         </div>

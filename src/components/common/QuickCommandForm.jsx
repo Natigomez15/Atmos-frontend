@@ -35,6 +35,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
   const [setpoint, setSetpoint] = useState(24)
   const [enviando, setEnviando] = useState(false)
   const [resultado, setResultado] = useState(null)
+  const [mensajeError, setMensajeError] = useState("")
   const [erroresFormulario, setErroresFormulario] = useState({})
 
   const salonSeleccionado =
@@ -89,10 +90,12 @@ export default function QuickCommandForm({ salones = [], alExito }) {
     }
 
     setErroresFormulario({})
+    setMensajeError("")
     setEnviando(true)
     try {
       await enviarComando({
         room_id: idSalonSeleccionado,
+        pabellon: salonSeleccionado?.pabellon ?? salonSeleccionado?.pavilion ?? salonSeleccionado?.edificio,
         aire: aireActivo || undefined,
         command_type: tipoComando,
         setpoint: tipoComando === "setpoint" ? setpoint : null,
@@ -100,7 +103,12 @@ export default function QuickCommandForm({ salones = [], alExito }) {
       })
       setResultado("exito")
       alExito?.()
-    } catch {
+    } catch (error) {
+      const detalle = error?.response?.data?.detail
+      setMensajeError(
+        (typeof detalle === "string" ? detalle : detalle?.mensaje || detalle?.motivo) ||
+        "No se pudo conectar con el backend."
+      )
       setResultado("error")
     } finally {
       setEnviando(false)
@@ -254,7 +262,7 @@ export default function QuickCommandForm({ salones = [], alExito }) {
       )}
       {resultado === "error" && (
         <p className="text-xs text-danger font-medium text-center">
-          Error al enviar el comando. Revisa la conexion con backend/Firebase.
+          {mensajeError || "Error al enviar el comando. Revisa la conexión con backend/Firebase."}
         </p>
       )}
     </form>
