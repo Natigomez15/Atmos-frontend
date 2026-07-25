@@ -1,4 +1,4 @@
-import cliente from "./client"
+﻿import cliente from "./client"
 import { airePrincipalSalon, esAireIgnorado, filtrarSalonesAtmos, limpiarAiresSalon } from "./salonesAtmos"
 
 const UMBRAL_APAGADO_AC_W = Number(import.meta.env.VITE_AC_POWER_OFF_THRESHOLD_W ?? 700)

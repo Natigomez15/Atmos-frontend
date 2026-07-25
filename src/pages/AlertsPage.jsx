@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useAuth } from "../context/AuthContext"
 import {
   MdRefresh, MdDoneAll, MdNotificationsNone, MdCheckCircle,
-  MdRouter, MdBolt, MdThermostat,
+  MdRouter, MdBolt, MdThermostat, MdAutoGraph,
 } from "react-icons/md"
 import PageWrapper     from "../components/layout/PageWrapper"
 import PageHeader      from "../components/common/PageHeader"
@@ -24,6 +24,43 @@ function minutosDesde(iso) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
 }
 
+
+const ACCIONES_ML = {
+  apagar: "Apagar el Aire 1",
+  encender_22: "Encender / regular a 22 °C",
+  encender_23: "Regular a 23 °C",
+  ahorro_24: "Modo ahorro a 24 °C",
+  enfriar_fuerte: "Enfriamiento fuerte a 22 °C",
+}
+
+function textoAccionML(accion) {
+  return ACCIONES_ML[String(accion ?? "").trim().toLowerCase()] ?? accion ?? "Acción no disponible"
+}
+
+function formatoNumero(valor, decimales = 1) {
+  const numero = Number(valor)
+  return Number.isFinite(numero) ? numero.toFixed(decimales) : "—"
+}
+
+function fechaLegible(iso) {
+  if (!iso) return "—"
+  const fecha = new Date(iso)
+  if (Number.isNaN(fecha.getTime())) return "—"
+
+  return fecha.toLocaleString("es-PA", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function textoPresencia(valor) {
+  if (valor === true || Number(valor) === 1) return "Detectada"
+  if (valor === false || Number(valor) === 0) return "No detectada"
+  return "—"
+}
+
 export default function AlertsPage() {
   const { estaLogueado } = useAuth()
   const [filtroSeveridad, setFiltroSeveridad] = useState("")
@@ -32,11 +69,29 @@ export default function AlertsPage() {
   const [filtroSalon,     setFiltroSalon]     = useState("")
   const [resolviendo,     setResolviendo]     = useState(null)
   const [ejecutandoChecks, setEjecutandoChecks] = useState(false)
+  const [procesandoDecisionML, setProcesandoDecisionML] = useState(false)
+  const [resultadoDecisionML, setResultadoDecisionML] = useState(null)
 
   const { data: resumen, refetch: recargarResumen } = useQuery({
     queryKey: ["resumen-alertas"],
     queryFn:  obtenerResumenAlertas,
     refetchInterval: 30000,
+  })
+
+  const {
+    data: decisionPendienteML,
+    isLoading: cargandoDecisionML,
+    refetch: recargarDecisionML,
+  } = useQuery({
+    queryKey: ["decision-ml-pendiente", "robotica", "Aire_1"],
+    queryFn: () =>
+      cliente
+        .get("/ml/decisiones/pendiente", {
+          params: { area: "robotica", aire: "Aire_1" },
+        })
+        .then(r => r.data),
+    refetchInterval: 5000,
+    retry: 1,
   })
 
   const { data: alertas = [], isLoading: cargandoAlertas, refetch: recargarAlertas } = useQuery({
@@ -58,6 +113,106 @@ export default function AlertsPage() {
 
   const mapaSalones = Object.fromEntries(salones.map(salon => [salon.sala_id, salon.nombre]))
 
+  const decisionML =
+    decisionPendienteML?.hay_pendiente === true
+      ? decisionPendienteML.decision
+      : null
+
+  async function manejarAceptarDecisionML() {
+    if (!decisionML?.decision_id || procesandoDecisionML) return
+
+    setProcesandoDecisionML(true)
+    setResultadoDecisionML(null)
+
+    try {
+      const respuesta = await cliente.post(
+        "/ml/decisiones/pendiente/aceptar",
+        {
+          decision_id: decisionML.decision_id,
+          area: decisionML.area ?? "robotica",
+          aire: decisionML.aire ?? "Aire_1",
+        }
+      )
+
+      setResultadoDecisionML({
+        tipo: "success",
+        mensaje:
+          respuesta.data?.mensaje ??
+          "Decisión aceptada. ATMOS procesó el comando.",
+      })
+
+      await recargarDecisionML()
+      recargarAlertas()
+      recargarResumen()
+    } catch (error) {
+      console.error(error)
+
+      const detalle = error?.response?.data?.detail
+      const mensaje =
+        typeof detalle === "string"
+          ? detalle
+          : detalle?.mensaje ??
+            "No se pudo aceptar la decisión. El comando no fue enviado."
+
+      setResultadoDecisionML({
+        tipo: "error",
+        mensaje,
+      })
+
+      await recargarDecisionML()
+    } finally {
+      setProcesandoDecisionML(false)
+    }
+  }
+
+  async function manejarRechazarDecisionML() {
+    if (!decisionML?.decision_id || procesandoDecisionML) return
+
+    setProcesandoDecisionML(true)
+    setResultadoDecisionML(null)
+
+    try {
+      const respuesta = await cliente.post(
+        "/ml/decisiones/pendiente/rechazar",
+        {
+          decision_id: decisionML.decision_id,
+          area: decisionML.area ?? "robotica",
+          aire: decisionML.aire ?? "Aire_1",
+          motivo: "rechazada_desde_pagina_alertas",
+        }
+      )
+
+      setResultadoDecisionML({
+        tipo: "neutral",
+        mensaje:
+          respuesta.data?.mensaje ??
+          "Decisión rechazada. No se envió ningún comando.",
+      })
+
+      await recargarDecisionML()
+      recargarAlertas()
+      recargarResumen()
+    } catch (error) {
+      console.error(error)
+
+      const detalle = error?.response?.data?.detail
+      const mensaje =
+        typeof detalle === "string"
+          ? detalle
+          : detalle?.mensaje ??
+            "No se pudo rechazar la decisión."
+
+      setResultadoDecisionML({
+        tipo: "error",
+        mensaje,
+      })
+
+      await recargarDecisionML()
+    } finally {
+      setProcesandoDecisionML(false)
+    }
+  }
+
   async function manejarResolver(idAlerta) {
     setResolviendo(idAlerta)
     try {
@@ -77,6 +232,7 @@ export default function AlertsPage() {
       await ejecutarChecks()
       recargarAlertas()
       recargarResumen()
+      recargarDecisionML()
     } catch (e) {
       console.error(e)
     } finally {
@@ -117,9 +273,11 @@ export default function AlertsPage() {
 
         <PageHeader
           title="Alertas"
-          description={(resumen?.total_unresolved ?? 0) > 0
-            ? `${resumen.total_unresolved} alertas activas sin resolver`
-            : "Sin alertas activas"
+          description={decisionML
+            ? `${resumen?.total_unresolved ?? 0} alertas técnicas · 1 decisión ML esperando aprobación`
+            : (resumen?.total_unresolved ?? 0) > 0
+              ? `${resumen.total_unresolved} alertas activas sin resolver`
+              : "Sin alertas activas"
           }
           actions={(
             <div className="flex flex-wrap gap-2">
@@ -149,11 +307,182 @@ export default function AlertsPage() {
           )}
         />
 
+        {/* DECISIÓN ML PENDIENTE — requiere aprobación humana */}
+        {decisionML && (
+          <div className="rounded-2xl border border-secondary/25 bg-secondary/5 overflow-hidden">
+            <div className="p-5">
+              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center flex-shrink-0">
+                    <MdAutoGraph size={23} />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-dark">
+                        Decisión del Machine Learning pendiente
+                      </p>
+
+                      <span className="px-2.5 py-1 rounded-full bg-warning/10 text-warning text-[10px] font-semibold uppercase tracking-wide">
+                        Esperando aprobación
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-muted mt-1">
+                      Aire 1 · Laboratorio de Robótica
+                    </p>
+
+                    <p className="text-lg font-semibold text-dark mt-3">
+                      {textoAccionML(decisionML.accion)}
+                    </p>
+
+                    <p className="text-xs text-muted mt-1 leading-5">
+                      El modelo propone esta acción, pero ATMOS no la enviará al aire acondicionado hasta que un usuario autorizado la acepte.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="lg:text-right flex-shrink-0">
+                  <p className="text-[10px] uppercase tracking-wide font-semibold text-muted">
+                    Confianza del modelo
+                  </p>
+                  <p className="text-2xl font-semibold text-dark mt-0.5">
+                    {decisionML.confianza_ml != null
+                      ? `${Math.round(Number(decisionML.confianza_ml) * 100)}%`
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-5">
+                <div className="rounded-xl bg-white border border-gray-100 px-3 py-3">
+                  <p className="text-[10px] text-muted">Temperatura ambiente</p>
+                  <p className="text-sm font-semibold text-dark mt-1">
+                    {decisionML.lectura_contexto?.temperatura_ambiente != null
+                      ? `${formatoNumero(decisionML.lectura_contexto.temperatura_ambiente)} °C`
+                      : "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white border border-gray-100 px-3 py-3">
+                  <p className="text-[10px] text-muted">Salida del aire</p>
+                  <p className="text-sm font-semibold text-dark mt-1">
+                    {decisionML.lectura_contexto?.temperatura_salida_aire != null
+                      ? `${formatoNumero(decisionML.lectura_contexto.temperatura_salida_aire)} °C`
+                      : "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white border border-gray-100 px-3 py-3">
+                  <p className="text-[10px] text-muted">Humedad</p>
+                  <p className="text-sm font-semibold text-dark mt-1">
+                    {decisionML.lectura_contexto?.humedad != null
+                      ? `${formatoNumero(decisionML.lectura_contexto.humedad)} %`
+                      : "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white border border-gray-100 px-3 py-3">
+                  <p className="text-[10px] text-muted">Presencia</p>
+                  <p className="text-sm font-semibold text-dark mt-1">
+                    {textoPresencia(decisionML.lectura_contexto?.presencia)}
+                  </p>
+                </div>
+
+                <div className="rounded-xl bg-white border border-gray-100 px-3 py-3 col-span-2 lg:col-span-1">
+                  <p className="text-[10px] text-muted">Potencia</p>
+                  <p className="text-sm font-semibold text-dark mt-1">
+                    {decisionML.lectura_contexto?.potencia_w != null
+                      ? `${formatoNumero(decisionML.lectura_contexto.potencia_w)} W`
+                      : "—"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mt-4 pt-4 border-t border-secondary/15">
+                <div className="text-[10px] text-muted leading-5">
+                  <p>
+                    Detectada: <span className="font-medium text-dark">{fechaLegible(decisionML.creada_en)}</span>
+                  </p>
+                  <p>
+                    Válida hasta: <span className="font-medium text-dark">{fechaLegible(decisionML.expira_en)}</span>
+                  </p>
+                  {decisionML.estado_electrico_observado && (
+                    <p>
+                      Estado eléctrico observado:{" "}
+                      <span className="font-medium text-dark">
+                        {decisionML.estado_electrico_observado}
+                      </span>
+                    </p>
+                  )}
+                </div>
+
+                {estaLogueado ? (
+                  <AccionProtegida requiereRol="mantenimiento">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:min-w-[320px]">
+                      <button
+                        type="button"
+                        onClick={manejarRechazarDecisionML}
+                        disabled={procesandoDecisionML}
+                        className="btn-secondary flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {procesandoDecisionML ? "Procesando..." : "Rechazar"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={manejarAceptarDecisionML}
+                        disabled={procesandoDecisionML}
+                        className="btn-primary flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {procesandoDecisionML
+                          ? "Procesando..."
+                          : "Aceptar y enviar"}
+                      </button>
+                    </div>
+                  </AccionProtegida>
+                ) : (
+                  <p className="text-xs text-warning">
+                    Inicia sesión con rol mantenimiento o administrador para responder.
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-3 rounded-xl bg-warning/10 px-3.5 py-3 text-xs text-warning leading-5">
+                <strong>Importante:</strong> mientras esta decisión está pendiente, ATMOS no publica este comando en Firebase.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {cargandoDecisionML && !decisionML && (
+          <div className="rounded-2xl border border-gray-100 bg-white p-4 flex items-center gap-3">
+            <span className="w-4 h-4 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
+            <p className="text-xs text-muted">
+              Consultando decisiones pendientes del Machine Learning...
+            </p>
+          </div>
+        )}
+
+        {resultadoDecisionML && (
+          <div
+            className={`rounded-xl px-4 py-3 border text-sm ${
+              resultadoDecisionML.tipo === "success"
+                ? "bg-success/5 border-success/20 text-success"
+                : resultadoDecisionML.tipo === "error"
+                  ? "bg-danger/5 border-danger/20 text-danger"
+                  : "bg-gray-50 border-gray-200 text-dark"
+            }`}
+          >
+            {resultadoDecisionML.mensaje}
+          </div>
+        )}
+
         {/* ROW 2 — Stats bar */}
         <AlertStatsBar resumen={resumen} />
 
         {/* Banner de todo en orden */}
-        {(resumen?.total_unresolved ?? 1) === 0 && (
+        {(resumen?.total_unresolved ?? 1) === 0 && !decisionML && (
           <div className="bg-success/5 border border-success/20 rounded-2xl p-4 flex items-center gap-3">
             <MdCheckCircle size={24} className="text-success flex-shrink-0" />
             <div>
@@ -332,6 +661,13 @@ export default function AlertsPage() {
                 <div>
                   <p className="text-xs font-medium text-dark">Temperatura estancada</p>
                   <p className="text-xs text-muted">AC encendido pero temperatura no baja en 30 min</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <MdAutoGraph size={16} className="text-secondary flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-medium text-dark">Decisión del Machine Learning</p>
+                  <p className="text-xs text-muted">Una acción física propuesta espera aceptación o rechazo antes de llegar a Firebase</p>
                 </div>
               </div>
             </div>

@@ -25,3 +25,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Archivos locales de herramientas
+.agents/
+*.backup
