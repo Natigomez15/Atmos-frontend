@@ -1,50 +1,93 @@
 import { useEffect, useRef, useState, useCallback } from "react"
-import { WS_BASE_URL, API_KEY } from "../constants/config"
+import { WS_BASE_URL } from "../constants/config"
+import { supabase } from "../lib/supabase"
+
+const RETRASOS_RECONEXION = [3000, 5000, 10000, 20000, 30000]
 
 export function useRoomWebSocket(idSalon) {
   const refWs              = useRef(null)
   const timeoutReconexion  = useRef(null)
+  const intentoReconexion  = useRef(0)
 
   const [ultimaLectura, setUltimaLectura]   = useState(null)
   const [estaConectado, setEstaConectado]   = useState(false)
   const [reconectando,  setReconectando]    = useState(false)
 
-  const conectar = useCallback(() => {
-    if (!idSalon) return
-    const url = `${WS_BASE_URL}/ws/rooms/${idSalon}?api_key=${API_KEY}`
-    const ws  = new WebSocket(url)
-    refWs.current = ws
+  useEffect(() => {
+    let activo = true
+    intentoReconexion.current = 0
 
-    ws.onopen = () => {
-      setEstaConectado(true)
-      setReconectando(false)
-    }
+    async function conectar() {
+      if (!activo || !idSalon) return
+      if (
+        refWs.current?.readyState === WebSocket.OPEN ||
+        refWs.current?.readyState === WebSocket.CONNECTING
+      ) return
 
-    ws.onmessage = (evento) => {
-      const datos = JSON.parse(evento.data)
-      if (datos.type === "new_reading") {
-        setUltimaLectura(datos)
+      clearTimeout(timeoutReconexion.current)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!activo) return
+      if (!session?.access_token) {
+        setReconectando(false)
+        console.error("[WS ROOMS] sesión ausente; conexión en tiempo real omitida")
+        return
+      }
+      const parametros = new URLSearchParams({ access_token: session.access_token })
+      const url = `${WS_BASE_URL}/ws/rooms/${encodeURIComponent(idSalon)}?${parametros}`
+      const ws = new WebSocket(url)
+      refWs.current = ws
+
+      ws.onopen = () => {
+        if (!activo || refWs.current !== ws) {
+          ws.close()
+          return
+        }
+        intentoReconexion.current = 0
+        setEstaConectado(true)
+        setReconectando(false)
+      }
+
+      ws.onmessage = (evento) => {
+        if (!activo || refWs.current !== ws) return
+        const datos = JSON.parse(evento.data)
+        if (datos.type === "new_reading") setUltimaLectura(datos)
+      }
+
+      ws.onclose = (evento) => {
+        if (refWs.current === ws) refWs.current = null
+        if (!activo) return
+        setEstaConectado(false)
+        if (evento.code === 1008) {
+          setReconectando(false)
+          console.error("[WS ROOMS] sesión rechazada; no se reintentará hasta renovar la autenticación")
+          return
+        }
+        const indice = Math.min(intentoReconexion.current, RETRASOS_RECONEXION.length - 1)
+        const retraso = RETRASOS_RECONEXION[indice]
+        intentoReconexion.current += 1
+        setReconectando(true)
+        timeoutReconexion.current = setTimeout(conectar, retraso)
+      }
+
+      ws.onerror = () => {
+        if (ws.readyState < WebSocket.CLOSING) ws.close()
       }
     }
 
-    ws.onclose = () => {
-      setEstaConectado(false)
-      setReconectando(true)
-      timeoutReconexion.current = setTimeout(conectar, 5000)
-    }
+    conectar()
 
-    ws.onerror = () => {
-      ws.close()
+    return () => {
+      activo = false
+      clearTimeout(timeoutReconexion.current)
+      const ws = refWs.current
+      refWs.current = null
+      if (ws) {
+        ws.onclose = null
+        ws.onerror = null
+        ws.close()
+      }
     }
   }, [idSalon])
-
-  useEffect(() => {
-    conectar()
-    return () => {
-      clearTimeout(timeoutReconexion.current)
-      refWs.current?.close()
-    }
-  }, [conectar])
 
   const enviarMensaje = useCallback((mensaje) => {
     if (refWs.current?.readyState === WebSocket.OPEN) {
