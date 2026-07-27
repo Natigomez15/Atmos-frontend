@@ -172,7 +172,7 @@ export default function AjustesPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Ajustes de ATMOS"
-          description="Gestiona tu cuenta, seguridad, notificaciones y parÃ¡metros del sistema."
+          description="Gestiona tu cuenta, seguridad, notificaciones y parámetros del sistema."
         />
 
         {/* Layout: mobile = apilado, desktop = nav lateral + contenido */}
@@ -247,4 +247,5 @@ export default function AjustesPage() {
     </PageWrapper>
   )
 }
+
 
