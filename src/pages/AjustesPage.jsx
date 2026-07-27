@@ -1,8 +1,9 @@
-import { useState } from "react"
+﻿import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import {
   MdInfo,
+  MdGroup,
   MdLock,
   MdNotifications,
   MdPerson,
@@ -15,6 +16,7 @@ import PageHeader from "../components/common/PageHeader"
 import FormularioPerfil from "../components/common/FormularioPerfil"
 import FormularioConfiguracion from "../components/common/FormularioConfiguracion"
 import TarjetaNotificaciones from "../components/common/TarjetaNotificaciones"
+import GestionUsuarios from "../components/common/GestionUsuarios"
 import { obtenerConfiguracionSistema, obtenerPerfil } from "../api/ajustes"
 
 function AccesoDenegado() {
@@ -38,6 +40,9 @@ function NavegacionAjustes({ esAdmin, seccionActiva, alCambiarSeccion }) {
     { id: "cuenta",        etiqueta: "Cuenta",    Icono: MdPerson },
     { id: "seguridad",     etiqueta: "Seguridad", Icono: MdSecurity },
     { id: "notificaciones",etiqueta: "Alertas",   Icono: MdNotifications },
+    ...(esAdmin
+      ? [{ id: "usuarios", etiqueta: "Usuarios y roles", Icono: MdGroup }]
+      : []),
     { id: "sistema",       etiqueta: "Sistema",   Icono: MdSettings },
   ]
 
@@ -167,7 +172,7 @@ export default function AjustesPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Ajustes de ATMOS"
-          description="Gestiona tu cuenta, seguridad, notificaciones y parámetros del sistema."
+          description="Gestiona tu cuenta, seguridad, notificaciones y parÃ¡metros del sistema."
         />
 
         {/* Layout: mobile = apilado, desktop = nav lateral + contenido */}
@@ -218,6 +223,10 @@ export default function AjustesPage() {
 
             {seccionActiva === "notificaciones" && <TarjetaNotificaciones />}
 
+            {seccionActiva === "usuarios" && esAdmin && (
+              <GestionUsuarios usuarioActualId={perfil?.id} />
+            )}
+
             {seccionActiva === "sistema" && (
               esAdmin
                 ? cargandoConfig || !configuracion
@@ -238,3 +247,4 @@ export default function AjustesPage() {
     </PageWrapper>
   )
 }
+
