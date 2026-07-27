@@ -12,6 +12,11 @@ export const obtenerUltimaDecision = ({ pabellon, aire }) =>
     params: { pabellon, aire },
   }).then(res => res.data)
 
+export const obtenerPrediccionActualFirebase = ({ pabellon, aire }) =>
+  cliente.post("/ml/recommendations/current", null, {
+    params: { pabellon, aire },
+  }).then(res => res.data)
+
 export const obtenerInfoModelo = () =>
   cliente.get("/ml/modelo/info").then(res => res.data)
 

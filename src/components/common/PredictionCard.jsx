@@ -124,6 +124,7 @@ export default function PredictionCard({ datos }) {
     ? `El registro actual no incluyó el motivo. Último motivo disponible${fechaMotivoReferencia ? ` (${fechaMotivoReferencia})` : ""}: ${datos.motivoReferencia}`
     : "El registro actual no incluyó un motivo detallado.")
   const relativo = tiempoRelativo(datos.actualizadoEn) ?? "No disponible"
+  const lecturaRelativa = tiempoRelativo(datos.lecturaTimestamp) ?? "No disponible"
   const estadoEjecucion = String(datos.ejecucion?.estado ?? "sin_registro").trim().toLowerCase()
   const incidenciaEjecucion = ["fallida", "inconsistente"].includes(estadoEjecucion)
 
@@ -131,9 +132,13 @@ export default function PredictionCard({ datos }) {
     <article className="card w-full max-w-full min-w-0 overflow-hidden p-4 sm:p-5" aria-labelledby="decision-actual-titulo">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-violet-700">Decisión actual</p>
+          <p className={`text-xs font-semibold ${datos.lecturaDesactualizada ? "text-warning" : "text-violet-700"}`}>
+            {datos.lecturaDesactualizada ? "Sin lecturas recientes" : "Decisión actual"}
+          </p>
           <h2 id="decision-actual-titulo" className="section-title mt-0.5 leading-tight break-words">
-            {etiquetaAccion(datos.recomendacion, true)}
+            {datos.lecturaDesactualizada
+              ? `Última lectura válida ${lecturaRelativa}`
+              : etiquetaAccion(datos.recomendacion, true)}
           </h2>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-1.5 sm:justify-end">
@@ -188,6 +193,13 @@ export default function PredictionCard({ datos }) {
               <DatoDetalle etiqueta="Confirmación del dispositivo" valor={datos.ejecucion?.confirmacion_ir_raw ?? datos.ejecucion?.confirmacion ?? datos.ejecucion?.mensaje ?? "No disponible"} />
               <DatoDetalle etiqueta="Resultado de Firebase" valor={resultadoFirebase} />
               <DatoDetalle etiqueta="Fecha exacta" valor={`${fechaExacta} · hora de Panamá`} />
+              <DatoDetalle etiqueta="ID lectura Firebase" valor={datos.lecturaId} />
+              <DatoDetalle etiqueta="Timestamp lectura Firebase" valor={partesFechaPanama(datos.lecturaTimestamp)} />
+              <DatoDetalle etiqueta="Timestamp predicción" valor={partesFechaPanama(datos.prediccionTimestamp)} />
+              <DatoDetalle
+                etiqueta="Edad de la lectura"
+                valor={datos.edadLecturaSegundos == null ? "No disponible" : `${datos.edadLecturaSegundos} s`}
+              />
             </dl>
 
             <div className="mt-4 border-t border-gray-200 pt-3">

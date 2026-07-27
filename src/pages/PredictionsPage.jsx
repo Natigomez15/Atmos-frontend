@@ -12,87 +12,53 @@ import {
   obtenerCaracteristicasML,
   obtenerInfoModelo,
   obtenerPotenciaActivaFirebase,
+  obtenerPrediccionActualFirebase,
   obtenerSalonesPrediciones,
-  obtenerUltimaDecision,
-  obtenerUltimaPrediccion,
 } from "../api/predictions"
-
-const MINUTOS_VIGENCIA = 5
-
-function fechaValida(valor) {
-  if (!valor) return null
-  const fecha = new Date(valor)
-  return Number.isNaN(fecha.getTime()) ? null : fecha
-}
-
-function obtenerVigencia(fecha, errorDecision) {
-  if (errorDecision) return "sin_conexion"
-  const fechaActualizacion = fechaValida(fecha)
-  if (!fechaActualizacion) return "sin_conexion"
-  return Date.now() - fechaActualizacion.getTime() <= MINUTOS_VIGENCIA * 60 * 1000
-    ? "actualizada"
-    : "desactualizada"
-}
 
 function primerValor(...valores) {
   return valores.find(valor => valor !== undefined && valor !== null)
 }
 
-function normalizarDecision(prediccion, decision, errorDecision) {
-  const instantanea = prediccion?.instantanea_caracteristicas ?? prediccion?.snapshot_features ?? {}
-  const variables = instantanea.features_usadas ?? prediccion?.modelo_ml?.features_usadas ?? {}
-  const prediccionDecision = decision?.prediccion ?? {}
-  const decisionFinal = decision?.decision ?? {}
-  const ejecucion = decision?.ejecucion ?? { estado: "sin_registro" }
-  const fechaDecision = decision?.actualizado_en
-  const fechaPrediccion = primerValor(prediccion?.predicho_en, prediccion?.predicted_at)
-  const hayDecisionActual = Boolean(decision?.decision)
-  const actualizadoEn = hayDecisionActual ? fechaDecision : fechaPrediccion
-  const instanteDecision = fechaValida(fechaDecision)?.getTime()
-  const instantePrediccion = fechaValida(fechaPrediccion)?.getTime()
-  const motivoPrediccion = primerValor(
-    prediccion?.motivo_reglas_seguridad,
-    instantanea.motivo_reglas_seguridad,
-    prediccion?.modelo_ml?.motivo_reglas_seguridad,
-  )
-  const fuentesDesincronizadas = Boolean(
-    instanteDecision && instantePrediccion && Math.abs(instanteDecision - instantePrediccion) > 5 * 60 * 1000,
-  )
+function normalizarDecisionActual(datos) {
+  if (!datos) return null
+  const lectura = datos.lectura_firebase ?? {}
+  const variables = datos.entrada_modelo ?? {}
+  const resultado = datos.resultado_modelo ?? {}
+  const modelo = datos.modelo_ml ?? {}
+  const control = resultado.control ?? {}
+  const probabilidades = Object.values(modelo.probabilidades ?? {})
+    .map(Number)
+    .filter(Number.isFinite)
 
   return {
-    prediccion: hayDecisionActual
-      ? prediccionDecision.valor
-      : primerValor(prediccion?.prediccion_original, instantanea.prediccion_modelo, prediccion?.modelo_ml?.prediccion_modelo),
-    confianza: hayDecisionActual
-      ? prediccionDecision.confianza
-      : primerValor(prediccion?.confianza_prediccion, prediccion?.puntaje_confianza, prediccion?.confidence_score),
-    recomendacion: hayDecisionActual
-      ? decisionFinal.recomendacion_final
-      : primerValor(prediccion?.recomendacion_final, instantanea.accion_final),
-    accionSolicitada: hayDecisionActual
-      ? decisionFinal.accion_solicitada
-      : prediccion?.accion_solicitada,
-    modificada: Boolean(hayDecisionActual
-      ? decisionFinal.modificada_por_reglas
-      : prediccion?.recomendacion_modificada),
-    // No mezclar el motivo de una predicción histórica con una decisión más reciente.
-    motivo: hayDecisionActual
-      ? decisionFinal.motivo
-      : motivoPrediccion,
-    motivoReferencia: hayDecisionActual && !decisionFinal.motivo ? motivoPrediccion : null,
-    motivoReferenciaEn: hayDecisionActual && !decisionFinal.motivo ? fechaPrediccion : null,
-    ejecucion,
-    advertencias: Array.isArray(decision?.advertencias) ? decision.advertencias : [],
-    fuentesDesincronizadas,
-    actualizadoEn,
-    vigencia: obtenerVigencia(actualizadoEn, errorDecision),
+    prediccion: primerValor(modelo.prediccion_modelo, resultado.prediccion_modelo),
+    confianza: probabilidades.length ? Math.max(...probabilidades) : null,
+    recomendacion: datos.recomendacion,
+    accionSolicitada: datos.accion,
+    modificada: Boolean(control.prediccion_modificada),
+    motivo: primerValor(control.motivo, resultado.motivo, datos.mensaje),
+    ejecucion: {
+      estado: "sin_envio",
+      mensaje: "La predicción actual no ejecuta comandos automáticamente.",
+    },
+    advertencias: Array.isArray(datos.advertencias) ? datos.advertencias : [],
+    fuentesDesincronizadas: false,
+    actualizadoEn: datos.prediccion_timestamp,
+    vigencia: datos.lectura_desactualizada ? "desactualizada" : "actualizada",
+    lecturaDesactualizada: datos.lectura_desactualizada === true,
+    lecturaId: datos.firebase_key_usado,
+    lecturaTimestamp: datos.lectura_timestamp,
+    prediccionTimestamp: datos.prediccion_timestamp,
+    edadLecturaSegundos: datos.edad_lectura_segundos,
+    maxEdadLecturaSegundos: datos.max_edad_lectura_segundos,
     variables: {
-      presencia: primerValor(variables.presencia, variables.presence),
-      temperaturaAmbiente: primerValor(variables.temp_ambiente, variables.temperatura_ambiente, variables.temperature),
-      temperaturaSalida: primerValor(variables.temperatura_salida_aire, variables.temp_ac, variables.outlet_temperature),
-      deltaT: primerValor(variables.delta_t, variables.diferencia_temperatura),
-      humedad: primerValor(variables.humedad, variables.humidity),
-      potencia: primerValor(variables.potencia_activa_w, variables.potencia_w, variables.power_w),
+      presencia: primerValor(variables.presencia, lectura.presencia, lectura.estado_ocupacion),
+      temperaturaAmbiente: primerValor(variables.temp_ambiente, lectura.temp_ambiente, lectura.temperatura_ambiente),
+      temperaturaSalida: primerValor(variables.temperatura_salida_aire, lectura.temp_ac, lectura.temperatura_salida_aire),
+      deltaT: primerValor(variables.delta_t, lectura.delta_t),
+      humedad: primerValor(variables.humedad, lectura.humedad),
+      potencia: primerValor(lectura.potencia_activa_w, lectura.potencia_w),
     },
   }
 }
@@ -160,18 +126,12 @@ export default function PredictionsPage() {
   const aireEfectivo = equipos.includes(aireSeleccionado) ? aireSeleccionado : (equipos[0] ?? "")
   const pabellon = salonSeleccionado?.pabellon ?? salonSeleccionado?.pavilion ?? salonSeleccionado?.edificio ?? ""
 
-  const consultaPrediccion = useQuery({
-    queryKey: ["ml-latest-prediction", idSalonEfectivo],
-    queryFn: () => obtenerUltimaPrediccion(idSalonEfectivo),
-    enabled: Boolean(idSalonEfectivo),
-    refetchInterval: 60000,
-  })
-
-  const consultaDecision = useQuery({
-    queryKey: ["ml-latest-decision", pabellon, aireEfectivo],
-    queryFn: () => obtenerUltimaDecision({ pabellon, aire: aireEfectivo }),
+  const consultaActual = useQuery({
+    queryKey: ["ml-current-firebase", pabellon, aireEfectivo],
+    queryFn: () => obtenerPrediccionActualFirebase({ pabellon, aire: aireEfectivo }),
     enabled: Boolean(pabellon && aireEfectivo),
-    refetchInterval: 60000,
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   })
 
   const consultaHistorico = useQuery({
@@ -200,8 +160,8 @@ export default function PredictionsPage() {
   })
 
   const datosDecision = useMemo(
-    () => normalizarDecision(consultaPrediccion.data, consultaDecision.data, consultaDecision.isError),
-    [consultaPrediccion.data, consultaDecision.data, consultaDecision.isError],
+    () => normalizarDecisionActual(consultaActual.data),
+    [consultaActual.data],
   )
 
   const historico = Array.isArray(consultaHistorico.data) ? consultaHistorico.data : []
@@ -212,10 +172,8 @@ export default function PredictionsPage() {
     potencia: promedio(historicoPotencia, "avg_power_w"),
     horas: (variableGrafica === "potencia" ? historicoPotencia.length : historico.length) || null,
   }
-  const cargandoDecisionCompleta =
-    (consultaPrediccion.isLoading || consultaDecision.isLoading) &&
-    !consultaPrediccion.data && !consultaDecision.data
-  const sinDecision = !cargandoDecisionCompleta && !consultaPrediccion.data && !consultaDecision.data
+  const cargandoDecisionCompleta = consultaActual.isLoading && !consultaActual.data
+  const sinDecision = !cargandoDecisionCompleta && !consultaActual.data
   const historicoCombinado = equipos.length > 1
 
   return (
@@ -275,23 +233,12 @@ export default function PredictionsPage() {
           />
         )}
 
-        {(consultaPrediccion.isError || consultaDecision.isError) && !sinDecision && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {consultaPrediccion.isError && (
-              <ErrorSeccion
-                titulo="No se pudo actualizar la predicción"
-                mensaje="La decisión disponible se conserva, pero la predicción original no pudo actualizarse."
-                alReintentar={consultaPrediccion.refetch}
-              />
-            )}
-            {consultaDecision.isError && (
-              <ErrorSeccion
-                titulo="No se pudo actualizar la ejecución"
-                mensaje="La predicción disponible se conserva, pero no fue posible consultar el estado de la señal infrarroja."
-                alReintentar={consultaDecision.refetch}
-              />
-            )}
-          </div>
+        {consultaActual.isError && (
+          <ErrorSeccion
+            titulo="No se pudo evaluar la lectura actual"
+            mensaje="ATMOS no pudo consultar o procesar la última lectura operacional de Firebase."
+            alReintentar={consultaActual.refetch}
+          />
         )}
 
         {cargandoDecisionCompleta ? (
@@ -299,11 +246,8 @@ export default function PredictionsPage() {
         ) : sinDecision ? (
           <ErrorSeccion
             titulo="No se pudo cargar la decisión actual"
-            mensaje="No hay una predicción ni un registro de decisión disponibles para este equipo."
-            alReintentar={() => {
-              consultaPrediccion.refetch()
-              consultaDecision.refetch()
-            }}
+            mensaje="No existe una lectura reciente de Firebase que ATMOS pueda presentar como decisión actual."
+            alReintentar={consultaActual.refetch}
           />
         ) : (
           <PredictionCard datos={datosDecision} />
