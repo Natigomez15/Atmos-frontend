@@ -7,7 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ReferenceLine,
   Legend,
 } from "recharts"
 
@@ -34,7 +33,6 @@ export default function ConsumptionLineChart({
   cargando = false,
   unidad = "W",
   valueKey = "potencia_w",
-  baseline,
   mensajeVacio = "Aún no hay historial suficiente para graficar este rango.",
 }) {
   if (cargando) {
@@ -43,8 +41,13 @@ export default function ConsumptionLineChart({
 
   if (!datos?.length || datos.length < 2) {
     return (
-      <div className="h-[150px] rounded-xl bg-gray-50/70 flex items-center justify-center text-center px-6">
-        <p className="font-semibold text-muted">{mensajeVacio || "Datos insuficientes"}</p>
+      <div className="flex min-h-28 items-center justify-center rounded-xl bg-gray-50/70 px-6 text-center">
+        <div>
+          <p className="card-label text-muted">Sin historial suficiente</p>
+          <p className="caption mt-1">
+            {mensajeVacio || "Estamos recopilando información para este período."}
+          </p>
+        </div>
       </div>
     )
   }
@@ -62,11 +65,11 @@ export default function ConsumptionLineChart({
         />
         <YAxis
           yAxisId="valor"
-          unit={` ${unidad}`}
+          tickFormatter={valor => `${Number(valor).toLocaleString("es-PA", { maximumFractionDigits: unidad === "W" ? 0 : 1 })} ${unidad}`}
           tick={{ fontSize: 11, fill: "#64748B" }}
           axisLine={false}
           tickLine={false}
-          width={72}
+          width={78}
           domain={[0, "dataMax + 10%"]}
         />
         <YAxis yAxisId="ocupacion" hide domain={[0, 1]} />
@@ -88,24 +91,15 @@ export default function ConsumptionLineChart({
           activeDot={false}
           isAnimationActive={false}
         />
-        {baseline != null && (
-          <ReferenceLine
-            yAxisId="valor"
-            y={baseline}
-            stroke="#94A3B8"
-            strokeDasharray="5 5"
-            label={{ value: "baseline", position: "insideTopRight", fill: "#64748B", fontSize: 11 }}
-          />
-        )}
         <Line
           yAxisId="valor"
           type="monotone"
           dataKey={valueKey}
           name={unidad === "W" ? "Potencia" : "Energía"}
-          stroke="#235B9B"
+          stroke="#1B4F8A"
           strokeWidth={2.5}
           dot={false}
-          activeDot={{ r: 4, fill: "#235B9B" }}
+          activeDot={{ r: 4, fill: "#1B4F8A" }}
         />
       </ComposedChart>
     </ResponsiveContainer>

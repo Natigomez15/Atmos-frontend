@@ -23,28 +23,31 @@ function TooltipPersonalizado({ active, payload, label }) {
   )
 }
 
-export default function UsefulEmptyBarChart({ datos = [] }) {
+export default function UsefulEmptyBarChart({ datos = [], insufficientData = false }) {
   const hayDatos = datos.some(d => (d.util_kwh ?? 0) > 0 || (d.vacio_kwh ?? 0) > 0)
   return (
-    <section className="card relative min-h-[280px]">
+    <section className="card relative">
       <div className="mb-4">
-        <p className="font-semibold text-dark">Energía útil vs vacío</p>
-        <p className="text-xs text-muted mt-0.5">Últimos 7 días</p>
+        <h2 className="section-title">Consumo con ocupación vs sin ocupación</h2>
+        <p className="caption mt-0.5">Últimos 7 días con información disponible</p>
       </div>
-      {!hayDatos ? (
-        <div className="h-[190px] flex items-center justify-center text-sm font-semibold text-muted">
-          Datos insuficientes
+      {!hayDatos || insufficientData ? (
+        <div className="flex min-h-24 items-center justify-center px-4 text-center">
+          <div>
+            <p className="card-label text-muted">Sin historial suficiente</p>
+            <p className="caption mt-1">Estamos recopilando información diaria para comparar.</p>
+          </div>
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={210}>
           <BarChart data={datos} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
             <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} />
-            <YAxis unit=" kWh" tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={58} />
+            <YAxis tickFormatter={valor => `${Number(valor).toFixed(1)} kWh`} tick={{ fontSize: 11, fill: "#64748B" }} axisLine={false} tickLine={false} width={64} />
             <Tooltip content={<TooltipPersonalizado />} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="util_kwh" name="Útil" stackId="energia" fill="#10B981" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="vacio_kwh" name="Vacío" stackId="energia" fill="#EF4444" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="util_kwh" name="Con ocupación" stackId="energia" fill="#2ABFBF" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="vacio_kwh" name="Sin ocupación" stackId="energia" fill="#F59E0B" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}

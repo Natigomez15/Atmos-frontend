@@ -1,7 +1,7 @@
 function colorCelda(valor, maximo) {
-  if (!valor || !maximo) return "rgba(35, 91, 155, 0.06)"
+  if (!valor || !maximo) return "rgba(42, 191, 191, 0.06)"
   const intensidad = Math.max(0.12, Math.min(1, valor / maximo))
-  return `rgba(35, 91, 155, ${0.12 + intensidad * 0.78})`
+  return `rgba(27, 79, 138, ${0.12 + intensidad * 0.78})`
 }
 
 export default function ConsumptionHeatmap({ heatmap = {} }) {
@@ -12,11 +12,11 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
   const porClave = new Map(puntos.map(p => [`${p.day_index}-${p.hour}`, p]))
 
   return (
-    <section className="card relative mb-6">
+    <section className="card relative">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
-          <p className="font-semibold text-dark">Heatmap de consumo</p>
-          <p className="text-xs text-muted mt-0.5">kWh promedio por hora y día de semana</p>
+          <h2 className="section-title">Patrón de consumo</h2>
+          <p className="caption mt-0.5">kWh promedio por hora y día de semana</p>
         </div>
         <div className="hidden sm:flex items-center gap-2 text-[11px] text-muted">
           <span>Menos</span>
@@ -26,8 +26,11 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
       </div>
 
       {heatmap.insufficient_data ? (
-        <div className="h-[130px] flex items-center justify-center text-sm font-semibold text-muted">
-          {heatmap.empty_message ?? "Acumulando datos históricos"}
+        <div className="flex min-h-24 items-center justify-center px-4 text-center">
+          <div>
+            <p className="card-label text-muted">Sin historial suficiente</p>
+            <p className="caption mt-1">Estamos recopilando información para identificar patrones.</p>
+          </div>
         </div>
       ) : (
         <div className="overflow-x-auto">

@@ -115,20 +115,30 @@ function metricas(lecturas, rango) {
   const periodoKwh = periodo.reduce((s, l) => s + l.kwh, 0)
   const semanaKwh = semana.reduce((s, l) => s + l.kwh, 0) / 7
   const vacioHoy = hoyLecturas.filter(l => !l.ocupado && l.ac_on).reduce((s, l) => s + l.kwh, 0)
-  const ahorro = Math.max(0, (BASELINE_KWH_DIA * diasPorRango(rango) - periodoKwh) * TARIFA)
+  const acVacioHoras = hoyLecturas.filter(l => !l.ocupado && l.ac_on).length
+  const pico = periodo.reduce((maximo, lectura) => lectura.potencia_w > (maximo?.potencia_w ?? -1) ? lectura : maximo, null)
   return {
     today_energy_kwh: Number(hoyKwh.toFixed(1)),
     today_vs_week_avg_pct: Number((((hoyKwh - semanaKwh) / semanaKwh) * 100).toFixed(1)),
     week_avg_kwh: Number(semanaKwh.toFixed(1)),
+    comparison_delta_kwh: Number((hoyKwh - semanaKwh).toFixed(2)),
+    comparison_days: 7,
+    comparison_available: true,
     period_energy_kwh: Number(periodoKwh.toFixed(1)),
     period_cost_usd: Number((periodoKwh * TARIFA).toFixed(2)),
+    today_cost_usd: Number((hoyKwh * TARIFA).toFixed(2)),
     ac_hours_today: hoyLecturas.filter(l => l.ac_on).length,
+    ac_empty_hours_today: acVacioHoras,
     ac_outside_schedule_hours_today: 0,
     empty_energy_kwh: Number(vacioHoy.toFixed(1)),
     empty_energy_scope: "hoy",
-    estimated_savings_usd: Number(ahorro.toFixed(2)),
-    estimated_savings_available: true,
-    estimated_savings_reason: null,
+    empty_energy_pct: hoyKwh > 0 ? Number((vacioHoy / hoyKwh * 100).toFixed(1)) : null,
+    empty_cost_usd: Number((vacioHoy * TARIFA).toFixed(2)),
+    peak_power_w: pico?.potencia_w ?? null,
+    peak_power_at: pico?.fecha?.toISOString() ?? null,
+    estimated_savings_usd: null,
+    estimated_savings_available: false,
+    estimated_savings_reason: "Demo sin baseline validado",
   }
 }
 
@@ -164,29 +174,6 @@ function heatmap(lecturas) {
   return { days, hours, points, max_kwh: max, insufficient_data: false, empty_message: "Acumulando datos históricos" }
 }
 
-function actividad() {
-  const tipos = ["apagado_automatico", "enfriamiento", "mantener", "espera_apagado", "posible_falla_ac"]
-  const events = Array.from({ length: 10 }, (_, i) => {
-    const fecha = new Date(DEMO_AHORA.getTime() - i * 3 * 60 * 60 * 1000)
-    const tipo = tipos[i % tipos.length]
-    return {
-      id: `demo-${i}`,
-      timestamp_utc: fecha.toISOString(),
-      tipo,
-      motivo: tipo === "apagado_automatico" ? "Espacio vacío detectado" : "Decisión generada por atmos_logic",
-      pabellon: "robotica",
-      aire: "Aire_1",
-      decision_final: tipo,
-    }
-  })
-  return {
-    events,
-    counts: tipos.map(tipo => ({ tipo, count: events.filter(e => e.tipo === tipo).length })),
-    table_available: true,
-    empty_message: "Sin eventos registrados todavía",
-  }
-}
-
 export function construirDashboardDemo(rango = "24h") {
   const lecturas = generarLecturas()
   const modo = rango === "30d" || rango === "3m" ? "energy" : "power"
@@ -214,8 +201,8 @@ export function construirDashboardDemo(rango = "24h") {
     metrics: metricas(lecturas, rango),
     phase2: {
       useful_vs_empty: utilVsVacio(lecturas),
+      useful_vs_empty_insufficient_data: false,
       heatmap: heatmap(lecturas),
-      activity: actividad(),
     },
     source: "demo",
   }
