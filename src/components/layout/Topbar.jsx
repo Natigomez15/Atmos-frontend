@@ -15,7 +15,7 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
       {/* Izquierda */}
       <button
         onClick={alAbrirMenu}
-        className="md:hidden p-1.5 rounded-lg text-muted hover:text-dark hover:bg-gray-100 transition-colors active:scale-95"
+        className="md:hidden min-h-11 min-w-11 flex items-center justify-center rounded-xl text-muted hover:text-dark hover:bg-gray-100 transition-colors active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
         aria-label="Abrir menú"
       >
         <MdMenu size={22} />
@@ -28,7 +28,7 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
         <div className="relative">
           <button
             onClick={() => setAlertasAbiertas(valor => !valor)}
-            className="relative p-2 rounded-xl text-muted hover:text-dark hover:bg-gray-100 transition-all duration-150 active:scale-95"
+            className="relative min-h-11 min-w-11 flex items-center justify-center rounded-xl text-muted hover:text-dark hover:bg-gray-100 transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
             aria-label="Ver alertas"
           >
             <MdNotifications size={19} />
@@ -65,7 +65,7 @@ export default function Topbar({ cantidadAlertas = 0, alAbrirMenu }) {
         {!estaLogueado && (
           <button
             onClick={() => navegar("/login")}
-            className="flex items-center gap-1.5 text-xs text-secondary font-semibold px-3 py-1.5 rounded-xl border border-secondary/25 hover:border-secondary/60 hover:bg-secondary hover:text-white transition-all duration-200 active:scale-95"
+            className="flex min-h-11 items-center gap-1.5 text-xs text-secondary font-semibold px-3 py-2 rounded-xl border border-secondary/25 hover:border-secondary/60 hover:bg-secondary hover:text-white transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40"
           >
             <MdLogin size={14} />
             Iniciar sesión

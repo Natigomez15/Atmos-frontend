@@ -5,6 +5,7 @@ import {
   MdRemove,
   MdMic,
   MdStop,
+  MdAutoAwesome,
 } from "react-icons/md"
 
 import useAtmosVoice from "../../hooks/useAtmosVoice"
@@ -233,7 +234,7 @@ export default function AtmosIABubble() {
           transition-all duration-200
         "
       >
-        <AtmosIAIcon size={27} />
+        <MdAutoAwesome size={27} aria-hidden="true" />
 
         <span
           className={`

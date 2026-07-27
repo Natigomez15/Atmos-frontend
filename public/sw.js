@@ -27,6 +27,7 @@ self.addEventListener('push', function(evento) {
       url,
       tipo_alerta: datos.tipo_alerta || datos.datos?.tipo_alerta,
       severidad: datos.severidad || datos.datos?.severidad,
+      decision_id: datos.decision_id || datos.datos?.decision_id,
     },
     actions: [
       { action: 'ver',    title: 'Ver alerta' },
@@ -44,10 +45,15 @@ self.addEventListener('notificationclick', function(evento) {
   const urlDestino = new URL(evento.notification.data?.url || '/alerts', self.location.origin).href
   console.log('[PWA SW] Click en notificacion:', urlDestino)
   evento.waitUntil(
-    clients.matchAll({ type: 'window' }).then(function(clientesVentana) {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientesVentana) {
       for (const cliente of clientesVentana) {
-        if (cliente.url === urlDestino && 'focus' in cliente) {
-          return cliente.focus()
+        if ('focus' in cliente && new URL(cliente.url).origin === self.location.origin) {
+          return cliente.focus().then(function(clienteEnfocado) {
+            if ('navigate' in clienteEnfocado) {
+              return clienteEnfocado.navigate(urlDestino)
+            }
+            return clienteEnfocado
+          })
         }
       }
       if (clients.openWindow) {

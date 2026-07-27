@@ -1,232 +1,38 @@
-﻿import { NavLink, useNavigate } from "react-router-dom"
-import { MdClose, MdLogout } from "react-icons/md"
-import logoAtmos from "../../assets/logo_atmos.png"
-
+import { NavLink, useNavigate } from "react-router-dom"
 import {
+  MdAir,
+  MdAssessment,
+  MdAutoAwesome,
+  MdAutoGraph,
+  MdClose,
   MdDashboard,
+  MdLogout,
   MdMeetingRoom,
   MdMonitor,
-  MdGridView,
-  MdAir,
-  MdAutoGraph,
-  MdNotifications,
-  MdAssessment,
-  MdRouter,
   MdSettings,
-  MdPeople,
 } from "react-icons/md"
 
-import AtmosIAIcon from "../atmos-ia/AtmosIAIcon"
+import logoAtmos from "../../assets/logo_atmos.png"
 import { useAuth } from "../../context/AuthContext"
 
-
-const navPublico = [
-  {
-    etiqueta: "Dashboard",
-    icono: MdDashboard,
-    ruta: "/dashboard",
-  },
-  {
-    etiqueta: "Espacios",
-    icono: MdMeetingRoom,
-    ruta: "/rooms",
-  },
-  {
-    etiqueta: "Monitoreo",
-    icono: MdMonitor,
-    ruta: "/monitoring",
-  },
-  {
-    etiqueta: "Predicciones ML",
-    icono: MdAutoGraph,
-    ruta: "/predictions",
-  },
-
-  // ==========================================
-  // ATMOS IA
-  // ==========================================
-  {
-    etiqueta: "ATMOS IA",
-    icono: AtmosIAIcon,
-    ruta: "/atmos-ia",
-  },
-
-  {
-    etiqueta: "Alertas",
-    icono: MdNotifications,
-    ruta: "/alerts",
-  },
+const NAVEGACION_PUBLICA = [
+  { etiqueta: "Dashboard", icono: MdDashboard, ruta: "/dashboard" },
+  { etiqueta: "Espacios", icono: MdMeetingRoom, ruta: "/rooms" },
+  { etiqueta: "Monitoreo", icono: MdMonitor, ruta: "/monitoring" },
+  { etiqueta: "Predicciones", icono: MdAutoGraph, ruta: "/predictions" },
+  { etiqueta: "ATMOS IA", icono: MdAutoAwesome, ruta: "/atmos-ia" },
 ]
 
-
-const navAutenticado = [
-  {
-    etiqueta: "Comandos AC",
-    icono: MdAir,
-    ruta: "/commands",
-  },
-  {
-    etiqueta: "Reportes",
-    icono: MdAssessment,
-    ruta: "/reports",
-  },
-  {
-    etiqueta: "Ajustes",
-    icono: MdSettings,
-    ruta: "/settings",
-  },
+const NAVEGACION_AUTENTICADA = [
+  { etiqueta: "Control AC", icono: MdAir, ruta: "/commands" },
+  { etiqueta: "Reportes", icono: MdAssessment, ruta: "/reports" },
 ]
 
-
-const navAdmin = [
-  {
-    etiqueta: "Nodos ESP32",
-    icono: MdRouter,
-    ruta: "/nodes",
-  },
-  {
-    etiqueta: "Usuarios",
-    icono: MdPeople,
-    ruta: "/users",
-  },
-]
-
-
-const estiloBase =
-  "relative flex items-center gap-3 px-3 py-2.5 rounded-xl mx-2 text-sm text-muted " +
-  "hover:bg-gray-50 hover:text-dark transition-all duration-150 group"
-
-const estiloActivo =
-  "bg-secondary/10 text-secondary font-medium hover:bg-secondary/15"
-
-
-function ElementoNav({
-  elemento,
-  cantidadAlertas,
-}) {
-  const Icono = elemento.icono
-
-  return (
-    <NavLink
-      to={elemento.ruta}
-      title={elemento.etiqueta}
-      className={({ isActive }) =>
-        isActive
-          ? `${estiloBase} ${estiloActivo}`
-          : estiloBase
-      }
-    >
-      {({ isActive }) => (
-        <>
-          {isActive && (
-            <span
-              className="
-                absolute
-                left-0
-                top-1/2
-                -translate-y-1/2
-                w-0.5
-                h-5
-                bg-secondary
-                rounded-full
-              "
-            />
-          )}
-
-          <Icono
-            size={18}
-            className="
-              flex-shrink-0
-              transition-transform
-              duration-150
-              group-hover:scale-105
-            "
-          />
-
-          <span
-            className="
-              block
-              md:hidden
-              lg:block
-              flex-1
-              truncate
-            "
-          >
-            {elemento.etiqueta}
-          </span>
-
-          {elemento.ruta === "/alerts" &&
-            cantidadAlertas > 0 && (
-              <span
-                className="
-                  relative
-                  flex
-                  items-center
-                  justify-center
-                  w-5
-                  h-5
-                  block
-                  md:hidden
-                  lg:flex
-                "
-              >
-                <span
-                  className="
-                    absolute
-                    inline-flex
-                    w-full
-                    h-full
-                    rounded-full
-                    bg-danger
-                    opacity-30
-                    animate-ping
-                  "
-                />
-
-                <span
-                  className="
-                    relative
-                    flex
-                    items-center
-                    justify-center
-                    w-4
-                    h-4
-                    rounded-full
-                    bg-danger
-                    text-white
-                    text-[10px]
-                    font-bold
-                    leading-none
-                  "
-                >
-                  {cantidadAlertas > 9
-                    ? "9+"
-                    : cantidadAlertas}
-                </span>
-              </span>
-            )}
-
-          {elemento.ruta === "/alerts" &&
-            cantidadAlertas > 0 && (
-              <span
-                className="
-                  lg:hidden
-                  absolute
-                  top-1.5
-                  right-1.5
-                  w-1.5
-                  h-1.5
-                  rounded-full
-                  bg-danger
-                "
-              />
-            )}
-        </>
-      )}
-    </NavLink>
-  )
+const ACCESO_AJUSTES = {
+  etiqueta: "Ajustes",
+  icono: MdSettings,
+  ruta: "/settings",
 }
-
 
 const ETIQUETAS_ROL = {
   admin: "Administrador",
@@ -234,419 +40,150 @@ const ETIQUETAS_ROL = {
   usuario: "Usuario",
 }
 
+const CLASE_ITEM =
+  "group relative mx-2 flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm " +
+  "text-muted transition-colors duration-150 hover:bg-gray-50 hover:text-dark " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30"
 
-function Iniciales({ nombre }) {
-  const partes = (nombre ?? "U")
-    .trim()
-    .split(" ")
+const CLASE_ACTIVA =
+  "bg-secondary/10 text-secondary font-medium hover:bg-secondary/15 hover:text-secondary"
 
-  const ini =
-    partes.length >= 2
-      ? partes[0][0] +
-        partes[partes.length - 1][0]
-      : partes[0].slice(0, 2)
+function ElementoNav({ elemento }) {
+  const Icono = elemento.icono
 
-  return ini.toUpperCase()
+  return (
+    <NavLink
+      to={elemento.ruta}
+      title={elemento.etiqueta}
+      className={({ isActive }) => `${CLASE_ITEM} ${isActive ? CLASE_ACTIVA : ""}`}
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <span
+              className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-secondary"
+              aria-hidden="true"
+            />
+          )}
+          <Icono
+            size={19}
+            className="shrink-0 opacity-100"
+            aria-hidden="true"
+          />
+          <span className="min-w-0 flex-1 truncate md:hidden lg:block">
+            {elemento.etiqueta}
+          </span>
+        </>
+      )}
+    </NavLink>
+  )
 }
 
+function Iniciales({ nombre }) {
+  const partes = (nombre ?? "U").trim().split(/\s+/)
+  const iniciales = partes.length >= 2
+    ? `${partes[0][0]}${partes[partes.length - 1][0]}`
+    : partes[0].slice(0, 2)
+  return iniciales.toUpperCase()
+}
 
-export default function Sidebar({
-  cantidadAlertas = 0,
-  estaAbierto = false,
-  alCerrar,
-}) {
-  const {
-    estaLogueado,
-    esAdmin,
-    perfil,
-    cerrarSesion,
-  } = useAuth()
-
+export default function Sidebar({ estaAbierto = false, alCerrar }) {
+  const { estaLogueado, perfil, cerrarSesion } = useAuth()
   const navegar = useNavigate()
-
 
   async function manejarCerrarSesion() {
     await cerrarSesion()
     navegar("/login")
   }
 
-
   return (
     <>
-      {/* ==========================================
-          FONDO OSCURO EN MÓVIL
-      ========================================== */}
-
       {estaAbierto && (
-        <div
-          className="
-            fixed
-            inset-0
-            bg-black/40
-            backdrop-blur-sm
-            z-40
-            md:hidden
-          "
+        <button
+          type="button"
+          aria-label="Cerrar menú"
           onClick={alCerrar}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
         />
       )}
 
-
-      {/* ==========================================
-          SIDEBAR
-      ========================================== */}
-
       <aside
-        className={`
-          fixed
-          left-0
-          top-0
-          h-screen
-          bg-white
-          border-r
-          border-gray-100
-          flex
-          flex-col
-          flex-shrink-0
-          z-50
-          transition-transform
-          duration-300
-          ease-out
-
-          w-64
-          md:w-16
-          lg:w-60
-
-          ${
-            estaAbierto
-              ? "translate-x-0"
-              : "-translate-x-full md:translate-x-0"
-          }
-        `}
+        aria-label="Navegación principal"
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-64 shrink-0 flex-col border-r border-gray-100 bg-white transition-transform duration-300 ease-out md:w-16 md:translate-x-0 lg:w-60 ${
+          estaAbierto ? "translate-x-0" : "-translate-x-full"
+        }`}
       >
-
-        {/* ==========================================
-            LOGO
-        ========================================== */}
-
-        <div
-          className="
-            h-14
-            lg:h-28
-            flex
-            items-center
-            justify-center
-            px-4
-            lg:px-0
-            border-b
-            border-gray-100
-            shrink-0
-            relative
-            overflow-hidden
-          "
-        >
+        <div className="relative flex h-14 shrink-0 items-center justify-center overflow-hidden border-b border-gray-100 px-4 lg:h-20 lg:px-2">
           <button
+            type="button"
             onClick={alCerrar}
-            className="
-              md:hidden
-              absolute
-              right-3
-              p-1
-              rounded-lg
-              text-muted
-              hover:text-dark
-              hover:bg-gray-100
-              transition-colors
-            "
+            aria-label="Cerrar menú"
+            className="absolute right-2 flex min-h-11 min-w-11 items-center justify-center rounded-xl text-muted transition-colors hover:bg-gray-100 hover:text-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/40 md:hidden"
           >
-            <MdClose size={18} />
+            <MdClose size={20} aria-hidden="true" />
           </button>
-
-
-          {/* Logo móvil / tablet */}
 
           <img
             src={logoAtmos}
             alt="ATMOS"
-            className="
-              h-7
-              w-auto
-              object-contain
-              lg:hidden
-            "
+            className="h-7 w-auto object-contain lg:hidden"
           />
-
-
-          {/* Logo escritorio */}
-
           <img
             src="/LOGO1.png"
             alt="ATMOS"
-            className="
-              hidden
-              lg:block
-              h-32
-              w-full
-              object-contain
-              object-center
-              translate-x-1
-            "
+            className="hidden h-20 w-full object-contain object-center lg:block"
           />
         </div>
 
-
-        {/* ==========================================
-            NAVEGACIÓN
-        ========================================== */}
-
-        <nav
-          className="
-            flex-1
-            px-0
-            py-2
-            overflow-y-auto
-            hide-scrollbar
-          "
-        >
-          <p
-            className="
-              block
-              md:hidden
-              lg:block
-              px-5
-              mb-1.5
-              text-[10px]
-              font-semibold
-              text-muted/70
-              uppercase
-              tracking-widest
-            "
-          >
-            Menú principal
-          </p>
-
-
-          <div className="flex flex-col gap-0.5">
-
-            {/* Navegación pública */}
-
-            {navPublico.map((elemento) => (
-              <div
-                key={elemento.ruta}
-                className="relative"
-              >
-                <ElementoNav
-                  elemento={elemento}
-                  cantidadAlertas={
-                    cantidadAlertas
-                  }
-                />
-              </div>
+        <nav className="hide-scrollbar flex-1 overflow-y-auto py-3" aria-label="Secciones de ATMOS">
+          <div className="flex flex-col gap-1">
+            {NAVEGACION_PUBLICA.map(elemento => (
+              <ElementoNav key={elemento.ruta} elemento={elemento} />
             ))}
-
-
-            {/* Navegación para usuarios autenticados */}
-
-            {estaLogueado &&
-              navAutenticado.map(
-                (elemento) => (
-                  <div
-                    key={elemento.ruta}
-                    className="relative"
-                  >
-                    <ElementoNav
-                      elemento={elemento}
-                      cantidadAlertas={
-                        cantidadAlertas
-                      }
-                    />
-                  </div>
-                )
-              )}
+            {estaLogueado && NAVEGACION_AUTENTICADA.map(elemento => (
+              <ElementoNav key={elemento.ruta} elemento={elemento} />
+            ))}
           </div>
 
-
-          {/* ==========================================
-              OPCIONES DE ADMINISTRADOR
-          ========================================== */}
-
-          {esAdmin && (
-            <>
-              <p
-                className="
-                  block
-                  md:hidden
-                  lg:block
-                  px-5
-                  mt-5
-                  mb-1.5
-                  text-[10px]
-                  font-semibold
-                  text-muted/70
-                  uppercase
-                  tracking-widest
-                "
-              >
-                Sistema
-              </p>
-
-
-              <div
-                className="
-                  flex
-                  flex-col
-                  gap-0.5
-                  mt-3
-                  lg:mt-0
-                "
-              >
-                {navAdmin.map(
-                  (elemento) => (
-                    <div
-                      key={elemento.ruta}
-                      className="relative"
-                    >
-                      <ElementoNav
-                        elemento={elemento}
-                        cantidadAlertas={
-                          cantidadAlertas
-                        }
-                      />
-                    </div>
-                  )
-                )}
-              </div>
-            </>
+          {estaLogueado && (
+            <div className="mx-2 mt-3 border-t border-gray-100 pt-3">
+              <ElementoNav elemento={ACCESO_AJUSTES} />
+            </div>
           )}
         </nav>
 
-
-        {/* ==========================================
-            INFORMACIÓN DEL USUARIO
-        ========================================== */}
-
         {perfil && (
-          <div
-            className="
-              px-3
-              py-3
-              border-t
-              border-gray-100
-              block
-              md:hidden
-              lg:block
-            "
-          >
-            <div
-              className="
-                flex
-                items-center
-                justify-between
-                gap-2
-                px-1
-              "
-            >
-
-              {/* Usuario */}
-
+          <footer className="shrink-0 border-t border-gray-100 px-3 py-3 md:hidden lg:block">
+            <div className="flex items-center justify-between gap-2">
               <button
-                onClick={() =>
-                  navegar("/settings")
-                }
-                className="
-                  flex
-                  items-center
-                  gap-2.5
-                  min-w-0
-                  text-left
-                  rounded-xl
-                  px-2
-                  py-1.5
-                  -mx-2
-                  hover:bg-gray-50
-                  transition-colors
-                  group
-                "
+                type="button"
+                onClick={() => navegar("/settings")}
+                className="group -mx-1 flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-xl px-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30"
               >
-                <div
-                  className="
-                    w-8
-                    h-8
-                    rounded-full
-                    bg-primary/10
-                    text-primary
-                    text-xs
-                    font-bold
-                    flex
-                    items-center
-                    justify-center
-                    shrink-0
-                    border
-                    border-primary/10
-                  "
-                >
-                  <Iniciales
-                    nombre={perfil.nombre}
-                  />
-                </div>
-
-
-                <div className="min-w-0">
-                  <p
-                    className="
-                      text-xs
-                      font-semibold
-                      text-dark
-                      truncate
-                      leading-tight
-                    "
-                  >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-primary/10 text-xs font-bold text-primary">
+                  <Iniciales nombre={perfil.nombre} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-xs font-semibold leading-tight text-dark">
                     {perfil.nombre}
-                  </p>
-
-
-                  <p
-                    className="
-                      text-[10px]
-                      text-muted
-                      truncate
-                      mt-0.5
-                      font-medium
-                    "
-                  >
-                    {ETIQUETAS_ROL[
-                      perfil.rol
-                    ] ??
-                      perfil.rol ??
-                      "Usuario"}
-                  </p>
-                </div>
+                  </span>
+                  <span className="mt-0.5 block truncate text-[10px] font-medium text-muted">
+                    {ETIQUETAS_ROL[perfil.rol] ?? perfil.rol ?? "Usuario"}
+                  </span>
+                </span>
               </button>
 
-
-              {/* Cerrar sesión */}
-
               <button
-                onClick={
-                  manejarCerrarSesion
-                }
+                type="button"
+                onClick={manejarCerrarSesion}
+                aria-label="Cerrar sesión"
                 title="Cerrar sesión"
-                className="
-                  shrink-0
-                  p-1.5
-                  rounded-lg
-                  text-muted
-                  hover:text-danger
-                  hover:bg-danger/10
-                  transition-all
-                  duration-150
-                  active:scale-95
-                "
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-xl text-muted transition-colors hover:bg-danger/10 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/30"
               >
-                <MdLogout size={15} />
+                <MdLogout size={18} aria-hidden="true" />
               </button>
             </div>
-          </div>
+          </footer>
         )}
       </aside>
     </>

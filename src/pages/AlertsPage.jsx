@@ -1,15 +1,16 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { useSearchParams } from "react-router-dom"
 import { useAuth } from "../context/AuthContext"
 import {
   MdRefresh, MdDoneAll, MdNotificationsNone, MdCheckCircle,
-  MdRouter, MdBolt, MdThermostat, MdAutoGraph,
+  MdRouter, MdBolt, MdThermostat, MdAutoGraph, MdExpandMore, MdInfoOutline, MdFilterList,
 } from "react-icons/md"
 import PageWrapper     from "../components/layout/PageWrapper"
 import PageHeader      from "../components/common/PageHeader"
 import AlertCard       from "../components/common/AlertCard"
-import AlertStatsBar   from "../components/common/AlertStatsBar"
 import AccionProtegida  from "../components/common/AccionProtegida"
+import MLDecisionCard   from "../components/alerts/MLDecisionCard"
 import {
   obtenerAlertas, obtenerResumenAlertas, resolverAlerta, ejecutarChecks,
 } from "../api/alerts"
@@ -18,6 +19,8 @@ import cliente from "../api/client"
 const estiloSelect =
   "border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white " +
   "focus:outline-none focus:ring-2 focus:ring-secondary/30 focus:border-secondary transition-colors"
+
+const mostrarDecisionAnterior = false
 
 function minutosDesde(iso) {
   if (!iso) return null
@@ -62,7 +65,7 @@ function textoPresencia(valor) {
 }
 
 export default function AlertsPage() {
-  const { estaLogueado } = useAuth()
+  const { estaLogueado, esAdmin, esMantenimiento } = useAuth()
   const [filtroSeveridad, setFiltroSeveridad] = useState("")
   const [filtroTipo,      setFiltroTipo]      = useState("")
   const [filtroResueltas, setFiltroResueltas] = useState(false)
@@ -71,6 +74,8 @@ export default function AlertsPage() {
   const [ejecutandoChecks, setEjecutandoChecks] = useState(false)
   const [procesandoDecisionML, setProcesandoDecisionML] = useState(false)
   const [resultadoDecisionML, setResultadoDecisionML] = useState(null)
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false)
+  const [parametrosBusqueda] = useSearchParams()
 
   const { data: resumen, refetch: recargarResumen } = useQuery({
     queryKey: ["resumen-alertas"],
@@ -117,6 +122,18 @@ export default function AlertsPage() {
     decisionPendienteML?.hay_pendiente === true
       ? decisionPendienteML.decision
       : null
+
+  useEffect(() => {
+    const decisionId = parametrosBusqueda.get("decision_id")
+    if (!decisionId || decisionML?.decision_id !== decisionId) return
+    const temporizador = window.setTimeout(() => {
+      document.getElementById(`decision-${decisionId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      })
+    }, 100)
+    return () => window.clearTimeout(temporizador)
+  }, [decisionML?.decision_id, parametrosBusqueda])
 
   async function manejarAceptarDecisionML() {
     if (!decisionML?.decision_id || procesandoDecisionML) return
@@ -307,8 +324,26 @@ export default function AlertsPage() {
           )}
         />
 
-        {/* DECISIÓN ML PENDIENTE — requiere aprobación humana */}
         {decisionML && (
+          <section aria-labelledby="titulo-aprobacion-ml">
+            <p
+              id="titulo-aprobacion-ml"
+              className="mb-3 text-xs font-bold uppercase tracking-wider text-dark"
+            >
+              Pendiente de tu aprobación
+            </p>
+            <MLDecisionCard
+              decision={decisionML}
+              procesando={procesandoDecisionML}
+              puedeControlar={estaLogueado && (esAdmin || esMantenimiento)}
+              alAceptar={manejarAceptarDecisionML}
+              alRechazar={manejarRechazarDecisionML}
+            />
+          </section>
+        )}
+
+        {/* Implementación anterior conservada temporalmente fuera del render. */}
+        {mostrarDecisionAnterior && decisionML && (
           <div className="rounded-2xl border border-secondary/25 bg-secondary/5 overflow-hidden">
             <div className="p-5">
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -479,7 +514,6 @@ export default function AlertsPage() {
         )}
 
         {/* ROW 2 — Stats bar */}
-        <AlertStatsBar resumen={resumen} />
 
         {/* Banner de todo en orden */}
         {(resumen?.total_unresolved ?? 1) === 0 && !decisionML && (
@@ -498,9 +532,26 @@ export default function AlertsPage() {
           </div>
         )}
 
-        {/* ROW 3 — Filtros */}
-        <div className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+        <section aria-labelledby="titulo-alertas-tecnicas">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p id="titulo-alertas-tecnicas" className="text-xs font-bold uppercase tracking-wider text-dark">
+              Alertas técnicas
+            </p>
+            <button
+              type="button"
+              onClick={() => setFiltrosAbiertos(valor => !valor)}
+              aria-expanded={filtrosAbiertos}
+              className="flex min-h-11 items-center gap-1.5 rounded-xl border border-gray-200 px-3 text-sm font-medium text-muted hover:border-secondary/30 hover:text-secondary"
+            >
+              <MdFilterList size={17} />
+              Filtrar
+              <MdExpandMore className={`transition-transform ${filtrosAbiertos ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+
+          {filtrosAbiertos && (
+            <div className="card mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col flex-wrap gap-2 sm:flex-row">
             <select
               value={filtroSalon}
               onChange={e => setFiltroSalon(e.target.value)}
@@ -535,22 +586,23 @@ export default function AlertsPage() {
               <option value="power_anomaly">Consumo anómalo</option>
               <option value="temperature_stuck">Temperatura estancada</option>
             </select>
-          </div>
+              </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setFiltroResueltas(p => !p)}
-              className={`text-sm px-4 py-2 rounded-xl transition-colors ${
-                filtroResueltas ? "bg-gray-200 text-dark" : "bg-gray-100 text-muted"
-              }`}
-            >
-              Mostrar resueltas
-            </button>
-            <span className="bg-gray-100 text-muted text-xs px-3 py-1 rounded-full">
-              {alertas.length} {alertas.length === 1 ? "alerta" : "alertas"}
-            </span>
-          </div>
-        </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setFiltroResueltas(p => !p)}
+                  className={`min-h-11 rounded-xl px-4 text-sm transition-colors ${
+                    filtroResueltas ? "bg-gray-200 text-dark" : "bg-gray-100 text-muted"
+                  }`}
+                >
+                  Mostrar resueltas
+                </button>
+                <span className="rounded-full bg-gray-100 px-3 py-1 text-xs text-muted">
+                  {alertas.length} {alertas.length === 1 ? "alerta" : "alertas"}
+                </span>
+              </div>
+            </div>
+          )}
 
         {/* ROW 4 — Lista de alertas */}
         {cargandoAlertas
@@ -573,7 +625,7 @@ export default function AlertsPage() {
                         Limpiar filtros
                       </button>
                     </>
-                }
+            }
               </div>
             : <div className="flex flex-col gap-6">
 
@@ -621,9 +673,23 @@ export default function AlertsPage() {
 
               </div>
         }
+        </section>
 
-        {/* ROW 5 — Info footer */}
-        <div className="bg-primary/5 border border-primary/10 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* ROW 5 — Información secundaria, cerrada inicialmente */}
+        <details className="group border-t border-gray-100 py-2">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-1 text-sm font-semibold text-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/30">
+            <span className="flex items-center gap-2">
+              <MdInfoOutline size={18} className="text-secondary" />
+              Información del sistema de alertas
+            </span>
+            <MdExpandMore
+              size={20}
+              className="text-muted transition-transform group-open:rotate-180"
+              aria-hidden="true"
+            />
+          </summary>
+
+          <div className="mt-3 bg-primary/5 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <p className="text-sm font-semibold text-dark mb-2">¿Cómo funciona el sistema de alertas?</p>
             <ul className="flex flex-col gap-1.5">
@@ -672,7 +738,8 @@ export default function AlertsPage() {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </details>
 
       </div>
     </PageWrapper>
