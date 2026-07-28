@@ -73,7 +73,7 @@ function Kpi({
 }) {
   return (
     <article
-      className="min-w-0 rounded-xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm"
+      className="h-full min-h-[112px] min-w-0 rounded-xl border border-gray-100 bg-white p-3.5 shadow-sm"
       aria-label={ariaLabel ?? label}
     >
       <div className="flex items-center justify-between gap-2">
@@ -82,14 +82,14 @@ function Kpi({
       </div>
       <div className="mt-1.5 flex items-baseline gap-1.5">
         <span className={disponible
-          ? `text-3xl font-semibold leading-none tabular-nums ${tono}`
+          ? `text-[27px] font-semibold leading-none tabular-nums ${tono}`
           : "card-label text-muted"
         }>
           {disponible ? valor : "—"}
         </span>
-        {disponible && unidad && <span className="body-muted">{unidad}</span>}
+        {disponible && unidad && <span className="text-[15px] leading-none text-muted">{unidad}</span>}
       </div>
-      <p className="caption mt-1.5 min-h-7 leading-3.5">
+      <p className="caption mt-1.5 min-h-6 leading-3.5">
         {disponible ? contexto : "Sin datos disponibles"}
       </p>
     </article>
@@ -233,14 +233,14 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Kpi
             label="Consumo hoy"
             valor={numero(metricas.today_energy_kwh, 1)}
             unidad="kWh"
             disponible={!sinDatosHoy && esNumero(metricas.today_energy_kwh)}
             contexto={contextoActualidad ?? contextoComparacion(metricas)}
-            icono={<MdBolt size={18} />}
+            icono={<MdBolt size={16} />}
           />
           <Kpi
             label="Costo hoy"
@@ -252,7 +252,7 @@ export default function DashboardPage() {
                 ? `Tarifa: $${numero(energia.tariff_usd_per_kwh, 2)} por kWh`
                 : "Tarifa no disponible")
             }
-            icono={<MdOutlinePayments size={18} />}
+            icono={<MdOutlinePayments size={16} />}
           />
           <Kpi
             label="Tiempo encendido"
@@ -260,7 +260,7 @@ export default function DashboardPage() {
             valor={duracion(metricas.ac_hours_today)}
             disponible={!sinDatosHoy && esNumero(metricas.ac_hours_today)}
             contexto={contextoActualidad ?? "Tiempo acumulado de funcionamiento hoy"}
-            icono={<MdAccessTime size={18} />}
+            icono={<MdAccessTime size={16} />}
           />
           <Kpi
             label="Sin ocupación"
@@ -269,12 +269,12 @@ export default function DashboardPage() {
             unidad="kWh"
             disponible={!sinDatosHoy && esNumero(metricas.empty_energy_kwh)}
             contexto={contextoActualidad ?? porcentajeVacio}
-            icono={<MdAccessTime size={18} />}
+            icono={<MdAccessTime size={16} />}
             tono={Number(metricas.empty_energy_kwh ?? 0) > 0 ? "text-warning" : "text-dark"}
           />
         </div>
 
-        <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.7fr)]">
+        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.7fr)]">
           <section className="card min-w-0">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
