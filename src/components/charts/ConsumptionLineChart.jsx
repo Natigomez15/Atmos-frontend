@@ -63,8 +63,8 @@ export default function ConsumptionLineChart({
       {datosValidos.length === 1 && (
         <p className="caption mb-2 text-center">Cobertura parcial: solo hay un período con datos.</p>
       )}
-      <ResponsiveContainer width="100%" height={280}>
-        <ComposedChart data={datos} margin={{ top: 12, right: 18, left: 6, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={260}>
+        <ComposedChart data={datos} margin={{ top: 10, right: 18, left: 56, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
         <XAxis
           dataKey="label"
@@ -79,7 +79,7 @@ export default function ConsumptionLineChart({
           tick={{ fontSize: 11, fill: "#64748B" }}
           axisLine={false}
           tickLine={false}
-          width={78}
+          width={82}
           domain={[0, "dataMax + 10%"]}
         />
         <YAxis yAxisId="ocupacion" hide domain={[0, 1]} />

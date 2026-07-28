@@ -15,7 +15,7 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
 
   return (
     <section className="card relative">
-      <div className="flex items-start justify-between gap-3 mb-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div>
           <h2 className="section-title">Patrón de consumo</h2>
           <p className="caption mt-0.5">kWh promedio por hora y día de semana</p>
@@ -35,10 +35,10 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
           </div>
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto xl:overflow-x-visible">
           <div
-            className="grid gap-1 min-w-[760px]"
-            style={{ gridTemplateColumns: `64px repeat(${horas.length}, minmax(34px, 1fr))` }}
+            className="grid min-w-[620px] justify-center gap-[3px] xl:min-w-0"
+            style={{ gridTemplateColumns: `56px repeat(${horas.length}, minmax(19px, 24px))` }}
           >
             <div />
             {horas.map(hora => (
@@ -46,7 +46,7 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
             ))}
             {dias.map((dia, diaIndex) => (
               <div key={dia} className="contents">
-                <div className="text-xs font-semibold text-muted flex items-center">{dia}</div>
+                <div className="flex items-center text-[11px] font-semibold text-muted">{dia}</div>
                 {horas.map(hora => {
                   const punto = porClave.get(`${diaIndex}-${hora}`)
                   const valor = punto?.kwh

@@ -121,7 +121,7 @@ function Insights({ metricas }) {
     )
   }
   return (
-    <section className="card" aria-labelledby="insights-atmos">
+    <section className="card h-fit self-start" aria-labelledby="insights-atmos">
       <div className="flex items-center gap-2">
         <MdInsights size={19} className="text-secondary" />
         <h2 id="insights-atmos" className="section-title">Insights de ATMOS</h2>
@@ -190,7 +190,7 @@ export default function DashboardPage() {
 
   return (
     <PageWrapper>
-      <div className="mx-auto w-full max-w-[1480px]">
+      <div className="mx-auto w-full max-w-[1480px] pb-24">
         <PageHeader
           title="Dashboard energético"
           description="Resumen energético del Aire 1"
@@ -274,7 +274,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.8fr)_minmax(280px,0.7fr)]">
+        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(260px,1fr)]">
           <section className="card min-w-0">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
@@ -325,7 +325,7 @@ export default function DashboardPage() {
           <Insights metricas={metricas} />
         </div>
 
-        <div className="mt-4 grid items-start gap-4 xl:grid-cols-2">
+        <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <UsefulEmptyBarChart
             datos={phase2.useful_vs_empty ?? []}
             insufficientData={phase2.useful_vs_empty_insufficient_data}

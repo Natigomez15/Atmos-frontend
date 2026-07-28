@@ -131,7 +131,7 @@ export default function Sidebar({ estaAbierto = false, alCerrar }) {
           <img
             src="/LOGO1.png"
             alt="ATMOS"
-            className="hidden h-auto w-[205px] max-w-none object-contain object-center lg:block"
+            className="hidden h-auto w-[170px] max-w-none object-contain object-center lg:block"
           />
         </div>
 
