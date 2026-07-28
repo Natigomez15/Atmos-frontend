@@ -113,7 +113,7 @@ export default function Sidebar({ estaAbierto = false, alCerrar }) {
           estaAbierto ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="relative flex h-14 shrink-0 items-center justify-center overflow-hidden border-b border-gray-100 px-4 lg:h-20 lg:px-2">
+        <div className="relative flex h-14 shrink-0 items-center justify-center overflow-hidden border-b border-gray-100 px-4 lg:h-24 lg:px-2">
           <button
             type="button"
             onClick={alCerrar}
@@ -131,7 +131,7 @@ export default function Sidebar({ estaAbierto = false, alCerrar }) {
           <img
             src="/LOGO1.png"
             alt="ATMOS"
-            className="hidden h-20 w-full object-contain object-center lg:block"
+            className="hidden h-auto w-[205px] max-w-none object-contain object-center lg:block"
           />
         </div>
 
