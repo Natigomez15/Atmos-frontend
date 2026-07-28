@@ -73,23 +73,23 @@ function Kpi({
 }) {
   return (
     <article
-      className="min-w-0 rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+      className="min-w-0 rounded-xl border border-gray-100 bg-white px-4 py-3.5 shadow-sm"
       aria-label={ariaLabel ?? label}
     >
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <p className="meta-label min-w-0">{label}</p>
         <span className="shrink-0 text-secondary" aria-hidden="true">{icono}</span>
       </div>
-      <div className="mt-2 flex items-baseline gap-1.5">
+      <div className="mt-1.5 flex items-baseline gap-1.5">
         <span className={disponible
-          ? `text-2xl font-semibold tabular-nums ${tono}`
+          ? `text-3xl font-semibold leading-none tabular-nums ${tono}`
           : "card-label text-muted"
         }>
           {disponible ? valor : "—"}
         </span>
         {disponible && unidad && <span className="body-muted">{unidad}</span>}
       </div>
-      <p className="caption mt-2 min-h-8 leading-4">
+      <p className="caption mt-1.5 min-h-7 leading-3.5">
         {disponible ? contexto : "Sin datos disponibles"}
       </p>
     </article>
@@ -172,9 +172,6 @@ export default function DashboardPage() {
   const porcentajeVacio = esNumero(metricas.empty_energy_pct)
     ? `${numero(metricas.empty_energy_pct, 0)}% del consumo de hoy · ${costoVacio}`
     : "Sin datos suficientes de ocupación."
-  const contextoTiempo = esNumero(metricas.ac_empty_hours_today)
-    ? `${duracion(metricas.ac_empty_hours_today)} sin ocupación`
-    : "Basado en el estado reportado por el equipo"
   const agrupacionGrafica = grafica.grouping
     ?? (grafica.mode === "energy" ? "day" : null)
   const etiquetaAgrupacion = {
@@ -262,7 +259,7 @@ export default function DashboardPage() {
             ariaLabel="Tiempo encendido hoy"
             valor={duracion(metricas.ac_hours_today)}
             disponible={!sinDatosHoy && esNumero(metricas.ac_hours_today)}
-            contexto={contextoActualidad ?? contextoTiempo}
+            contexto={contextoActualidad ?? "Tiempo acumulado de funcionamiento hoy"}
             icono={<MdAccessTime size={18} />}
           />
           <Kpi
