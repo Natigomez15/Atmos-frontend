@@ -1,5 +1,6 @@
 function colorCelda(valor, maximo) {
-  if (!valor || !maximo) return "rgba(42, 191, 191, 0.06)"
+  if (valor == null) return "rgba(148, 163, 184, 0.10)"
+  if (!maximo) return "rgba(42, 191, 191, 0.12)"
   const intensidad = Math.max(0.12, Math.min(1, valor / maximo))
   return `rgba(27, 79, 138, ${0.12 + intensidad * 0.78})`
 }
@@ -10,6 +11,7 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
   const puntos = heatmap.points ?? []
   const maximo = heatmap.max_kwh ?? 0
   const porClave = new Map(puntos.map(p => [`${p.day_index}-${p.hour}`, p]))
+  const tieneDatos = puntos.some(p => p.kwh != null && Number.isFinite(Number(p.kwh)))
 
   return (
     <section className="card relative">
@@ -25,7 +27,7 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
         </div>
       </div>
 
-      {heatmap.insufficient_data ? (
+      {!tieneDatos ? (
         <div className="flex min-h-24 items-center justify-center px-4 text-center">
           <div>
             <p className="card-label text-muted">Sin historial suficiente</p>
@@ -46,13 +48,19 @@ export default function ConsumptionHeatmap({ heatmap = {} }) {
               <div key={dia} className="contents">
                 <div className="text-xs font-semibold text-muted flex items-center">{dia}</div>
                 {horas.map(hora => {
-                  const punto = porClave.get(`${diaIndex}-${hora}`) ?? { kwh: 0 }
+                  const punto = porClave.get(`${diaIndex}-${hora}`)
+                  const valor = punto?.kwh
+                  const horaFormateada = `${String(hora).padStart(2, "0")}:00`
+                  const detalle = valor == null
+                    ? "Sin datos"
+                    : `${Number(valor).toFixed(2)} kWh promedio`
                   return (
                     <div
                       key={`${dia}-${hora}`}
-                      title={`${dia} ${hora}:00 · ${Number(punto.kwh ?? 0).toFixed(1)} kWh`}
+                      title={`${dia} · ${horaFormateada} — ${detalle}`}
+                      aria-label={`${dia} · ${horaFormateada} — ${detalle}`}
                       className="h-7 rounded-md border border-white"
-                      style={{ backgroundColor: colorCelda(punto.kwh, maximo) }}
+                      style={{ backgroundColor: colorCelda(valor, maximo) }}
                     />
                   )
                 })}
