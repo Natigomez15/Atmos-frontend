@@ -107,6 +107,9 @@ function mapearRegistro(registro) {
     ac_power_on_threshold_w: UMBRAL_ENCENDIDO_AC_W,
     power_w: potenciaW,
     energy_kwh: registro.energy_kwh ?? registro.energia_kwh ?? null,
+    interval_energy_kwh: registro.interval_energy_kwh
+      ?? registro.consumo_intervalo_kwh
+      ?? null,
     energy_wh: registro.energy_wh ?? (
       registro.energia_kwh != null ? registro.energia_kwh * 1000 : null
     ),

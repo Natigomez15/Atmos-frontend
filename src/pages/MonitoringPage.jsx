@@ -65,18 +65,86 @@ function construirDatosGrafico(lecturas) {
     }))
 }
 
-function construirDatosPotenciaPorDia(lecturas) {
-  const porDia = {}
-  deduplicar(lecturas).forEach(l => {
-    if (!l.recorded_at || l.power_w == null) return
-    const dia = new Date(l.recorded_at).toLocaleDateString("es-PE", { day: "2-digit", month: "short" })
-    if (!porDia[dia]) porDia[dia] = { suma: 0, count: 0 }
-    porDia[dia].suma  += l.power_w
-    porDia[dia].count += 1
-  })
-  return Object.entries(porDia).map(([dia, { suma }]) => ({
-    tiempo: dia, potencia_w: Math.round(suma),
-  }))
+const MAX_INTERVALO_INTEGRACION_MS = 10 * 60 * 1000
+
+function numeroFinito(valor) {
+  if (valor == null || valor === "") return null
+  const numero = Number(valor)
+  return Number.isFinite(numero) ? numero : null
+}
+
+function agregarEnergiaPorDia(porDia, inicio, duracionMs, energiaKwh) {
+  if (duracionMs <= 0 || energiaKwh < 0) return
+
+  const fin = new Date(inicio.getTime() + duracionMs)
+  let cursor = new Date(inicio)
+  while (cursor < fin) {
+    const siguienteDia = new Date(cursor)
+    siguienteDia.setHours(24, 0, 0, 0)
+    const finTramo = siguienteDia < fin ? siguienteDia : fin
+    const proporcion = (finTramo - cursor) / duracionMs
+    const clave = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()).getTime()
+    porDia.set(clave, (porDia.get(clave) ?? 0) + energiaKwh * proporcion)
+    cursor = finTramo
+  }
+}
+
+function construirDatosEnergiaPorDia(lecturas) {
+  const ordenadas = deduplicar(lecturas)
+    .map(lectura => ({ lectura, fecha: new Date(lectura.recorded_at) }))
+    .filter(({ fecha }) => Number.isFinite(fecha.getTime()))
+    .sort((a, b) => a.fecha - b.fecha)
+  const porDia = new Map()
+
+  for (let i = 1; i < ordenadas.length; i += 1) {
+    const anterior = ordenadas[i - 1]
+    const actual = ordenadas[i]
+    const intervaloRealMs = actual.fecha - anterior.fecha
+    if (intervaloRealMs <= 0) continue
+
+    const consumoIntervalo = numeroFinito(
+      actual.lectura.interval_energy_kwh ?? actual.lectura.consumo_intervalo_kwh
+    )
+    const energiaAnterior = numeroFinito(
+      anterior.lectura.energy_kwh ?? anterior.lectura.energia_kwh
+    )
+    const energiaActual = numeroFinito(
+      actual.lectura.energy_kwh ?? actual.lectura.energia_kwh
+    )
+    const potenciaAnterior = numeroFinito(
+      anterior.lectura.power_w
+        ?? anterior.lectura.potencia_activa_w
+        ?? anterior.lectura.potencia_w
+    )
+    let energiaKwh = null
+
+    if (consumoIntervalo != null && consumoIntervalo >= 0) {
+      energiaKwh = consumoIntervalo
+    } else if (
+      intervaloRealMs <= MAX_INTERVALO_INTEGRACION_MS
+      && energiaAnterior != null
+      && energiaActual != null
+    ) {
+      energiaKwh = energiaActual >= energiaAnterior
+        ? energiaActual - energiaAnterior
+        : Math.max(0, energiaActual)
+    } else if (potenciaAnterior != null && potenciaAnterior >= 0) {
+      const horas = Math.min(intervaloRealMs, MAX_INTERVALO_INTEGRACION_MS) / 3_600_000
+      energiaKwh = potenciaAnterior * horas / 1000
+    }
+
+    if (energiaKwh == null) continue
+    const duracionAsignadaMs = Math.min(intervaloRealMs, MAX_INTERVALO_INTEGRACION_MS)
+    const inicioAsignado = new Date(actual.fecha.getTime() - duracionAsignadaMs)
+    agregarEnergiaPorDia(porDia, inicioAsignado, duracionAsignadaMs, energiaKwh)
+  }
+
+  return [...porDia.entries()]
+    .sort(([diaA], [diaB]) => diaA - diaB)
+    .map(([dia, energiaKwh]) => ({
+      tiempo: new Date(dia).toLocaleDateString("es-PE", { day: "2-digit", month: "short" }),
+      energia_kwh: Number(energiaKwh.toFixed(3)),
+    }))
 }
 
 // ── Sub-componentes ────────────────────────────────────────────────────────
@@ -264,17 +332,19 @@ export default function MonitoringPage() {
     return construirDatosGrafico([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
 
-  const datosPotenciaDia = useMemo(() => {
-    return construirDatosPotenciaPorDia([...(historico ?? []), ...lecturasEnVivo])
+  const datosEnergiaDia = useMemo(() => {
+    return construirDatosEnergiaPorDia([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
 
-  const valoresPotenciaDia = datosPotenciaDia.map(d => d.potencia_w).filter(Boolean)
-  const promedioPotencia   = valoresPotenciaDia.length
-    ? (valoresPotenciaDia.reduce((a, b) => a + b, 0) / valoresPotenciaDia.length).toFixed(0)
-    : "—"
-  const picoPotencia = valoresPotenciaDia.length
-    ? Math.max(...valoresPotenciaDia).toFixed(0)
-    : "—"
+  const valoresEnergiaDia = datosEnergiaDia
+    .map(d => d.energia_kwh)
+    .filter(valor => Number.isFinite(valor))
+  const promedioEnergia = valoresEnergiaDia.length
+    ? (valoresEnergiaDia.reduce((a, b) => a + b, 0) / valoresEnergiaDia.length).toFixed(2)
+    : null
+  const picoEnergia = valoresEnergiaDia.length
+    ? Math.max(...valoresEnergiaDia).toFixed(2)
+    : null
 
   const ultimasLecturas = useMemo(() => {
     return deduplicar([...(historico ?? []), ...lecturasEnVivo])
@@ -477,11 +547,11 @@ export default function MonitoringPage() {
                 <p className="text-xs text-muted mt-0.5">Por día</p>
               </div>
               <div className="flex gap-3 text-xs text-muted">
-                <span>Promedio: <strong className="text-dark">{promedioPotencia} W</strong></span>
-                <span>Pico: <strong className="text-dark">{picoPotencia} W</strong></span>
+                <span>Promedio: <strong className="text-dark">{promedioEnergia != null ? `${promedioEnergia} kWh` : "Sin datos"}</strong></span>
+                <span>Pico: <strong className="text-dark">{picoEnergia != null ? `${picoEnergia} kWh` : "Sin datos"}</strong></span>
               </div>
             </div>
-            <PowerChart datos={datosPotenciaDia} cargando={cargandoHistorico} />
+            <PowerChart datos={datosEnergiaDia} cargando={cargandoHistorico} />
           </div>
         </div>
 

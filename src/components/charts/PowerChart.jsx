@@ -13,7 +13,7 @@ function TooltipPersonalizado({ active, payload, label }) {
   return (
     <div className="bg-white shadow-md rounded-xl px-3 py-2 text-xs border border-gray-100">
       <p className="text-muted mb-0.5">{label}</p>
-      <p className="font-semibold text-dark">{payload[0].value?.toFixed(0)} W</p>
+      <p className="font-semibold text-dark">{payload[0].value?.toFixed(2)} kWh</p>
     </div>
   )
 }
@@ -21,6 +21,13 @@ function TooltipPersonalizado({ active, payload, label }) {
 export default function PowerChart({ datos = [], cargando = false }) {
   if (cargando) {
     return <div className="h-[180px] bg-gray-100 rounded-xl animate-pulse" />
+  }
+  if (!datos.length) {
+    return (
+      <div className="h-[180px] flex items-center justify-center text-sm text-muted">
+        Sin datos
+      </div>
+    )
   }
 
   return (
@@ -40,7 +47,7 @@ export default function PowerChart({ datos = [], cargando = false }) {
           tickLine={false}
         />
         <YAxis
-          unit=" W"
+          unit=" kWh"
           tick={{ fontSize: 11, fill: "#64748B" }}
           axisLine={false}
           tickLine={false}
@@ -49,7 +56,7 @@ export default function PowerChart({ datos = [], cargando = false }) {
         <Tooltip content={<TooltipPersonalizado />} />
         <Area
           type="monotone"
-          dataKey="potencia_w"
+          dataKey="energia_kwh"
           stroke="#2ABFBF"
           strokeWidth={2}
           fill="url(#gradientePotencia)"
