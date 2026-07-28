@@ -73,28 +73,30 @@ function numeroFinito(valor) {
   return Number.isFinite(numero) ? numero : null
 }
 
-function agregarEnergiaPorDia(porDia, inicio, duracionMs, energiaKwh) {
+function agregarEnergiaPorHora(porHora, inicio, duracionMs, energiaKwh) {
   if (duracionMs <= 0 || energiaKwh < 0) return
 
   const fin = new Date(inicio.getTime() + duracionMs)
   let cursor = new Date(inicio)
   while (cursor < fin) {
-    const siguienteDia = new Date(cursor)
-    siguienteDia.setHours(24, 0, 0, 0)
-    const finTramo = siguienteDia < fin ? siguienteDia : fin
+    const siguienteHora = new Date(cursor)
+    siguienteHora.setMinutes(60, 0, 0)
+    const finTramo = siguienteHora < fin ? siguienteHora : fin
     const proporcion = (finTramo - cursor) / duracionMs
-    const clave = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate()).getTime()
-    porDia.set(clave, (porDia.get(clave) ?? 0) + energiaKwh * proporcion)
+    const clave = new Date(
+      cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), cursor.getHours()
+    ).getTime()
+    porHora.set(clave, (porHora.get(clave) ?? 0) + energiaKwh * proporcion)
     cursor = finTramo
   }
 }
 
-function construirDatosEnergiaPorDia(lecturas) {
+function construirDatosEnergiaPorHora(lecturas) {
   const ordenadas = deduplicar(lecturas)
     .map(lectura => ({ lectura, fecha: new Date(lectura.recorded_at) }))
     .filter(({ fecha }) => Number.isFinite(fecha.getTime()))
     .sort((a, b) => a.fecha - b.fecha)
-  const porDia = new Map()
+  const porHora = new Map()
 
   for (let i = 1; i < ordenadas.length; i += 1) {
     const anterior = ordenadas[i - 1]
@@ -136,13 +138,16 @@ function construirDatosEnergiaPorDia(lecturas) {
     if (energiaKwh == null) continue
     const duracionAsignadaMs = Math.min(intervaloRealMs, MAX_INTERVALO_INTEGRACION_MS)
     const inicioAsignado = new Date(actual.fecha.getTime() - duracionAsignadaMs)
-    agregarEnergiaPorDia(porDia, inicioAsignado, duracionAsignadaMs, energiaKwh)
+    agregarEnergiaPorHora(porHora, inicioAsignado, duracionAsignadaMs, energiaKwh)
   }
 
-  return [...porDia.entries()]
-    .sort(([diaA], [diaB]) => diaA - diaB)
-    .map(([dia, energiaKwh]) => ({
-      tiempo: new Date(dia).toLocaleDateString("es-PE", { day: "2-digit", month: "short" }),
+  return [...porHora.entries()]
+    .sort(([horaA], [horaB]) => horaA - horaB)
+    .map(([hora, energiaKwh]) => ({
+      tiempo: new Date(hora).toLocaleTimeString("es-PA", { hour: "2-digit", minute: "2-digit", hour12: false }),
+      detalle: new Date(hora).toLocaleString("es-PA", {
+        day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+      }),
       energia_kwh: Number(energiaKwh.toFixed(3)),
     }))
 }
@@ -332,18 +337,18 @@ export default function MonitoringPage() {
     return construirDatosGrafico([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
 
-  const datosEnergiaDia = useMemo(() => {
-    return construirDatosEnergiaPorDia([...(historico ?? []), ...lecturasEnVivo])
+  const datosEnergiaHora = useMemo(() => {
+    return construirDatosEnergiaPorHora([...(historico ?? []), ...lecturasEnVivo])
   }, [historico, lecturasEnVivo])
 
-  const valoresEnergiaDia = datosEnergiaDia
+  const valoresEnergiaHora = datosEnergiaHora
     .map(d => d.energia_kwh)
     .filter(valor => Number.isFinite(valor))
-  const promedioEnergia = valoresEnergiaDia.length
-    ? (valoresEnergiaDia.reduce((a, b) => a + b, 0) / valoresEnergiaDia.length).toFixed(2)
+  const promedioEnergia = valoresEnergiaHora.length
+    ? (valoresEnergiaHora.reduce((a, b) => a + b, 0) / valoresEnergiaHora.length).toFixed(2)
     : null
-  const picoEnergia = valoresEnergiaDia.length
-    ? Math.max(...valoresEnergiaDia).toFixed(2)
+  const picoEnergia = valoresEnergiaHora.length
+    ? Math.max(...valoresEnergiaHora).toFixed(2)
     : null
 
   const ultimasLecturas = useMemo(() => {
@@ -544,14 +549,14 @@ export default function MonitoringPage() {
             <div className="flex items-start justify-between mb-4 flex-wrap gap-2">
               <div>
                 <p className="font-semibold text-dark">Consumo eléctrico</p>
-                <p className="text-xs text-muted mt-0.5">Por día</p>
+                <p className="text-xs text-muted mt-0.5">Por hora</p>
               </div>
               <div className="flex gap-3 text-xs text-muted">
                 <span>Promedio: <strong className="text-dark">{promedioEnergia != null ? `${promedioEnergia} kWh` : "Sin datos"}</strong></span>
                 <span>Pico: <strong className="text-dark">{picoEnergia != null ? `${picoEnergia} kWh` : "Sin datos"}</strong></span>
               </div>
             </div>
-            <PowerChart datos={datosEnergiaDia} cargando={cargandoHistorico} />
+            <PowerChart datos={datosEnergiaHora} cargando={cargandoHistorico} />
           </div>
         </div>
 

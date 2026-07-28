@@ -175,9 +175,21 @@ export default function DashboardPage() {
   const contextoTiempo = esNumero(metricas.ac_empty_hours_today)
     ? `${duracion(metricas.ac_empty_hours_today)} sin ocupación`
     : "Basado en el estado reportado por el equipo"
-  const tituloGrafica = grafica.mode === "energy"
-    ? `Energía diaria y ocupación · ${energia?.range_label ?? rango}`
-    : "Potencia y ocupación · últimas 24 horas"
+  const agrupacionGrafica = grafica.grouping
+    ?? (grafica.mode === "energy" ? "day" : null)
+  const etiquetaAgrupacion = {
+    hour: "Por hora",
+    day: "Por día",
+    week: "Por semana",
+  }[agrupacionGrafica]
+  const valoresGrafica = (grafica.points ?? [])
+    .map(punto => punto?.[grafica.value_key ?? "energia_kwh"])
+    .filter(esNumero)
+    .map(Number)
+  const promedioGrafica = valoresGrafica.length
+    ? valoresGrafica.reduce((total, valor) => total + valor, 0) / valoresGrafica.length
+    : null
+  const picoGrafica = valoresGrafica.length ? Math.max(...valoresGrafica) : null
 
   return (
     <PageWrapper>
@@ -269,10 +281,26 @@ export default function DashboardPage() {
           <section className="card min-w-0">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="section-title">{tituloGrafica}</h2>
+                <h2 className="section-title">
+                  {grafica.mode === "energy" ? "Consumo eléctrico" : "Potencia y ocupación"}
+                </h2>
                 <p className="caption mt-1">
-                  Azul: {grafica.mode === "energy" ? "energía" : "potencia"} · Turquesa claro: ocupación
+                  {etiquetaAgrupacion
+                    ? `${etiquetaAgrupacion} · ${energia?.range_label ?? rango}`
+                    : "Últimas 24 horas"
+                  } · Azul: {grafica.mode === "energy" ? "energía" : "potencia"} · Turquesa claro: ocupación
                 </p>
+                {grafica.mode === "energy" && (
+                  <p className="caption mt-1">
+                    Promedio: <strong className="text-dark">
+                      {promedioGrafica != null ? `${promedioGrafica.toFixed(2)} kWh` : "Sin datos"}
+                    </strong>
+                    {" · "}
+                    Pico: <strong className="text-dark">
+                      {picoGrafica != null ? `${picoGrafica.toFixed(2)} kWh` : "Sin datos"}
+                    </strong>
+                  </p>
+                )}
               </div>
               <div className="flex max-w-full gap-1 overflow-x-auto pb-1">
                 {RANGOS.map(opcion => (

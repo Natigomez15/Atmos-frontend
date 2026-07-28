@@ -2,6 +2,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Line,
+  Bar,
   Area,
   XAxis,
   YAxis,
@@ -17,7 +18,7 @@ function TooltipPersonalizado({ active, payload, label, unidad, valueKey }) {
 
   return (
     <div className="bg-white shadow-md rounded-xl px-3 py-2 text-xs border border-gray-100">
-      <p className="text-muted mb-1">{label}</p>
+      <p className="text-muted mb-1">{punto.tooltip_label ?? label}</p>
       <p className="font-semibold text-dark">
         {valor != null ? Number(valor).toFixed(unidad === "W" ? 0 : 1) : "—"} {unidad}
       </p>
@@ -35,11 +36,16 @@ export default function ConsumptionLineChart({
   valueKey = "potencia_w",
   mensajeVacio = "Aún no hay historial suficiente para graficar este rango.",
 }) {
+  const datosValidos = datos.filter(punto => {
+    const valor = punto?.[valueKey]
+    return valor != null && Number.isFinite(Number(valor))
+  })
+
   if (cargando) {
     return <div className="h-[280px] bg-gray-100 rounded-xl animate-pulse" />
   }
 
-  if (!datos?.length || datos.length < 2) {
+  if (!datosValidos.length) {
     return (
       <div className="flex min-h-28 items-center justify-center rounded-xl bg-gray-50/70 px-6 text-center">
         <div>
@@ -53,8 +59,12 @@ export default function ConsumptionLineChart({
   }
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <ComposedChart data={datos} margin={{ top: 12, right: 18, left: 6, bottom: 0 }}>
+    <div>
+      {datosValidos.length === 1 && (
+        <p className="caption mb-2 text-center">Cobertura parcial: solo hay un período con datos.</p>
+      )}
+      <ResponsiveContainer width="100%" height={280}>
+        <ComposedChart data={datos} margin={{ top: 12, right: 18, left: 6, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
         <XAxis
           dataKey="label"
@@ -91,17 +101,29 @@ export default function ConsumptionLineChart({
           activeDot={false}
           isAnimationActive={false}
         />
-        <Line
-          yAxisId="valor"
-          type="monotone"
-          dataKey={valueKey}
-          name={unidad === "W" ? "Potencia" : "Energía"}
-          stroke="#1B4F8A"
-          strokeWidth={2.5}
-          dot={false}
-          activeDot={{ r: 4, fill: "#1B4F8A" }}
-        />
-      </ComposedChart>
-    </ResponsiveContainer>
+          {unidad === "W" ? (
+            <Line
+              yAxisId="valor"
+              type="monotone"
+              dataKey={valueKey}
+              name="Potencia"
+              stroke="#1B4F8A"
+              strokeWidth={2.5}
+              dot={false}
+              activeDot={{ r: 4, fill: "#1B4F8A" }}
+            />
+          ) : (
+            <Bar
+              yAxisId="valor"
+              dataKey={valueKey}
+              name="Energía"
+              fill="#1B4F8A"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={34}
+            />
+          )}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
   )
 }
