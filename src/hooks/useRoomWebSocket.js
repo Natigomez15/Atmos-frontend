@@ -50,7 +50,22 @@ export function useRoomWebSocket(idSalon) {
       ws.onmessage = (evento) => {
         if (!activo || refWs.current !== ws) return
         const datos = JSON.parse(evento.data)
-        if (datos.type === "new_reading") setUltimaLectura(datos)
+        const tipo = datos.type ?? datos.tipo
+        if (!["new_reading", "nueva_lectura"].includes(tipo)) return
+        setUltimaLectura({
+          ...datos,
+          type: "new_reading",
+          recorded_at: datos.recorded_at ?? datos.registrado_en ?? datos.fecha_sync,
+          temperature: datos.temperature ?? datos.temperatura ?? datos.temperatura_ambiente,
+          outlet_temperature: datos.outlet_temperature
+            ?? datos.temperatura_salida_aire
+            ?? datos.temperatura_ac,
+          humidity: datos.humidity ?? datos.humedad,
+          presence: datos.presence ?? datos.presencia ?? datos.estado_ocupacion,
+          power_w: datos.power_w ?? datos.potencia_w ?? datos.potencia_activa_w,
+          ac_is_on: datos.ac_is_on ?? datos.ac_encendido ?? datos.aire_encendido_atmos,
+          setpoint_c: datos.setpoint_c ?? datos.setpoint_ac,
+        })
       }
 
       ws.onclose = (evento) => {

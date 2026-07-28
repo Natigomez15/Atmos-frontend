@@ -133,7 +133,7 @@ export const obtenerLecturasHistoricas = (salon, horas = 6, aire) =>
   cliente.get("/lecturas/registros", {
     params: {
       ...parametrosRegistro(salon, aire),
-      limite: 100,
+      horas,
     }
   }).then(res => {
     const desde = Date.now() - horas * 60 * 60 * 1000
